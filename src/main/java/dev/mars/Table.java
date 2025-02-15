@@ -1,9 +1,5 @@
 package dev.mars;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -68,7 +64,7 @@ public class Table {
         return true;
     }
 
-    private String inferType(String value) {
+    public String inferType(String value) {
         if (value.matches("-?\\d+")) {
             return "int";
         } else if (value.matches("-?\\d*\\.\\d+")) {
@@ -112,6 +108,10 @@ public class Table {
         return columnNames.size();
     }
 
+    public String getColumnName(int index) {
+        return columnNames.get(index);
+    }
+
     public void printTable() {
         for (int i = 0; i < columnNames.size(); i++) {
             System.out.print(columnNames.get(i) + "\t");
@@ -123,94 +123,6 @@ public class Table {
                 System.out.print(table.get(columnName).get(i) + "\t");
             }
             System.out.println();
-        }
-    }
-
-    public void writeToCSV(String fileName) {
-        try (FileWriter writer = new FileWriter(fileName)) {
-            // Write the header
-            for (int i = 0; i < columnNames.size(); i++) {
-                writer.append(columnNames.get(i));
-                if (i < columnNames.size() - 1) {
-                    writer.append(",");
-                }
-            }
-            writer.append("\n");
-
-            // Write the data rows
-            for (int i = 0; i < rowCount; i++) {
-                for (int j = 0; j < columnNames.size(); j++) {
-                    String columnName = columnNames.get(j);
-                    writer.append(table.get(columnName).get(i));
-                    if (j < columnNames.size() - 1) {
-                        writer.append(",");
-                    }
-                }
-                writer.append("\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void readFromCSV(String fileName, boolean hasHeaderRow) {
-        try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
-            String line;
-            String[] headers;
-            Map<Integer, String> columnNames = new HashMap<>();
-            Map<String, String> columnTypes = new HashMap<>();
-
-            if (hasHeaderRow) {
-                headers = br.readLine().split(",");
-                for (int i = 0; i < headers.length; i++) {
-                    columnNames.put(i, headers[i]);
-                }
-            } else {
-                line = br.readLine();
-                headers = line.split(",");
-                for (int i = 0; i < headers.length; i++) {
-                    columnNames.put(i, "Column" + (i + 1));
-                }
-                br.reset();
-            }
-
-            // Read the first data row to infer types
-            line = br.readLine();
-            if (line == null) {
-                throw new IOException("CSV file is empty or missing data rows");
-            }
-            String[] firstRowValues = line.split(",");
-            if (firstRowValues.length != headers.length) {
-                throw new IOException("CSV format error: number of values in the first row does not match the number of headers");
-            }
-            for (int i = 0; i < firstRowValues.length; i++) {
-                columnTypes.put(columnNames.get(i), inferType(firstRowValues[i]));
-            }
-            setColumnNames(columnNames, columnTypes);
-
-            // Add the first row
-            Map<String, String> firstRow = new HashMap<>();
-            for (int i = 0; i < firstRowValues.length; i++) {
-                firstRow.put(columnNames.get(i), firstRowValues[i]);
-            }
-            addRow(firstRow);
-
-            // Add the remaining rows
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                if (values.length != headers.length) {
-                    throw new IOException("CSV format error: number of values in a row does not match the number of headers");
-                }
-                Map<String, String> row = new HashMap<>();
-                for (int i = 0; i < values.length; i++) {
-                    row.put(columnNames.get(i), values[i]);
-                }
-                addRow(row);
-            }
-        } catch (IOException e) {
-            System.err.println("Error reading CSV file: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.err.println("Error processing CSV data: " + e.getMessage());
         }
     }
 }

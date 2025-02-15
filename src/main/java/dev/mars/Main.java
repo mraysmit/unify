@@ -41,12 +41,12 @@ public class Main {
         table.printTable();
 
         // Write the table data to a CSV file
-        table.writeToCSV("output.csv");
+        CSVUtils.writeToCSV(table, "output.csv");
 
-        var table2 = new Table();
+        Table table2 = new Table();
 
         // Read the table data from a CSV file
-        table2.readFromCSV("output.csv", false);
+        CSVUtils.readFromCSV(table2, "output.csv", false);
 
         // Print the table to verify the content
         table2.printTable();
