@@ -9,22 +9,33 @@ import java.util.Map;
 
 public class CSVUtils {
 
-    public static void writeToCSV(Table table, String fileName) {
+    public static void writeToCSV(Table table, String fileName, boolean withHeaderRow) {
         try (FileWriter writer = new FileWriter(fileName)) {
-            // Write the header
-            for (int i = 0; i < table.getColumnCount(); i++) {
-                writer.append(table.getColumnName(i));
-                if (i < table.getColumnCount() - 1) {
-                    writer.append(",");
+            // Write the header if withHeaderRow is true
+            if (withHeaderRow) {
+                for (int i = 0; i < table.getColumnCount(); i++) {
+                    String columnName = table.getColumnName(i);
+                    if (columnName == null || columnName.isEmpty()) {
+                        columnName = "Column" + (i + 1);
+                    }
+                    writer.append(columnName);
+                    if (i < table.getColumnCount() - 1) {
+                        writer.append(",");
+                    }
                 }
+                writer.append("\n");
             }
-            writer.append("\n");
 
             // Write the data rows
             for (int i = 0; i < table.getRowCount(); i++) {
                 for (int j = 0; j < table.getColumnCount(); j++) {
                     String columnName = table.getColumnName(j);
-                    writer.append(table.getValueAt(i, columnName));
+                    String value = table.getValueAt(i, columnName);
+                    if (value == null || value.isEmpty()) {
+                        writer.append("");
+                    } else {
+                        writer.append(value);
+                    }
                     if (j < table.getColumnCount() - 1) {
                         writer.append(",");
                     }
@@ -38,26 +49,35 @@ public class CSVUtils {
 
     public static void readFromCSV(Table table, String fileName, boolean hasHeaderRow) {
         String line;
-        String[] headers;
+        String[] headers = new String[0];
         Map<Integer, String> columnNames = new HashMap<>();
         Map<String, String> columnTypes = new HashMap<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             if (hasHeaderRow) {
-                headers = br.readLine().split(",");
-                for (int i = 0; i < headers.length; i++) {
-                    columnNames.put(i, headers[i]);
+                line = br.readLine();
+                if (line != null) {
+                    headers = line.split(",");
+                    for (int i = 0; i < headers.length; i++) {
+                        columnNames.put(i, headers[i]);
+                    }
                 }
             } else {
                 line = br.readLine();
-                headers = line.split(",");
-                for (int i = 0; i < headers.length; i++) {
-                    columnNames.put(i, "Column" + (i + 1));
+                if (line != null) {
+                    headers = line.split(",");
+                    for (int i = 0; i < headers.length; i++) {
+                        columnNames.put(i, "Column" + (i + 1));
+                    }
                 }
             }
         } catch (IOException e) {
             System.err.println("Error reading CSV file: " + e.getMessage());
             return;
+        }
+
+        if (headers.length == 0) {
+            return; // No data to process
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
@@ -69,7 +89,7 @@ public class CSVUtils {
             // Read the first data row to infer types
             line = br.readLine();
             if (line == null) {
-                throw new IOException("CSV file is empty or missing data rows");
+                return; // No data rows to process
             }
             String[] firstRowValues = line.split(",");
             if (firstRowValues.length != headers.length) {

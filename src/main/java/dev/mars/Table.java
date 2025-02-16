@@ -1,19 +1,19 @@
 package dev.mars;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Table {
-    private Map<String, Map<Integer, String>> table;
+    private List<Map<String, String>> rows;
     private Map<Integer, String> columnNames;
     private Map<String, String> columnTypes;
-    private int rowCount;
 
     public Table() {
-        this.table = new HashMap<>();
+        this.rows = new ArrayList<>();
         this.columnNames = new HashMap<>();
         this.columnTypes = new HashMap<>();
-        this.rowCount = 0;
     }
 
     public void setColumnNames(Map<Integer, String> columnNames, Map<String, String> columnTypes) {
@@ -32,12 +32,8 @@ public class Table {
             if (!isValidType(value, type)) {
                 throw new IllegalArgumentException("Invalid value type for column: " + columnName);
             }
-            if (!table.containsKey(columnName)) {
-                table.put(columnName, new HashMap<>());
-            }
-            table.get(columnName).put(rowCount, value);
         }
-        rowCount++;
+        rows.add(row);
     }
 
     private boolean isValidType(String value, String type) {
@@ -64,44 +60,26 @@ public class Table {
         return true;
     }
 
-    public String inferType(String value) {
-        if (value.matches("-?\\d+")) {
-            return "int";
-        } else if (value.matches("-?\\d*\\.\\d+")) {
-            return "double";
-        } else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
-            return "boolean";
-        } else {
-            return "string";
-        }
-    }
-
     public String getValueAt(int rowIndex, String columnName) {
-        if (rowIndex < 0 || rowIndex >= rowCount) {
+        if (rowIndex < 0 || rowIndex >= rows.size()) {
             throw new IndexOutOfBoundsException("Invalid row index");
         }
-        if (!table.containsKey(columnName)) {
-            throw new IllegalArgumentException("Invalid column name");
-        }
-        return table.get(columnName).get(rowIndex);
+        return rows.get(rowIndex).get(columnName);
     }
 
     public void setValueAt(int rowIndex, String columnName, String value) {
-        if (rowIndex < 0 || rowIndex >= rowCount) {
+        if (rowIndex < 0 || rowIndex >= rows.size()) {
             throw new IndexOutOfBoundsException("Invalid row index");
-        }
-        if (!table.containsKey(columnName)) {
-            throw new IllegalArgumentException("Invalid column name");
         }
         String type = columnTypes.get(columnName);
         if (!isValidType(value, type)) {
             throw new IllegalArgumentException("Invalid value type for column: " + columnName);
         }
-        table.get(columnName).put(rowIndex, value);
+        rows.get(rowIndex).put(columnName, value);
     }
 
     public int getRowCount() {
-        return rowCount;
+        return rows.size();
     }
 
     public int getColumnCount() {
@@ -117,12 +95,24 @@ public class Table {
             System.out.print(columnNames.get(i) + "\t");
         }
         System.out.println();
-        for (int i = 0; i < rowCount; i++) {
+        for (Map<String, String> row : rows) {
             for (int j = 0; j < columnNames.size(); j++) {
                 String columnName = columnNames.get(j);
-                System.out.print(table.get(columnName).get(i) + "\t");
+                System.out.print(row.get(columnName) + "\t");
             }
             System.out.println();
+        }
+    }
+
+    public String inferType(String value) {
+        if (value.matches("-?\\d+")) {
+            return "int";
+        } else if (value.matches("-?\\d*\\.\\d+")) {
+            return "double";
+        } else if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false")) {
+            return "boolean";
+        } else {
+            return "string";
         }
     }
 }

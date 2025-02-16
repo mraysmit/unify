@@ -41,7 +41,7 @@ public class Main {
         table.printTable();
 
         // Write the table data to a CSV file
-        CSVUtils.writeToCSV(table, "output.csv");
+        CSVUtils.writeToCSV(table, "output.csv", false);
 
         Table table2 = new Table();
 
