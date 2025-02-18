@@ -15,18 +15,11 @@ class TableTest {
     @BeforeEach
     void setUp() {
         table = new Table();
-
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "Name");
-        columnNames.put(1, "Age");
-        columnNames.put(2, "Occupation");
-
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("Name", "string");
-        columnTypes.put("Age", "int");
-        columnTypes.put("Occupation", "string");
-
-        table.setColumnNames(columnNames, columnTypes);
+        Map<String, String> columns = new HashMap<>();
+        columns.put("Name","string" );
+        columns.put("Age", "int");
+        columns.put("Occupation", "string");
+        table.setColumns(columns);
     }
 
     @Test

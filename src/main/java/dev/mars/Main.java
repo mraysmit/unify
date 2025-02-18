@@ -7,17 +7,12 @@ public class Main {
     public static void main(String[] args) {
         Table table = new Table();
 
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "Name");
-        columnNames.put(1, "Age");
-        columnNames.put(2, "Occupation");
+        Map<String, String> columnNames = new HashMap<>();
+        columnNames.put("Name", "string");
+        columnNames.put("Age", "int");
+        columnNames.put("Occupation", "string");
 
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("Name", "string");
-        columnTypes.put("Age", "int");
-        columnTypes.put("Occupation", "string");
-
-        table.setColumnNames(columnNames, columnTypes);
+        table.setColumns(columnNames);
 
         Map<String, String> row1 = new HashMap<>();
         row1.put("Name", "Alice");

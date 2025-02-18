@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,8 +51,9 @@ public class CSVUtils {
     public static void readFromCSV(Table table, String fileName, boolean hasHeaderRow) {
         String line;
         String[] headers = new String[0];
-        Map<Integer, String> columnNames = new HashMap<>();
-        Map<String, String> columnTypes = new HashMap<>();
+        Map<String, String> columnNames = new HashMap<>();
+        var colNames = new ArrayList<String>();
+        var colTypes = new ArrayList<String>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             if (hasHeaderRow) {
@@ -59,7 +61,7 @@ public class CSVUtils {
                 if (line != null) {
                     headers = line.split(",");
                     for (int i = 0; i < headers.length; i++) {
-                        columnNames.put(i, headers[i]);
+                        colNames.add(headers[i]);
                     }
                 }
             } else {
@@ -67,7 +69,7 @@ public class CSVUtils {
                 if (line != null) {
                     headers = line.split(",");
                     for (int i = 0; i < headers.length; i++) {
-                        columnNames.put(i, "Column" + (i + 1));
+                        colNames.add("Column" + (i + 1));
                     }
                 }
             }
@@ -96,14 +98,16 @@ public class CSVUtils {
                 throw new IOException("CSV format error: number of values in the first row does not match the number of headers");
             }
             for (int i = 0; i < firstRowValues.length; i++) {
-                columnTypes.put(columnNames.get(i), table.inferType(firstRowValues[i]));
+                var colName = colNames.get(i);
+                var colType = table.inferType(firstRowValues[i]);
+                columnNames.put(colName, colType);
             }
-            table.setColumnNames(columnNames, columnTypes);
+            table.setColumns(columnNames);
 
             // Add the first row
             Map<String, String> firstRow = new HashMap<>();
             for (int i = 0; i < firstRowValues.length; i++) {
-                firstRow.put(columnNames.get(i), firstRowValues[i]);
+                firstRow.put(colNames.get(i), firstRowValues[i]);
             }
             table.addRow(firstRow);
 

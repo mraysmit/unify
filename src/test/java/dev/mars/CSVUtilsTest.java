@@ -4,11 +4,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,6 +44,7 @@ class CSVUtilsTest {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
         }
     }
 
@@ -143,11 +142,9 @@ class CSVUtilsTest {
     void testSingleColumnTable() {
         final var withHeaders = true;
         Table singleColumnTable = new Table();
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "Name");
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("Name", "string");
-        singleColumnTable.setColumnNames(columnNames, columnTypes);
+        Map<String, String> columnNames = new HashMap<>();
+        columnNames.put("Name", "string");
+        singleColumnTable.setColumns(columnNames);
 
         Map<String, String> row1 = new HashMap<>();
         row1.put("Name", "Alice");
@@ -189,15 +186,11 @@ class CSVUtilsTest {
     @Test
     void testWriteToCSVWithMixedDataTypes() {
         Table mixedDataTable = new Table();
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "Name");
-        columnNames.put(1, "Age");
-        columnNames.put(2, "IsEmployed");
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("Name", "string");
-        columnTypes.put("Age", "int");
-        columnTypes.put("IsEmployed", "boolean");
-        mixedDataTable.setColumnNames(columnNames, columnTypes);
+        Map<String, String> columnNames = new HashMap<>();
+        columnNames.put("Name", "string");
+        columnNames.put("Age", "int");
+        columnNames.put("IsEmployed", "boolean");
+        mixedDataTable.setColumns(columnNames);
 
         Map<String, String> row = new HashMap<>();
         row.put("Name", "Alice");
@@ -217,43 +210,33 @@ class CSVUtilsTest {
 
     @Test
     void testWriteToCSVWithEmptyHeaderRow() {
-        Table emptyHeaderTable = new Table();
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "");
-        columnNames.put(1, "");
-        columnNames.put(2, "");
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("", "string");
-        emptyHeaderTable.setColumnNames(columnNames, columnTypes);
+        final var testFileName = "output.csv";
+        final var csvContent = "Alice,30,Engineer\n";
+        final var hasHeaderRow = false;
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(testFileName))) {
+            writer.write(csvContent);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
-        Map<String, String> row = new HashMap<>();
-        row.put("", "Value1");
-        row.put("", "Value2");
-        row.put("", "Value3");
-        emptyHeaderTable.addRow(row);
-
-        CSVUtils.writeToCSV(emptyHeaderTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true);
+        CSVUtils.readFromCSV(newTable, testFileName, hasHeaderRow);
 
         assertEquals(1, newTable.getRowCount());
-        assertEquals("Value1", newTable.getValueAt(0, "Column1"));
-        assertEquals("Value2", newTable.getValueAt(0, "Column2"));
-        assertEquals("Value3", newTable.getValueAt(0, "Column3"));
+        assertEquals("Alice", newTable.getValueAt(0, "Column1"));
+        assertEquals("30", newTable.getValueAt(0, "Column2"));
+        assertEquals("Engineer", newTable.getValueAt(0, "Column3"));
     }
 
     @Test
     void testWriteToCSVWithSpecialCharactersInHeader() {
         Table specialHeaderTable = new Table();
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "N@me");
-        columnNames.put(1, "A#e");
-        columnNames.put(2, "Occu*pation");
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("N@me", "string");
-        columnTypes.put("A#e", "int");
-        columnTypes.put("Occu*pation", "string");
-        specialHeaderTable.setColumnNames(columnNames, columnTypes);
+        Map<String, String> columnNames = new HashMap<>();
+        columnNames.put("N@me", "string");
+        columnNames.put("A#e", "int");
+        columnNames.put("Occu*pation", "string");
+
+        specialHeaderTable.setColumns(columnNames);
 
         Map<String, String> row = new HashMap<>();
         row.put("N@me", "Alice");
@@ -275,13 +258,10 @@ class CSVUtilsTest {
     @Test
     void testWriteToCSVWithLargeDataSet() {
         Table largeDataTable = new Table();
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "ID");
-        columnNames.put(1, "Value");
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("ID", "int");
-        columnTypes.put("Value", "string");
-        largeDataTable.setColumnNames(columnNames, columnTypes);
+        Map<String, String> columnNames = new HashMap<>();
+        columnNames.put("ID", "int");
+        columnNames.put("Value", "string");
+        largeDataTable.setColumns(columnNames);
 
         for (int i = 0; i < 1000; i++) {
             Map<String, String> row = new HashMap<>();
@@ -303,30 +283,33 @@ class CSVUtilsTest {
 
     private static Table getTableWithColumns() {
         Table newTable = new Table();
-
-        // Set column names and types before reading the data rows
-        Map<Integer, String> columnNames = new HashMap<>();
-        columnNames.put(0, "Name");
-        columnNames.put(1, "Age");
-        columnNames.put(2, "Occupation");
-
-        Map<String, String> columnTypes = new HashMap<>();
-        columnTypes.put("Name", "string");
-        columnTypes.put("Age", "int");
-        columnTypes.put("Occupation", "string");
-
-        newTable.setColumnNames(columnNames, columnTypes);
+        var columns = createColumns(Strings.of("Name", "Age", "Occupation"), Strings.of("string", "int", "string"));
+        newTable.setColumns(columns);
         return newTable;
     }
 
     private static Table getTableWithoutColumns() {
         Table newTable = new Table();
-
         // Do not set any Column names and types
-        Map<Integer, String> columnNames = new HashMap<>();
-        Map<String, String> columnTypes = new HashMap<>();
-
-        newTable.setColumnNames(columnNames, columnTypes);
+        Map<String, String> columnNames = new HashMap<>();
+        newTable.setColumns(columnNames);
         return newTable;
     }
+
+    private static Map<String, String> createColumns(String[] names, String[] types) {
+        Map<String, String> columnNames = new HashMap<>();
+
+        for (int i = 0; i < names.length; i++) {
+            columnNames.put(names[i], types[i]);
+        }
+
+        return columnNames;
+    }
+
+    private class Strings {
+        public static String[] of(String... values) {
+            return values;
+        }
+    }
+
 }

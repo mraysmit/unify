@@ -1,34 +1,44 @@
 package dev.mars;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Table {
     private List<Map<String, String>> rows;
-    private Map<Integer, String> columnNames;
-    private Map<String, String> columnTypes;
+    private Map<String, String> columns;
 
     public Table() {
         this.rows = new ArrayList<>();
-        this.columnNames = new HashMap<>();
-        this.columnTypes = new HashMap<>();
+        this.columns = new HashMap<>();
     }
 
-    public void setColumnNames(Map<Integer, String> columnNames, Map<String, String> columnTypes) {
-        this.columnNames = columnNames;
-        this.columnTypes = columnTypes;
+    public void setColumns(Map<String, String> columns) {
+    if (columns == null) {
+        throw new IllegalArgumentException("Columns map cannot be null");
     }
+    for (Map.Entry<String, String> entry : columns.entrySet()) {
+        String columnName = entry.getKey();
+        String columnType = entry.getValue();
+        if (columnName == null || columnName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Column names cannot be null or blank");
+        }
+        if (columnType == null || columnType.trim().isEmpty()) {
+            throw new IllegalArgumentException("Column types cannot be null or blank");
+        }
+    }
+    if (columns.size() != new HashSet<>(columns.keySet()).size()) {
+        throw new IllegalArgumentException("Duplicate column names are not allowed");
+    }
+    this.columns = columns;
+}
 
     public void addRow(Map<String, String> row) {
-        if (row.size() != columnNames.size()) {
+        if (row.size() != columns.size()) {
             throw new IllegalArgumentException("Row size does not match column count");
         }
         for (Map.Entry<String, String> entry : row.entrySet()) {
             String columnName = entry.getKey();
             String value = entry.getValue();
-            String type = columnTypes.get(columnName);
+            String type = columns.get(columnName);
             if (!isValidType(value, type)) {
                 throw new IllegalArgumentException("Invalid value type for column: " + columnName);
             }
@@ -71,7 +81,7 @@ public class Table {
         if (rowIndex < 0 || rowIndex >= rows.size()) {
             throw new IndexOutOfBoundsException("Invalid row index");
         }
-        String type = columnTypes.get(columnName);
+        String type = columns.get(columnName);
         if (!isValidType(value, type)) {
             throw new IllegalArgumentException("Invalid value type for column: " + columnName);
         }
@@ -83,21 +93,20 @@ public class Table {
     }
 
     public int getColumnCount() {
-        return columnNames.size();
+        return columns.size();
     }
 
     public String getColumnName(int index) {
-        return columnNames.get(index);
+        return (String) columns.keySet().toArray()[index];
     }
 
     public void printTable() {
-        for (int i = 0; i < columnNames.size(); i++) {
-            System.out.print(columnNames.get(i) + "\t");
+        for (String columnName : columns.keySet()) {
+            System.out.print(columnName + "\t");
         }
         System.out.println();
         for (Map<String, String> row : rows) {
-            for (int j = 0; j < columnNames.size(); j++) {
-                String columnName = columnNames.get(j);
+            for (String columnName : columns.keySet()) {
                 System.out.print(row.get(columnName) + "\t");
             }
             System.out.println();
