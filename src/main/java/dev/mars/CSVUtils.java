@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class CSVUtils {
@@ -48,10 +49,10 @@ public class CSVUtils {
         }
     }
 
-    public static void readFromCSV(Table table, String fileName, boolean hasHeaderRow) {
+    public static void readFromCSV(Table table, String fileName, boolean hasHeaderRow, boolean allowEmptyValues) {
         String line;
         String[] headers = new String[0];
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String, String>();
         var colNames = new ArrayList<String>();
         var colTypes = new ArrayList<String>();
 
@@ -93,7 +94,7 @@ public class CSVUtils {
             if (line == null) {
                 return; // No data rows to process
             }
-            String[] firstRowValues = line.split(",");
+            String[] firstRowValues = line.split(",", allowEmptyValues ? -1 : headers.length);
             if (firstRowValues.length != headers.length) {
                 throw new IOException("CSV format error: number of values in the first row does not match the number of headers");
             }
@@ -119,7 +120,7 @@ public class CSVUtils {
                 }
                 Map<String, String> row = new HashMap<>();
                 for (int i = 0; i < values.length; i++) {
-                    row.put(columnNames.get(i), values[i]);
+                    row.put(colNames.get(i), values[i]);
                 }
                 table.addRow(row);
             }

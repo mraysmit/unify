@@ -1,13 +1,14 @@
 package dev.mars;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
         Table table = new Table();
 
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String,String>();
         columnNames.put("Name", "string");
         columnNames.put("Age", "int");
         columnNames.put("Occupation", "string");
@@ -41,7 +42,7 @@ public class Main {
         Table table2 = new Table();
 
         // Read the table data from a CSV file
-        CSVUtils.readFromCSV(table2, "output.csv", false);
+        CSVUtils.readFromCSV(table2, "output.csv", false, false);
 
         // Print the table to verify the content
         table2.printTable();

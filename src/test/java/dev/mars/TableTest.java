@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,11 +16,11 @@ class TableTest {
     @BeforeEach
     void setUp() {
         table = new Table();
-        Map<String, String> columns = new HashMap<>();
-        columns.put("Name","string" );
-        columns.put("Age", "int");
-        columns.put("Occupation", "string");
-        table.setColumns(columns);
+        var columnNames = new LinkedHashMap<String, String>();
+        columnNames.put("Name","string" );
+        columnNames.put("Age", "int");
+        columnNames.put("Occupation", "string");
+        table.setColumns(columnNames);
     }
 
     @Test
