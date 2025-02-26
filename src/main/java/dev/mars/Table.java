@@ -5,13 +5,14 @@ import java.util.*;
 public class Table {
     private List<Map<String, String>> rows;
     private Map<String, String> columns;
+    private boolean createDefaultValue = true;
 
     public Table() {
         this.rows = new ArrayList<>();
         this.columns = new LinkedHashMap<>();
     }
 
-    public void setColumns(Map<String, String> columns) {
+    public void setColumns(LinkedHashMap<String, String> columns) {
     if (columns == null) {
         throw new IllegalArgumentException("Columns map cannot be null");
     }
@@ -33,6 +34,17 @@ public class Table {
 
     public void addRow(Map<String, String> row) {
         if (row.size() != columns.size()) {
+
+            if (createDefaultValue)  {
+                if (row.size() != columns.size()) {
+                    for (String column : columns.keySet()) {
+                        if (!row.containsKey(column)) {
+                            row.put(column, getDefaultValue(columns.get(column)));
+                        }
+                    }
+                }
+            }
+
             throw new IllegalArgumentException("Row size does not match column count");
         }
         for (Map.Entry<String, String> entry : row.entrySet()) {
@@ -69,6 +81,22 @@ public class Table {
         }
         return true;
     }
+
+
+    private String getDefaultValue(String type) {
+        switch (type) {
+            case "int":
+                return "0";
+            case "double":
+                return "0.0";
+            case "boolean":
+                return "false";
+            case "string":
+            default:
+                return "";
+        }
+    }
+
 
     public String getValueAt(int rowIndex, String columnName) {
         if (rowIndex < 0 || rowIndex >= rows.size()) {
