@@ -8,6 +8,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -297,7 +298,7 @@ class CSVUtilsTest {
     }
 
     private static Map<String, String> createColumns(String[] names, String[] types) {
-        Map<String, String> columnNames = new HashMap<>();
+        Map<String, String> columnNames = new LinkedHashMap<>();
 
         for (int i = 0; i < names.length; i++) {
             columnNames.put(names[i], types[i]);

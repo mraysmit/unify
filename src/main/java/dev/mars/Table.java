@@ -8,7 +8,7 @@ public class Table {
 
     public Table() {
         this.rows = new ArrayList<>();
-        this.columns = new HashMap<>();
+        this.columns = new LinkedHashMap<>();
     }
 
     public void setColumns(Map<String, String> columns) {
@@ -28,7 +28,7 @@ public class Table {
     if (columns.size() != new HashSet<>(columns.keySet()).size()) {
         throw new IllegalArgumentException("Duplicate column names are not allowed");
     }
-    this.columns = columns;
+    this.columns = new LinkedHashMap<>(columns);
 }
 
     public void addRow(Map<String, String> row) {
