@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,6 +13,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+// new
 class CSVUtilsTest {
 
     private Table table;
@@ -45,7 +45,6 @@ class CSVUtilsTest {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
 
@@ -82,7 +81,7 @@ class CSVUtilsTest {
         CSVUtils.writeToCSV(table, testFileName, false);
 
         final Table newTable = getTableWithoutColumns();
-        CSVUtils.readFromCSV(newTable, testFileName, false);
+        CSVUtils.readFromCSV(newTable, testFileName, false, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Column1"));
@@ -99,7 +98,7 @@ class CSVUtilsTest {
         Files.write(new File(testFileName).toPath(), csvContent.getBytes());
 
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true);
+        CSVUtils.readFromCSV(newTable, testFileName, true,false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
@@ -115,7 +114,7 @@ class CSVUtilsTest {
         Table emptyTable = new Table();
         CSVUtils.writeToCSV(emptyTable, testFileName, false);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, false);
+        CSVUtils.readFromCSV(newTable, testFileName, false, false);
         assertEquals(0, newTable.getRowCount());
     }
 
@@ -131,7 +130,7 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(singleRowTable, testFileName, withHeaders);
         Table newTable = getTableWithColumns();
-        CSVUtils.readFromCSV(newTable, testFileName, withHeaders);
+        CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Charlie", newTable.getValueAt(0, "Name"));
@@ -140,10 +139,10 @@ class CSVUtilsTest {
     }
 
     @Test
-    void testSingleColumnTable() {
+    void testSingleColumnTableWithHeader() {
         final var withHeaders = true;
         Table singleColumnTable = new Table();
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name", "string");
         singleColumnTable.setColumns(columnNames);
 
@@ -157,11 +156,35 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(singleColumnTable, testFileName, withHeaders);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, withHeaders);
+        CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
         assertEquals("Bob", newTable.getValueAt(1, "Name"));
+    }
+
+    @Test
+    void testSingleColumnWithoutHeader() {
+        Table singleColumnTable = new Table();
+        var columnNames = new LinkedHashMap<String, String>();
+        columnNames.put("Column1", "string");
+        singleColumnTable.setColumns(columnNames);
+
+        Map<String, String> row1 = new HashMap<>();
+        row1.put("Column1", "Alice");
+        singleColumnTable.addRow(row1);
+
+        Map<String, String> row2 = new HashMap<>();
+        row2.put("Column1", "Bob");
+        singleColumnTable.addRow(row2);
+
+        CSVUtils.writeToCSV(singleColumnTable, testFileName, false);
+        Table newTable = new Table();
+        CSVUtils.readFromCSV(newTable, testFileName, false, false);
+
+        assertEquals(2, newTable.getRowCount());
+        assertEquals("Alice", newTable.getValueAt(0, "Column1"));
+        assertEquals("Bob", newTable.getValueAt(1, "Column1"));
     }
 
     @Test
@@ -176,7 +199,7 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(specialCharTable, testFileName, withHeaders);
         Table newTable = getTableWithColumns();
-        CSVUtils.readFromCSV(newTable, testFileName, withHeaders);
+        CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("D@vid", newTable.getValueAt(0, "Name"));
@@ -187,7 +210,7 @@ class CSVUtilsTest {
     @Test
     void testWriteToCSVWithMixedDataTypes() {
         Table mixedDataTable = new Table();
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name", "string");
         columnNames.put("Age", "int");
         columnNames.put("IsEmployed", "boolean");
@@ -201,7 +224,7 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(mixedDataTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true);
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
@@ -221,7 +244,7 @@ class CSVUtilsTest {
         }
 
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, hasHeaderRow);
+        CSVUtils.readFromCSV(newTable, testFileName, hasHeaderRow, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Column1"));
@@ -232,7 +255,7 @@ class CSVUtilsTest {
     @Test
     void testWriteToCSVWithSpecialCharactersInHeader() {
         Table specialHeaderTable = new Table();
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("N@me", "string");
         columnNames.put("A#e", "int");
         columnNames.put("Occu*pation", "string");
@@ -247,7 +270,7 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(specialHeaderTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true);
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "N@me"));
@@ -255,11 +278,10 @@ class CSVUtilsTest {
         assertEquals("Engineer", newTable.getValueAt(0, "Occu*pation"));
     }
 
-
     @Test
     void testWriteToCSVWithLargeDataSet() {
         Table largeDataTable = new Table();
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("ID", "int");
         columnNames.put("Value", "string");
         largeDataTable.setColumns(columnNames);
@@ -273,13 +295,126 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(largeDataTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true);
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1000, newTable.getRowCount());
         for (int i = 0; i < 1000; i++) {
             assertEquals(String.valueOf(i), newTable.getValueAt(i, "ID"));
             assertEquals("Value" + i, newTable.getValueAt(i, "Value"));
         }
+    }
+
+    @Test
+    void testDuplicateColumnNames() {
+        Table duplicateColumnTable = new Table();
+        var columnNames = new LinkedHashMap<String, String>();
+        columnNames.put("Name", "string");
+        columnNames.put("Name", "string"); // Duplicate column name
+        duplicateColumnTable.setColumns(columnNames);
+
+        Map<String, String> row1 = new HashMap<>();
+        row1.put("Name", "Alice");
+        duplicateColumnTable.addRow(row1);
+
+        Map<String, String> row2 = new HashMap<>();
+        row2.put("Name", "Bob");
+        duplicateColumnTable.addRow(row2);
+
+        CSVUtils.writeToCSV(duplicateColumnTable, testFileName, true);
+        Table newTable = new Table();
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+
+        assertEquals(2, newTable.getRowCount());
+        assertEquals("Alice", newTable.getValueAt(0, "Name"));
+        assertEquals("Bob", newTable.getValueAt(1, "Name"));
+    }
+
+    @Test
+    void testNumericAndDecimalValues() {
+        Table numericTable = new Table();
+        var columnNames = new LinkedHashMap<String, String>();
+        columnNames.put("ID", "int");
+        columnNames.put("Value", "double");
+        numericTable.setColumns(columnNames);
+
+        Map<String, String> row1 = new HashMap<>();
+        row1.put("ID", "1");
+        row1.put("Value", "123.45");
+        numericTable.addRow(row1);
+
+        Map<String, String> row2 = new HashMap<>();
+        row2.put("ID", "2");
+        row2.put("Value", "678.90");
+        numericTable.addRow(row2);
+
+        CSVUtils.writeToCSV(numericTable, testFileName, true);
+        Table newTable = new Table();
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+
+        assertEquals(2, newTable.getRowCount());
+        assertEquals("1", newTable.getValueAt(0, "ID"));
+        assertEquals("123.45", newTable.getValueAt(0, "Value"));
+        assertEquals("2", newTable.getValueAt(1, "ID"));
+        assertEquals("678.90", newTable.getValueAt(1, "Value"));
+    }
+
+    @Test
+    void testManyColumns() {
+        Table manyColumnsTable = new Table();
+        var columnNames = new LinkedHashMap<String, String>();
+        for (int i = 1; i <= 100; i++) {
+            columnNames.put("Column" + i, "string");
+        }
+        manyColumnsTable.setColumns(columnNames);
+
+        Map<String, String> row = new HashMap<>();
+        for (int i = 1; i <= 100; i++) {
+            row.put("Column" + i, "Value" + i);
+        }
+        manyColumnsTable.addRow(row);
+
+        CSVUtils.writeToCSV(manyColumnsTable, testFileName, true);
+        Table newTable = new Table();
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+
+        assertEquals(1, newTable.getRowCount());
+        for (int i = 1; i <= 100; i++) {
+            assertEquals("Value" + i, newTable.getValueAt(0, "Column" + i));
+        }
+    }
+
+    @Test
+    void testEmptyValues() {
+        Table emptyValuesTable = new Table();
+        var columnNames = new LinkedHashMap<String, String>();
+        columnNames.put("Name", "string");
+        columnNames.put("Age", "int");
+        columnNames.put("Occupation", "string");
+        emptyValuesTable.setColumns(columnNames);
+
+        Map<String, String> row1 = new HashMap<>();
+        row1.put("Name", "Alice");
+        row1.put("Age", "30");
+        row1.put("Occupation", ""); // Empty value
+        emptyValuesTable.addRow(row1);
+
+        Map<String, String> row2 = new HashMap<>();
+        row2.put("Name", "");
+        row2.put("Age", "25");
+        row2.put("Occupation", "Designer");
+        emptyValuesTable.addRow(row2);
+
+        CSVUtils.writeToCSV(emptyValuesTable, testFileName, true);
+        Table newTable = new Table();
+        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+
+        assertEquals(2, newTable.getRowCount());
+        assertEquals("Alice", newTable.getValueAt(0, "Name"));
+        assertEquals("30", newTable.getValueAt(0, "Age"));
+        assertEquals("", newTable.getValueAt(0, "Occupation"));
+        assertEquals("", newTable.getValueAt(1, "Name"));
+        assertEquals("25", newTable.getValueAt(1, "Age"));
+        assertEquals("Designer", newTable.getValueAt(1, "Occupation"));
     }
 
     private static Table getTableWithColumns() {
@@ -292,13 +427,13 @@ class CSVUtilsTest {
     private static Table getTableWithoutColumns() {
         Table newTable = new Table();
         // Do not set any Column names and types
-        Map<String, String> columnNames = new HashMap<>();
+        var columnNames = new LinkedHashMap<String, String>();
         newTable.setColumns(columnNames);
         return newTable;
     }
 
-    private static Map<String, String> createColumns(String[] names, String[] types) {
-        Map<String, String> columnNames = new LinkedHashMap<>();
+    private static LinkedHashMap<String, String> createColumns(String[] names, String[] types) {
+        var columnNames = new LinkedHashMap<String, String>();
 
         for (int i = 0; i < names.length; i++) {
             columnNames.put(names[i], types[i]);
@@ -312,5 +447,4 @@ class CSVUtilsTest {
             return values;
         }
     }
-
 }
