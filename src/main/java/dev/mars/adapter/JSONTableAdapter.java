@@ -1,6 +1,6 @@
 package dev.mars.adapter;
 
-import dev.mars.Table;
+import dev.mars.model.ITable;
 import dev.mars.json.IJSONDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,14 +10,14 @@ import java.util.Map;
  * This adapter implements both the ITableAdapter interface and the IJSONDataSource interface.
  */
 public class JSONTableAdapter implements ITableAdapter, IJSONDataSource {
-    private final Table table;
+    private final ITable table;
 
     /**
      * Creates a new JSONTableAdapter for the specified Table instance.
      *
      * @param table the Table instance to adapt
      */
-    public JSONTableAdapter(Table table) {
+    public JSONTableAdapter(ITable table) {
         this.table = table;
     }
 
@@ -27,7 +27,7 @@ public class JSONTableAdapter implements ITableAdapter, IJSONDataSource {
      * @return the Table instance
      */
     @Override
-    public Table getTable() {
+    public ITable getTable() {
         return table;
     }
 

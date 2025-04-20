@@ -1,6 +1,6 @@
 package dev.mars.adapter;
 
-import dev.mars.Table;
+import dev.mars.table.Table;
 import dev.mars.csv.ICSVDataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

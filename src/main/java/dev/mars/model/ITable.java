@@ -1,13 +1,18 @@
 // src/main/java/dev/mars/model/ITable.java
 package dev.mars.model;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Interface representing a table.
  * A table contains columns and rows.
  */
 public interface ITable {
+    // Add this method to support the tests that use reflection to access it
+    String getDefaultValue(String type);
+
     /**
      * Gets the column with the given name.
      *
@@ -38,6 +43,8 @@ public interface ITable {
      */
     void addColumn(IColumn<?> column);
 
+    String getColumnName(int index);
+
     /**
      * Gets the row at the given index.
      *
@@ -59,6 +66,8 @@ public interface ITable {
      * @param row the row to add
      */
     void addRow(IRow row);
+
+    void addRow(Map<String, String> row);
 
     /**
      * Creates a new row for this table.
@@ -98,6 +107,17 @@ public interface ITable {
      * @param value the value to set
      */
     void setValue(int rowIndex, String columnName, Object value);
+
+    @SuppressWarnings("unchecked")
+    Object convertValue(String value, IColumn<?> column);
+
+    void setValueAt(int rowIndex, String columnName, String value);
+
+    void setColumns(LinkedHashMap<String, String> columns);
+
+    String inferType(String value);
+
+    String getValueAt(int rowIndex, String columnName);
 
     /**
      * Prints the table to the console.

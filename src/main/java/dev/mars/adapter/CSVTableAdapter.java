@@ -1,6 +1,7 @@
 package dev.mars.adapter;
 
-import dev.mars.Table;
+import dev.mars.model.ITable;
+import dev.mars.table.Table;
 import dev.mars.csv.ICSVDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,14 +11,14 @@ import java.util.Map;
  * This adapter implements both the ITableAdapter interface and the ICSVDataSource interface.
  */
 public class CSVTableAdapter implements ITableAdapter, ICSVDataSource {
-    private final Table table;
+    private final ITable table;
 
     /**
      * Creates a new CSVTableAdapter for the specified Table instance.
      *
      * @param table the Table instance to adapt
      */
-    public CSVTableAdapter(Table table) {
+    public CSVTableAdapter(ITable table) {
         this.table = table;
     }
 
@@ -27,7 +28,7 @@ public class CSVTableAdapter implements ITableAdapter, ICSVDataSource {
      * @return the Table instance
      */
     @Override
-    public Table getTable() {
+    public ITable getTable() {
         return table;
     }
 

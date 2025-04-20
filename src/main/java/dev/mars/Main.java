@@ -1,6 +1,11 @@
 package dev.mars;
 
 import dev.mars.csv.CSVUtils;
+import dev.mars.mapping.ColumnMapping;
+import dev.mars.mapping.MappingConfiguration;
+import dev.mars.model.ITable;
+import dev.mars.model.TableBuilder;
+import dev.mars.model.TableCore;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -8,7 +13,40 @@ import java.util.Map;
 
 public class Main {
     public static void main(String[] args) {
-        Table table = new Table();
+
+        // Create a mapping configuration for csv
+        MappingConfiguration config = new MappingConfiguration()
+                .setSourceLocation("persondata.csv")
+                .setOption("hasHeaderRow", true)
+                .setOption("allowEmptyValues", false)
+                .addColumnMapping(new ColumnMapping("Name", "FullName", "string"))
+                .addColumnMapping(new ColumnMapping("Age", "Age", "int"))
+                .addColumnMapping(new ColumnMapping("Salary", "Income", "double"));
+
+
+        // Create a table
+        TableBuilder tableBuilder = new TableBuilder();
+
+        ITable table1 = tableBuilder
+                .addStringColumn("Name")
+                .addIntColumn("Age")
+                .addDoubleColumn("Salary")
+                .setCreateDefaultValue(true)
+                .addRow("Name", "Alice", "Age", "30", "Salary", "50000")
+                .addRow("Name", "Bob", "Age", "25", "Salary", "60000")
+                .addRow("Name", "Charlie", "Age", "35", "Salary", "70000")
+                .build();
+
+
+
+        CSVUtils.writeToCSV((TableCore) table1, "persondata.csv", true);
+
+        // Read data from the CSV file using the mapping configuration
+        CSVUtils.readFromCSV((TableCore) table1, config);
+
+
+
+        TableCore table = new TableCore();
 
         var columnNames = new LinkedHashMap<String,String>();
         columnNames.put("Name", "string");
@@ -41,7 +79,7 @@ public class Main {
         // Write the table data to a CSV file
         CSVUtils.writeToCSV(table, "output.csv", false);
 
-        Table table2 = new Table();
+        TableCore table2 = new TableCore();
 
         // Read the table data from a CSV file
         CSVUtils.readFromCSV(table2, "output.csv", false, false);

@@ -1,6 +1,6 @@
 package dev.mars.xml;
 
-import dev.mars.Table;
+import dev.mars.table.Table;
 import dev.mars.adapter.XMLTableAdapter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

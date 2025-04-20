@@ -1,6 +1,6 @@
 package dev.mars.adapter;
 
-import dev.mars.Table;
+import dev.mars.model.ITable;
 
 /**
  * Interface for adapters that connect data sources to Table instances.
@@ -12,5 +12,5 @@ public interface ITableAdapter {
      *
      * @return the Table instance
      */
-    Table getTable();
+    ITable getTable();
 }

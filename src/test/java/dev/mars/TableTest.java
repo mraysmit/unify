@@ -1,5 +1,6 @@
 package dev.mars;
 
+import dev.mars.table.Table;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,8 +142,8 @@ class TableTest {
 
     @Test
     void testInferTypeDoubleEdgeCases() {
-        // Numbers with decimal point but no digits after should be strings according to current implementation
-        assertEquals("string", table.inferType("123."));
+        // Numbers with decimal point but no digits after should now be recognized as doubles
+        assertEquals("double", table.inferType("123."));
     }
 
     @ParameterizedTest
@@ -181,11 +182,47 @@ class TableTest {
         assertEquals("string", table.inferType("1+2"));
         assertEquals("string", table.inferType("1-2-3"));
 
-        // Test with whitespace
+        // Test with whitespace - now should handle whitespace correctly
         assertEquals("int", table.inferType("123")); // No whitespace
-        assertEquals("string", table.inferType(" 123")); // Leading whitespace
-        assertEquals("string", table.inferType("123 ")); // Trailing whitespace
-        assertEquals("string", table.inferType(" 123 ")); // Both leading and trailing whitespace
+        assertEquals("int", table.inferType(" 123")); // Leading whitespace
+        assertEquals("int", table.inferType("123 ")); // Trailing whitespace
+        assertEquals("int", table.inferType(" 123 ")); // Both leading and trailing whitespace
+    }
+
+    @Test
+    void testInferTypeImprovedPatterns() {
+        // Test scientific notation
+        assertEquals("double", table.inferType("1.23E10"));
+        assertEquals("double", table.inferType("1.23e10"));
+        assertEquals("double", table.inferType("1.23E+10"));
+        assertEquals("double", table.inferType("1.23e-10"));
+        assertEquals("double", table.inferType("-1.23E10"));
+        assertEquals("double", table.inferType("+1.23e10"));
+
+        // Test decimal point with no digits after
+        assertEquals("double", table.inferType("123."));
+
+        // Test decimal point with no digits before
+        assertEquals("double", table.inferType(".5"));
+        assertEquals("double", table.inferType("-.5"));
+        assertEquals("double", table.inferType("+.5"));
+
+        // Test special numeric values
+        assertEquals("double", table.inferType("NaN"));
+        assertEquals("double", table.inferType("Infinity"));
+        assertEquals("double", table.inferType("+Infinity"));
+        assertEquals("double", table.inferType("-Infinity"));
+        assertEquals("double", table.inferType("nan")); // Case insensitive
+        assertEquals("double", table.inferType("infinity")); // Case insensitive
+
+        // Test with whitespace
+        assertEquals("double", table.inferType(" 123.45 "));
+        assertEquals("boolean", table.inferType(" true "));
+
+        // Test with null and empty string
+        assertEquals("string", table.inferType(null));
+        assertEquals("string", table.inferType(""));
+        assertEquals("string", table.inferType("   "));
     }
 
     @Test

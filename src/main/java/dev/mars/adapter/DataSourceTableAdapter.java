@@ -1,6 +1,6 @@
 package dev.mars.adapter;
 
-import dev.mars.Table;
+import dev.mars.model.ITable;
 import dev.mars.datasource.IDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,14 +10,14 @@ import java.util.Map;
  * This adapter implements both the ITableAdapter interface and the IDataSource interface.
  */
 public class DataSourceTableAdapter implements ITableAdapter, IDataSource {
-    private final Table table;
+    private final ITable table;
 
     /**
      * Creates a new DataSourceTableAdapter for the specified Table instance.
      *
      * @param table the Table instance to adapt
      */
-    public DataSourceTableAdapter(Table table) {
+    public DataSourceTableAdapter(ITable table) {
         this.table = table;
     }
 
@@ -27,7 +27,7 @@ public class DataSourceTableAdapter implements ITableAdapter, IDataSource {
      * @return the Table instance
      */
     @Override
-    public Table getTable() {
+    public ITable getTable() {
         return table;
     }
 

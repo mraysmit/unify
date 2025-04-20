@@ -1,6 +1,6 @@
 package dev.mars.adapter;
 
-import dev.mars.Table;
+import dev.mars.model.ITable;
 import dev.mars.xml.IXMLDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,14 +10,14 @@ import java.util.Map;
  * This adapter implements both the ITableAdapter interface and the IXMLDataSource interface.
  */
 public class XMLTableAdapter implements ITableAdapter, IXMLDataSource {
-    private final Table table;
+    private final ITable table;
 
     /**
      * Creates a new XMLTableAdapter for the specified Table instance.
      *
      * @param table the Table instance to adapt
      */
-    public XMLTableAdapter(Table table) {
+    public XMLTableAdapter(ITable table) {
         this.table = table;
     }
 
@@ -27,7 +27,7 @@ public class XMLTableAdapter implements ITableAdapter, IXMLDataSource {
      * @return the Table instance
      */
     @Override
-    public Table getTable() {
+    public ITable getTable() {
         return table;
     }
 
