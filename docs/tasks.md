@@ -1,10 +1,10 @@
 # Java Table Improvement Tasks
 
 ## Architecture and Design
-1. [ ] Refactor Table class to use generics for type-safe operations instead of string-based type checking
-2. [ ] Implement a proper data model with separate classes for columns, rows, and cells
-3. [ ] Create interfaces for Table, Row, and Column to allow for different implementations
-4. [ ] Separate the CSV functionality into its own module with clear interfaces
+1. [x] Refactor Table class to use generics for type-safe operations instead of string-based type checking
+2. [x] Implement a proper data model with separate classes for columns, rows, and cells
+3. [x] Create interfaces for Table, Row, and Column to allow for different implementations
+4. [x] Separate the CSV functionality into its own module with clear interfaces
 5. [ ] Implement the Builder pattern for Table creation to improve readability and maintainability
 6. [ ] Add support for more data types (Date, Time, etc.)
 7. [ ] Implement a proper exception hierarchy for domain-specific errors
@@ -57,7 +57,7 @@
 40. [ ] Implement sorting capabilities
 41. [ ] Add support for data validation rules
 42. [ ] Implement data transformation capabilities
-43. [ ] Add support for different file formats (JSON, XML, etc.)
+43. [x] Add support for different file formats (JSON, XML, etc.)
 44. [ ] Implement data visualization capabilities
 45. [ ] Add support for database connectivity
 46. [ ] Implement data export to various formats

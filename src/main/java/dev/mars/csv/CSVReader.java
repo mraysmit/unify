@@ -1,55 +1,53 @@
-package dev.mars;
+package dev.mars.csv;
 
+import dev.mars.datasource.IDataSource;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class CSVUtils {
-
-    public static void writeToCSV(Table table, String fileName, boolean withHeaderRow) {
-        try (FileWriter writer = new FileWriter(fileName)) {
-            // Write the header if withHeaderRow is true
-            if (withHeaderRow) {
-                for (int i = 0; i < table.getColumnCount(); i++) {
-                    String columnName = table.getColumnName(i);
-                    if (columnName == null || columnName.isEmpty()) {
-                        columnName = "Column" + (i + 1);
-                    }
-                    writer.append(columnName);
-                    if (i < table.getColumnCount() - 1) {
-                        writer.append(",");
-                    }
-                }
-                writer.append("\n");
-            }
-
-            // Write the data rows
-            for (int i = 0; i < table.getRowCount(); i++) {
-                for (int j = 0; j < table.getColumnCount(); j++) {
-                    String columnName = table.getColumnName(j);
-                    String value = table.getValueAt(i, columnName);
-                    if (value == null || value.isEmpty()) {
-                        writer.append("");
-                    } else {
-                        writer.append(value);
-                    }
-                    if (j < table.getColumnCount() - 1) {
-                        writer.append(",");
-                    }
-                }
-                writer.append("\n");
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+/**
+ * Implementation of the ICSVReader interface for reading data from CSV files.
+ */
+public class CSVReader implements ICSVReader {
+    /**
+     * Reads data from a source into a data source.
+     * This method is part of the IDataReader interface.
+     *
+     * @param dataSource the data source to read into
+     * @param source the source to read from (e.g., file name, URL, etc.)
+     * @param options additional options for reading (implementation-specific)
+     */
+    @Override
+    public void readData(IDataSource dataSource, String source, Map<String, Object> options) {
+        // Convert the generic dataSource to a CSV-specific dataSource
+        ICSVDataSource csvDataSource;
+        if (dataSource instanceof ICSVDataSource) {
+            csvDataSource = (ICSVDataSource) dataSource;
+        } else {
+            throw new IllegalArgumentException("Data source must implement ICSVDataSource");
         }
-    }
 
-    public static void readFromCSV(Table table, String fileName, boolean hasHeaderRow, boolean allowEmptyValues) {
+        // Extract options
+        boolean hasHeaderRow = options != null && options.containsKey("hasHeaderRow") ? (Boolean) options.get("hasHeaderRow") : false;
+        boolean allowEmptyValues = options != null && options.containsKey("allowEmptyValues") ? (Boolean) options.get("allowEmptyValues") : false;
+
+        // Call the CSV-specific method
+        readFromCSV(csvDataSource, source, hasHeaderRow, allowEmptyValues);
+    }
+    /**
+     * Reads data from a CSV file into a data source.
+     *
+     * @param dataSource the data source to read into
+     * @param fileName the name of the file to read from
+     * @param hasHeaderRow whether the CSV file has a header row
+     * @param allowEmptyValues whether to allow empty values in the CSV file
+     */
+    @Override
+    public void readFromCSV(ICSVDataSource dataSource, String fileName, boolean hasHeaderRow, boolean allowEmptyValues) {
         String line;
         String[] headers = new String[0];
         var columnNames = new LinkedHashMap<String, String>();
@@ -100,17 +98,17 @@ public class CSVUtils {
             }
             for (int i = 0; i < firstRowValues.length; i++) {
                 var colName = colNames.get(i);
-                var colType = table.inferType(firstRowValues[i]);
+                var colType = dataSource.inferType(firstRowValues[i]);
                 columnNames.put(colName, colType);
             }
-            table.setColumns(columnNames);
+            dataSource.setColumns(columnNames);
 
             // Add the first row
             Map<String, String> firstRow = new HashMap<>();
             for (int i = 0; i < firstRowValues.length; i++) {
                 firstRow.put(colNames.get(i), firstRowValues[i]);
             }
-            table.addRow(firstRow);
+            dataSource.addRow(firstRow);
 
             // Add the remaining rows
             while ((line = br.readLine()) != null) {
@@ -122,7 +120,7 @@ public class CSVUtils {
                 for (int i = 0; i < values.length; i++) {
                     row.put(colNames.get(i), values[i]);
                 }
-                table.addRow(row);
+                dataSource.addRow(row);
             }
         } catch (IOException e) {
             System.err.println("Error reading CSV file: " + e.getMessage());

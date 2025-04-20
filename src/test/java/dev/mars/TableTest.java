@@ -255,7 +255,7 @@ class TableTest {
         assertEquals(expected, outputStream.toString());
     }
 
-    // Tests for edge cases in Table.setColumns()
+    // Tests for edge cases in TableCore.setColumns()
 
     @Test
     void testSetColumnsWithNullMap() {

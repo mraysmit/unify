@@ -1,5 +1,6 @@
-package dev.mars;
+package dev.mars.csv;
 
+import dev.mars.Table;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -129,7 +130,8 @@ class CSVUtilsTest {
         singleRowTable.addRow(row);
 
         CSVUtils.writeToCSV(singleRowTable, testFileName, withHeaders);
-        Table newTable = getTableWithColumns();
+        // get a blank table as we are reading with headers
+        Table newTable = new Table();
         CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(1, newTable.getRowCount());
@@ -198,7 +200,8 @@ class CSVUtilsTest {
         specialCharTable.addRow(row);
 
         CSVUtils.writeToCSV(specialCharTable, testFileName, withHeaders);
-        Table newTable = getTableWithColumns();
+        // get a blank table as we are reading with headers
+        Table newTable = new Table();
         CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(1, newTable.getRowCount());
@@ -406,7 +409,8 @@ class CSVUtilsTest {
 
         CSVUtils.writeToCSV(emptyValuesTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        // Read the file content to verify the empty values and allowEmptyValues
+        CSVUtils.readFromCSV(newTable, testFileName, true, true);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));

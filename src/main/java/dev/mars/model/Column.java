@@ -52,7 +52,9 @@ public class Column<T> implements IColumn<T> {
     @SuppressWarnings("unchecked")
     public T convertFromString(String value) {
         if (value == null || value.isEmpty()) {
-            return null;
+            if (type != String.class) {
+                return null; // Return null for non-string types
+            }
         }
 
         if (type == String.class) {

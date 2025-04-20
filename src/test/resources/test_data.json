@@ -1,0 +1,37 @@
+[
+  {
+    "Name": "Alice",
+    "Age": 30,
+    "Occupation": "Engineer",
+    "Salary": 75000.50,
+    "IsEmployed": true
+  },
+  {
+    "Name": "Bob",
+    "Age": 25,
+    "Occupation": "Designer",
+    "Salary": 65000.75,
+    "IsEmployed": true
+  },
+  {
+    "Name": "Charlie",
+    "Age": 35,
+    "Occupation": "Manager",
+    "Salary": 85000.25,
+    "IsEmployed": true
+  },
+  {
+    "Name": "David",
+    "Age": 28,
+    "Occupation": "Developer",
+    "Salary": 72000.00,
+    "IsEmployed": true
+  },
+  {
+    "Name": "Eve",
+    "Age": 22,
+    "Occupation": "Intern",
+    "Salary": 45000.00,
+    "IsEmployed": false
+  }
+]

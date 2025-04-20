@@ -9,7 +9,7 @@ public class TableBuilder {
     private final Map<String, IColumn<?>> columns = new LinkedHashMap<>();
 
     public TableBuilder() {
-        this.table = new Table();
+        this.table = new TableCore();
     }
 
     public TableBuilder addColumn(IColumn<?> column) {
@@ -34,7 +34,7 @@ public class TableBuilder {
     }
 
     public TableBuilder setCreateDefaultValue(boolean createDefaultValue) {
-        ((Table) table).setCreateDefaultValue(createDefaultValue);
+        ((TableCore) table).setCreateDefaultValue(createDefaultValue);
         return this;
     }
 

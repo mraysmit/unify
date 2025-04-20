@@ -1,4 +1,4 @@
-// src/main/java/dev/mars/model/Table.java
+// src/main/java/dev/mars/model/TableCore.java
 package dev.mars.model;
 
 import java.util.ArrayList;
@@ -6,15 +6,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Table implements ITable {
+public class TableCore implements ITable {
     private final Map<String, IColumn<?>> columns = new LinkedHashMap<>();
     private final List<IRow> rows = new ArrayList<>();
     private boolean createDefaultValue = true;
 
-    /**
-     * Creates a new empty table.
-     */
-    public Table() {
+    public TableCore() {
     }
 
     @Override
