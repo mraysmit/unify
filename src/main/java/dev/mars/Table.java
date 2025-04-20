@@ -35,9 +35,19 @@ public class Table {
         }
 
         // Clear existing columns and create a new table if needed
-        // (This is a limitation since we can't remove columns from the existing table)
         if (!table.getColumns().isEmpty()) {
-            // In a real implementation, you might want to create a new table here
+            // Create a new TableCore instance
+            ITable newTable = new TableCore();
+            ((TableCore) newTable).setCreateDefaultValue(((TableCore) table).isCreateDefaultValue());
+
+            // Replace the old table with the new one
+            try {
+                java.lang.reflect.Field tableField = Table.class.getDeclaredField("table");
+                tableField.setAccessible(true);
+                tableField.set(this, newTable);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to replace table", e);
+            }
         }
 
         // Add new columns
