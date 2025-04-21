@@ -1,5 +1,11 @@
 // src/main/java/dev/mars/model/TableBuilder.java
-package dev.mars.tablecore;
+package dev.mars.model;
+
+import dev.mars.model.ITable;
+import dev.mars.model.IColumn;
+import dev.mars.model.IRow;
+import dev.mars.model.TableCore;
+import dev.mars.model.ColumnFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;

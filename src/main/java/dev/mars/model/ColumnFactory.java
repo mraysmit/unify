@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/ColumnFactory.java
-package dev.mars.tablecore;
+package dev.mars.model;
 
 /**
  * Factory for creating columns of different types.

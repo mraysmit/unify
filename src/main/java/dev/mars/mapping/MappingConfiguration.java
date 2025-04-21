@@ -1,4 +1,4 @@
-package dev.mars.tablemapping;
+package dev.mars.mapping;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

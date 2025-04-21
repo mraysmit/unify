@@ -1,4 +1,4 @@
-package dev.mars.tablemapping;
+package dev.mars.mapping;
 
 /**
  * Mapping between a source column and a target column.

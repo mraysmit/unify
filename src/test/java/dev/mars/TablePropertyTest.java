@@ -1,19 +1,17 @@
 package dev.mars;
 
+
 import dev.mars.csv.CSVUtils;
 import dev.mars.table.Table;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.quicktheories.QuickTheory;
 import org.quicktheories.core.Gen;
-import org.quicktheories.generators.SourceDSL;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.quicktheories.QuickTheory.qt;
 import static org.quicktheories.generators.SourceDSL.*;
 

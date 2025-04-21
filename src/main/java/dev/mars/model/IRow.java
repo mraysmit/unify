@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/IRow.java
-package dev.mars.tablecore;
+package dev.mars.model;
 
 import java.util.List;
 

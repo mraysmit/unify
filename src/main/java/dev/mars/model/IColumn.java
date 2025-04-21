@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/IColumn.java
-package dev.mars.tablecore;
+package dev.mars.model;
 
 /**
  * Interface representing a column in a table.

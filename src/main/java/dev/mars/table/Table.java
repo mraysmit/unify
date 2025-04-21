@@ -1,6 +1,9 @@
 package dev.mars.table;
 
-import dev.mars.model.*;
+import dev.mars.model.ITable;
+import dev.mars.model.IColumn;
+import dev.mars.model.IRow;
+import dev.mars.model.TableCore;
 
 import java.util.LinkedHashMap;
 import java.util.List;

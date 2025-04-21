@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/TableCore.java
-package dev.mars.tablecore;
+package dev.mars.model;
 
 import java.util.*;
 
