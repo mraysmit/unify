@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/ColumnFactory.java
-package dev.mars.model;
+package dev.mars.tablecore;
 
 /**
  * Factory for creating columns of different types.
@@ -10,7 +10,7 @@ public class ColumnFactory {
         return new Column<>(name, String.class, "");
     }
 
-    public static IColumn<Integer> createIntColumn(String name) {
+    public static IColumn<Integer> createIntegerColumn(String name) {
         return new Column<>(name, Integer.class, 0);
     }
 
@@ -27,7 +27,7 @@ public class ColumnFactory {
             case "string":
                 return createStringColumn(name);
             case "int":
-                return createIntColumn(name);
+                return createIntegerColumn(name);
             case "double":
                 return createDoubleColumn(name);
             case "boolean":

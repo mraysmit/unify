@@ -1,4 +1,4 @@
-package dev.mars.model;
+package dev.mars.tablecore;
 
 /**
  * Interface representing a cell in a table.

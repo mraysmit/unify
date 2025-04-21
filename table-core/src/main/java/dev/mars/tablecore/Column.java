@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/Column.java
-package dev.mars.model;
+package dev.mars.tablecore;
 
 public class Column<T> implements IColumn<T> {
     private final String name;

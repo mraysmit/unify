@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/TableBuilder.java
-package dev.mars.model;
+package dev.mars.tablecore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class TableBuilder {
     }
 
     public TableBuilder addIntColumn(String name) {
-        return addColumn(ColumnFactory.createIntColumn(name));
+        return addColumn(ColumnFactory.createIntegerColumn(name));
     }
 
     public TableBuilder addDoubleColumn(String name) {

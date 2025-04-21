@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/ITable.java
-package dev.mars.model;
+package dev.mars.tablecore;
 
 import java.util.LinkedHashMap;
 import java.util.List;

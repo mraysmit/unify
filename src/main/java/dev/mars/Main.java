@@ -27,7 +27,7 @@ public class Main {
         // Create a table
         TableBuilder tableBuilder = new TableBuilder();
 
-        ITable table1 = tableBuilder
+        var tableIn = tableBuilder
                 .addStringColumn("Name")
                 .addIntColumn("Age")
                 .addDoubleColumn("Salary")
@@ -38,11 +38,12 @@ public class Main {
                 .build();
 
 
+        CSVUtils.writeToCSV(tableIn, "persondata.csv", true);
 
-        CSVUtils.writeToCSV((TableCore) table1, "persondata.csv", true);
+        var tableOut = new TableCore();
 
         // Read data from the CSV file using the mapping configuration
-        CSVUtils.readFromCSV((TableCore) table1, config);
+        CSVUtils.readFromCSV(tableOut, config);
 
 
 

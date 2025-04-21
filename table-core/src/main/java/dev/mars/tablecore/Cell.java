@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/Cell.java
-package dev.mars.model;
+package dev.mars.tablecore;
 
 public class Cell<T> implements ICell<T> {
     private T value;

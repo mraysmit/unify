@@ -1,4 +1,4 @@
-package dev.mars.mapping;
+package dev.mars.tablemapping;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -14,59 +14,29 @@ public class MappingConfiguration {
     private List<ColumnMapping> columnMappings;
     private Map<String, Object> options;
 
-    /**
-     * Creates a new MappingConfiguration.
-     */
     public MappingConfiguration() {
         this.columnMappings = new ArrayList<>();
         this.options = new LinkedHashMap<>();
     }
 
-    /**
-     * Gets the source location.
-     *
-     * @return the source location
-     */
     public String getSourceLocation() {
         return sourceLocation;
     }
 
-    /**
-     * Sets the source location.
-     *
-     * @param sourceLocation the source location
-     * @return this MappingConfiguration for method chaining
-     */
     public MappingConfiguration setSourceLocation(String sourceLocation) {
         this.sourceLocation = sourceLocation;
         return this;
     }
 
-    /**
-     * Gets the column mappings.
-     *
-     * @return the column mappings
-     */
     public List<ColumnMapping> getColumnMappings() {
         return columnMappings;
     }
 
-    /**
-     * Adds a column mapping.
-     *
-     * @param columnMapping the column mapping to add
-     * @return this MappingConfiguration for method chaining
-     */
     public MappingConfiguration addColumnMapping(ColumnMapping columnMapping) {
         this.columnMappings.add(columnMapping);
         return this;
     }
 
-    /**
-     * Gets the options.
-     *
-     * @return the options
-     */
     public Map<String, Object> getOptions() {
         return options;
     }

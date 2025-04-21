@@ -1,4 +1,4 @@
-package dev.mars.mapping;
+package dev.mars.tablemapping;
 
 /**
  * Mapping between a source column and a target column.
@@ -84,12 +84,6 @@ public class ColumnMapping {
         return defaultValue;
     }
 
-    /**
-     * Sets the default value for the column.
-     *
-     * @param defaultValue the default value
-     * @return this ColumnMapping for method chaining
-     */
     public ColumnMapping setDefaultValue(String defaultValue) {
         this.defaultValue = defaultValue;
         return this;

@@ -1,5 +1,5 @@
 // src/main/java/dev/mars/model/Row.java
-package dev.mars.model;
+package dev.mars.tablecore;
 
 import java.util.ArrayList;
 import java.util.HashMap;
