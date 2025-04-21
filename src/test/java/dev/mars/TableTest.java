@@ -72,9 +72,7 @@ class TableTest {
     @Test
     void testInvalidRowSize() throws Exception {
         // Set createDefaultValue to false to test the exception case
-        java.lang.reflect.Field createDefaultValueField = Table.class.getDeclaredField("createDefaultValue");
-        createDefaultValueField.setAccessible(true);
-        createDefaultValueField.set(table, false);
+        table.setCreateDefaultValue(false);
 
         Map<String, String> row = new HashMap<>();
         row.put("Name", "Alice");
@@ -102,7 +100,6 @@ class TableTest {
     }
 
     @Test
-
     void testGetValueAtInvalidColumnName() {
         final String invalidColumnName = "InvalidColumnName";
         Map<String, String> row = new HashMap<>();
@@ -349,45 +346,20 @@ class TableTest {
     }
 
     @Test
-    void testSetColumnsWithDuplicateColumnNames() {
-        // Since we can't easily create a map with duplicate keys (LinkedHashMap doesn't allow it),
-        // test this by reflection to verify the check is working correctly
+    void testSetColumnsWithDuplicateKeys() {
+        Table newTable = new Table();
+        LinkedHashMap<String, String> columns = new LinkedHashMap<>();
+        columns.put("Name", "string");
+        columns.put("Name", "int"); // Duplicate key overwrites the previous entry
 
-        // Create a map with keys that would be considered duplicates by the HashSet check
-        // use a custom class that overrides equals() and hashCode() to simulate duplicates
-        class DuplicateKey {
-            private final String value;
+        newTable.setColumns(columns);
 
-            DuplicateKey(String value) {
-                this.value = value;
-            }
+        // Verify the final state of the columns
+        assertEquals(1, newTable.getColumns().size());
+        //assertEquals("int", newTable.getColumn("Name").getType();
 
-            @Override
-            public boolean equals(Object o) {
-                return true; // Always equal, simulating duplicates
-            }
+        var x = newTable.getColumn("Name");;
 
-            @Override
-            public int hashCode() {
-                return 1; // Same hash code for all instances
-            }
-
-            @Override
-            public String toString() {
-                return value;
-            }
-        }
-
-        // Create a set with our custom keys
-        Set<DuplicateKey> keys = new HashSet<>();
-        keys.add(new DuplicateKey("Name"));
-        keys.add(new DuplicateKey("Age"));
-
-        // Verify that the set size is 1 (due to our equals() implementation)
-        assertEquals(1, keys.size());
-
-        // This confirms that the duplicate check in setColumns() would work
-        // if we could create a map with duplicate keys
     }
 
     @Test
@@ -450,24 +422,20 @@ class TableTest {
 
     @Test
     void testGetDefaultValue() throws Exception {
-        // Use reflection to access the private getDefaultValue method
-        java.lang.reflect.Method getDefaultValueMethod = Table.class.getDeclaredMethod("getDefaultValue", String.class);
-        getDefaultValueMethod.setAccessible(true);
+        table.setCreateDefaultValue(false);
 
         // Test default values for different types
-        assertEquals("0", getDefaultValueMethod.invoke(table, "int"));
-        assertEquals("0.0", getDefaultValueMethod.invoke(table, "double"));
-        assertEquals("false", getDefaultValueMethod.invoke(table, "boolean"));
-        assertEquals("", getDefaultValueMethod.invoke(table, "string"));
-        assertEquals("", getDefaultValueMethod.invoke(table, "unknown"));
+        assertEquals("0", table.getDefaultValue("int"));
+        assertEquals("0.0", table.getDefaultValue("double"));
+
+        assertEquals("false", table.getDefaultValue("boolean"));
+        assertEquals("", table.getDefaultValue("string"));
+        assertEquals("", table.getDefaultValue("unknown"));
     }
 
     @Test
     void testCreateDefaultValueTrue() throws Exception {
-        // Use reflection to ensure createDefaultValue is true
-        java.lang.reflect.Field createDefaultValueField = Table.class.getDeclaredField("createDefaultValue");
-        createDefaultValueField.setAccessible(true);
-        createDefaultValueField.set(table, true);
+        table.setCreateDefaultValue(true);
 
         // Create a row with a missing column
         Map<String, String> row = new HashMap<>();
@@ -490,10 +458,7 @@ class TableTest {
 
     @Test
     void testCreateDefaultValueFalse() throws Exception {
-        // Use reflection to set createDefaultValue to false
-        java.lang.reflect.Field createDefaultValueField = Table.class.getDeclaredField("createDefaultValue");
-        createDefaultValueField.setAccessible(true);
-        createDefaultValueField.set(table, false);
+        table.setCreateDefaultValue(false);
 
         // Create a row with a missing column
         Map<String, String> row = new HashMap<>();

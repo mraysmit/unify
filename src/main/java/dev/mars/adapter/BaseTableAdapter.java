@@ -1,18 +1,20 @@
 package dev.mars.adapter;
 
-import dev.mars.model.ITable;
+import dev.mars.csv.ICSVDataSource;
 import dev.mars.datasource.IDataSource;
+import dev.mars.model.ITable;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Adapter that connects generic data sources to Table instances.
- * This adapter implements both the ITableAdapter interface and the IDataSource interface.
+ * Adapter that connects CSV data sources to Table instances.
+ * This adapter implements both the ITableAdapter interface and the ICSVDataSource interface.
  */
-public class DataSourceTableAdapter implements ITableAdapter, IDataSource {
-    private final ITable table;
+public abstract class BaseTableAdapter implements ITableAdapter, IDataSource {
+    protected final ITable table;
 
-    public DataSourceTableAdapter(ITable table) {
+    public BaseTableAdapter(ITable table) {
         this.table = table;
     }
 

@@ -18,7 +18,7 @@ import static org.quicktheories.QuickTheory.qt;
 import static org.quicktheories.generators.SourceDSL.*;
 
 /**
- * Property-based tests for the Table class.
+ * Property-based tests for the Table class using QuickTheory
  * These tests verify that certain properties hold true for a wide range of inputs.
  */
 public class TablePropertyTest {

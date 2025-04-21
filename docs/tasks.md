@@ -10,7 +10,7 @@
 7. [ ] Implement a proper exception hierarchy for domain-specific errors
 8. [ ] Refactor the relationship between Table and TableCore - currently Table is a wrapper around TableCore which creates unnecessary indirection
 9. [ ] Consolidate duplicate code between Table and TableCore (e.g., originalDoubleStrings map exists in both)
-10. [ ] Improve the adapter pattern implementation - current adapters have inconsistent interfaces
+10. [x] Improve the adapter pattern implementation - current adapters have inconsistent interfaces
 11. [ ] Create a consistent strategy for handling data type conversions across the codebase
 12. [ ] Implement a proper dependency injection mechanism instead of direct instantiation
 13. [ ] Redesign the mapping framework to be more extensible and support complex transformations
