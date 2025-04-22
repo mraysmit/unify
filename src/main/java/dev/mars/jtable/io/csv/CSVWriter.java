@@ -44,17 +44,7 @@ public class CSVWriter implements ICSVWriter {
         }
 
         // Get the file path from the connection
-        String destination;
-        if (fileConnection.isRemote()) {
-            destination = fileConnection.getLocation();
-        } else {
-            Object rawConnection = fileConnection.getRawConnection();
-            if (rawConnection instanceof Path) {
-                destination = ((Path) rawConnection).toString();
-            } else {
-                throw new IllegalArgumentException("Cannot determine file path from connection");
-            }
-        }
+        String destination = fileConnection.getLocation();
 
         // Call the CSV-specific method
         writeToCSV(csvDataSource, destination, withHeaderRow);

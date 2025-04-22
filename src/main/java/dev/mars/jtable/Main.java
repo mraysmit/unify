@@ -1,6 +1,6 @@
 package dev.mars.jtable;
 
-import dev.mars.jtable.io.csv.CSVUtils;
+import dev.mars.jtable.io.csv.CSVProcessor;
 import dev.mars.jtable.io.mapping.ColumnMapping;
 import dev.mars.jtable.io.mapping.MappingConfiguration;
 import dev.mars.jtable.core.table.TableBuilder;
@@ -37,12 +37,12 @@ public class Main {
                 .build();
 
 
-        CSVUtils.writeToCSV(tableIn, "persondata.csv", true);
+        CSVProcessor.writeToCSV(tableIn, "persondata.csv", true);
 
         var tableOut = new TableCore();
 
         // Read data from the CSV file using the mapping configuration
-        CSVUtils.readFromCSV(tableOut, config);
+        CSVProcessor.readFromCSV(tableOut, config);
 
 
 
@@ -77,12 +77,12 @@ public class Main {
         table.printTable();
 
         // Write the table data to a CSV file
-        CSVUtils.writeToCSV(table, "output.csv", false);
+        CSVProcessor.writeToCSV(table, "output.csv", false);
 
         TableCore table2 = new TableCore();
 
         // Read the table data from a CSV file
-        CSVUtils.readFromCSV(table2, "output.csv", false, false);
+        CSVProcessor.readFromCSV(table2, "output.csv", false, false);
 
         // Print the table to verify the content
         table2.printTable();

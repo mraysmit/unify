@@ -65,7 +65,7 @@ public class CSVMappingIntegrationTest {
                 .build();
 
         // Write the table to a CSV file
-        CSVUtils.writeToCSV(sourceTable, TEST_CSV_FILE, true);
+        CSVProcessor.writeToCSV(sourceTable, TEST_CSV_FILE, true);
 
         // Verify the CSV file was created
         File csvFile = new File(TEST_CSV_FILE);
@@ -79,7 +79,7 @@ public class CSVMappingIntegrationTest {
         
         // Read the CSV file back into a new table
         TableCore targetTable = new TableCore();
-        CSVUtils.readFromCSV(targetTable, TEST_CSV_FILE, true, false);
+        CSVProcessor.readFromCSV(targetTable, TEST_CSV_FILE, true, false);
         
         // Validate the table content
         assertEquals(3, targetTable.getRowCount(), "Table should have 3 rows");
@@ -104,7 +104,7 @@ public class CSVMappingIntegrationTest {
                 .build();
 
         // Write the table to a CSV file
-        CSVUtils.writeToCSV(sourceTable, TEST_CSV_FILE, true);
+        CSVProcessor.writeToCSV(sourceTable, TEST_CSV_FILE, true);
 
         // Verify the CSV file was created
         File csvFile = new File(TEST_CSV_FILE);
@@ -121,7 +121,7 @@ public class CSVMappingIntegrationTest {
         
         // Read the CSV file using the mapping configuration
         TableCore mappedTable = new TableCore();
-        CSVUtils.readFromCSV(mappedTable, config);
+        CSVProcessor.readFromCSV(mappedTable, config);
         
         // Validate the mapped table content
         assertEquals(3, mappedTable.getRowCount(), "Mapped table should have 3 rows");
@@ -131,7 +131,7 @@ public class CSVMappingIntegrationTest {
         assertEquals("50000.0", mappedTable.getValueAt(0, "Income"), "First row, Income column should match");
         
         // Write the mapped table to a new CSV file
-        CSVUtils.writeToCSV(mappedTable, TEST_MAPPED_CSV_FILE, true);
+        CSVProcessor.writeToCSV(mappedTable, TEST_MAPPED_CSV_FILE, true);
         
         // Verify the mapped CSV file was created
         File mappedCsvFile = new File(TEST_MAPPED_CSV_FILE);
@@ -161,7 +161,7 @@ public class CSVMappingIntegrationTest {
                 .build();
 
         // Write the table to a CSV file
-        CSVUtils.writeToCSV(sourceTable, TEST_CSV_FILE, true);
+        CSVProcessor.writeToCSV(sourceTable, TEST_CSV_FILE, true);
         
         // Create a mapping configuration with column reordering and renaming
         MappingConfiguration config = new MappingConfiguration()
@@ -180,7 +180,7 @@ public class CSVMappingIntegrationTest {
         
         // Read the CSV file using the mapping configuration
         TableCore mappedTable = new TableCore();
-        CSVUtils.readFromCSV(mappedTable, config);
+        CSVProcessor.readFromCSV(mappedTable, config);
         
         // Validate the mapped table content
         assertEquals(3, mappedTable.getRowCount(), "Mapped table should have 3 rows");
@@ -194,7 +194,7 @@ public class CSVMappingIntegrationTest {
         assertEquals("55000.0", mappedTable.getValueAt(0, "AnnualIncome"), "First row, AnnualIncome column should match");
         
         // Write the mapped table to a new CSV file
-        CSVUtils.writeToCSV(mappedTable, TEST_MAPPED_CSV_FILE, true);
+        CSVProcessor.writeToCSV(mappedTable, TEST_MAPPED_CSV_FILE, true);
         
         // Read the content of the mapped CSV file to validate it
         List<String> lines = Files.readAllLines(Paths.get(TEST_MAPPED_CSV_FILE));
@@ -219,7 +219,7 @@ public class CSVMappingIntegrationTest {
                 .build();
 
         // Write the table to a CSV file
-        CSVUtils.writeToCSV(sourceTable, TEST_CSV_FILE, true);
+        CSVProcessor.writeToCSV(sourceTable, TEST_CSV_FILE, true);
         
         // Create a mapping configuration using column indices instead of names
         MappingConfiguration config = new MappingConfiguration()
@@ -233,7 +233,7 @@ public class CSVMappingIntegrationTest {
         
         // Read the CSV file using the mapping configuration
         TableCore mappedTable = new TableCore();
-        CSVUtils.readFromCSV(mappedTable, config);
+        CSVProcessor.readFromCSV(mappedTable, config);
         
         // Validate the mapped table content
         assertEquals(3, mappedTable.getRowCount(), "Mapped table should have 3 rows");
@@ -246,7 +246,7 @@ public class CSVMappingIntegrationTest {
         assertEquals("2401.0", mappedTable.getValueAt(0, "SubTotal"), "First row, SubTotal column should match");
         
         // Write the mapped table to a new CSV file
-        CSVUtils.writeToCSV(mappedTable, TEST_MAPPED_CSV_FILE, true);
+        CSVProcessor.writeToCSV(mappedTable, TEST_MAPPED_CSV_FILE, true);
         
         // Read the content of the mapped CSV file to validate it
         List<String> lines = Files.readAllLines(Paths.get(TEST_MAPPED_CSV_FILE));
@@ -269,7 +269,7 @@ public class CSVMappingIntegrationTest {
                 .build();
 
         // Write the table to a CSV file
-        CSVUtils.writeToCSV(sourceTable, TEST_CSV_FILE, true);
+        CSVProcessor.writeToCSV(sourceTable, TEST_CSV_FILE, true);
         
         // Create a mapping configuration with default values
         MappingConfiguration config = new MappingConfiguration()
@@ -282,7 +282,7 @@ public class CSVMappingIntegrationTest {
         
         // Read the CSV file using the mapping configuration
         TableCore mappedTable = new TableCore();
-        CSVUtils.readFromCSV(mappedTable, config);
+        CSVProcessor.readFromCSV(mappedTable, config);
         
         // Validate the mapped table content
         assertEquals(3, mappedTable.getRowCount(), "Mapped table should have 3 rows");

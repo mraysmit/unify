@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // new
-class CSVUtilsTest {
+class CSVProcessorTest {
 
     private ITable table;
     private final String testFileName = "test.csv";
@@ -52,7 +52,7 @@ class CSVUtilsTest {
 
     @Test
     void testWriteToCSVWithHeaderRow() {
-        CSVUtils.writeToCSV(table, testFileName, true);
+        CSVProcessor.writeToCSV(table, testFileName, true);
         File file = new File(testFileName);
         assertTrue(file.exists());
 
@@ -73,17 +73,17 @@ class CSVUtilsTest {
 
     @Test
     void testWriteToCSV() {
-        CSVUtils.writeToCSV(table, testFileName, false);
+        CSVProcessor.writeToCSV(table, testFileName, false);
         File file = new File(testFileName);
         assertTrue(file.exists());
     }
 
     @Test
     void testReadFromCSVWithoutHeader() {
-        CSVUtils.writeToCSV(table, testFileName, false);
+        CSVProcessor.writeToCSV(table, testFileName, false);
 
         final Table newTable = getTableWithoutColumns();
-        CSVUtils.readFromCSV(newTable, testFileName, false, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, false, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Column1"));
@@ -100,7 +100,7 @@ class CSVUtilsTest {
         Files.write(new File(testFileName).toPath(), csvContent.getBytes());
 
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true,false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true,false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
@@ -114,9 +114,9 @@ class CSVUtilsTest {
     @Test
     void testEmptyTable() {
         Table emptyTable = new Table();
-        CSVUtils.writeToCSV(emptyTable, testFileName, false);
+        CSVProcessor.writeToCSV(emptyTable, testFileName, false);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, false, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, false, false);
         assertEquals(0, newTable.getRowCount());
     }
 
@@ -130,10 +130,10 @@ class CSVUtilsTest {
         row.put("Occupation", "Artist");
         singleRowTable.addRow(row);
 
-        CSVUtils.writeToCSV(singleRowTable, testFileName, withHeaders);
+        CSVProcessor.writeToCSV(singleRowTable, testFileName, withHeaders);
         // get a blank table as we are reading with headers
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Charlie", newTable.getValueAt(0, "Name"));
@@ -157,9 +157,9 @@ class CSVUtilsTest {
         row2.put("Name", "Bob");
         singleColumnTable.addRow(row2);
 
-        CSVUtils.writeToCSV(singleColumnTable, testFileName, withHeaders);
+        CSVProcessor.writeToCSV(singleColumnTable, testFileName, withHeaders);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
@@ -181,9 +181,9 @@ class CSVUtilsTest {
         row2.put("Column1", "Bob");
         singleColumnTable.addRow(row2);
 
-        CSVUtils.writeToCSV(singleColumnTable, testFileName, false);
+        CSVProcessor.writeToCSV(singleColumnTable, testFileName, false);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, false, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, false, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Column1"));
@@ -200,10 +200,10 @@ class CSVUtilsTest {
         row.put("Occupation", "D&veloper");
         specialCharTable.addRow(row);
 
-        CSVUtils.writeToCSV(specialCharTable, testFileName, withHeaders);
+        CSVProcessor.writeToCSV(specialCharTable, testFileName, withHeaders);
         // get a blank table as we are reading with headers
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, withHeaders, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, withHeaders, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("D@vid", newTable.getValueAt(0, "Name"));
@@ -226,9 +226,9 @@ class CSVUtilsTest {
         row.put("IsEmployed", "true");
         mixedDataTable.addRow(row);
 
-        CSVUtils.writeToCSV(mixedDataTable, testFileName, true);
+        CSVProcessor.writeToCSV(mixedDataTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
@@ -248,7 +248,7 @@ class CSVUtilsTest {
         }
 
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, hasHeaderRow, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, hasHeaderRow, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Column1"));
@@ -272,9 +272,9 @@ class CSVUtilsTest {
         row.put("Occu*pation", "Engineer");
         specialHeaderTable.addRow(row);
 
-        CSVUtils.writeToCSV(specialHeaderTable, testFileName, true);
+        CSVProcessor.writeToCSV(specialHeaderTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "N@me"));
@@ -297,9 +297,9 @@ class CSVUtilsTest {
             largeDataTable.addRow(row);
         }
 
-        CSVUtils.writeToCSV(largeDataTable, testFileName, true);
+        CSVProcessor.writeToCSV(largeDataTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1000, newTable.getRowCount());
         for (int i = 0; i < 1000; i++) {
@@ -324,9 +324,9 @@ class CSVUtilsTest {
         row2.put("Name", "Bob");
         duplicateColumnTable.addRow(row2);
 
-        CSVUtils.writeToCSV(duplicateColumnTable, testFileName, true);
+        CSVProcessor.writeToCSV(duplicateColumnTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));
@@ -351,9 +351,9 @@ class CSVUtilsTest {
         row2.put("Value", "678.90");
         numericTable.addRow(row2);
 
-        CSVUtils.writeToCSV(numericTable, testFileName, true);
+        CSVProcessor.writeToCSV(numericTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("1", newTable.getValueAt(0, "ID"));
@@ -377,9 +377,9 @@ class CSVUtilsTest {
         }
         manyColumnsTable.addRow(row);
 
-        CSVUtils.writeToCSV(manyColumnsTable, testFileName, true);
+        CSVProcessor.writeToCSV(manyColumnsTable, testFileName, true);
         Table newTable = new Table();
-        CSVUtils.readFromCSV(newTable, testFileName, true, false);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, false);
 
         assertEquals(1, newTable.getRowCount());
         for (int i = 1; i <= 100; i++) {
@@ -408,10 +408,10 @@ class CSVUtilsTest {
         row2.put("Occupation", "Designer");
         emptyValuesTable.addRow(row2);
 
-        CSVUtils.writeToCSV(emptyValuesTable, testFileName, true);
+        CSVProcessor.writeToCSV(emptyValuesTable, testFileName, true);
         Table newTable = new Table();
         // Read the file content to verify the empty values and allowEmptyValues
-        CSVUtils.readFromCSV(newTable, testFileName, true, true);
+        CSVProcessor.readFromCSV(newTable, testFileName, true, true);
 
         assertEquals(2, newTable.getRowCount());
         assertEquals("Alice", newTable.getValueAt(0, "Name"));

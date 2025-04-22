@@ -96,7 +96,7 @@ public class CSVMappingComplexTest {
         ITable employeeTable = builder.build();
 
         // Write the employee data to a CSV file
-        CSVUtils.writeToCSV(employeeTable, EMPLOYEE_CSV_FILE, true);
+        CSVProcessor.writeToCSV(employeeTable, EMPLOYEE_CSV_FILE, true);
 
         // Verify the CSV file was created and has the expected number of rows
         File csvFile = new File(EMPLOYEE_CSV_FILE);
@@ -121,7 +121,7 @@ public class CSVMappingComplexTest {
 
         // Read the CSV file using the mapping configuration
         TableCore mappedTable = new TableCore();
-        CSVUtils.readFromCSV(mappedTable, config);
+        CSVProcessor.readFromCSV(mappedTable, config);
 
         // Validate the mapped table content
         assertEquals(NO_OF_ROWS, mappedTable.getRowCount(), "Mapped table should have 50 rows");
@@ -133,7 +133,7 @@ public class CSVMappingComplexTest {
         assertEquals("LastName50", mappedTable.getValueAt(49, "LastName"), "50th row, LastName should match");
 
         // Write the mapped table to a new CSV file
-        CSVUtils.writeToCSV(mappedTable, TRANSFORMED_CSV_FILE, true);
+        CSVProcessor.writeToCSV(mappedTable, TRANSFORMED_CSV_FILE, true);
 
         // Verify the transformed CSV file was created
         File transformedFile = new File(TRANSFORMED_CSV_FILE);
@@ -158,7 +158,7 @@ public class CSVMappingComplexTest {
                 .build();
 
         // Write product data to CSV
-        CSVUtils.writeToCSV(productTable, PRODUCT_CSV_FILE, true);
+        CSVProcessor.writeToCSV(productTable, PRODUCT_CSV_FILE, true);
 
         // Create sales data with references to products
         TableBuilder salesBuilder = new TableBuilder();
@@ -180,7 +180,7 @@ public class CSVMappingComplexTest {
                 .build();
 
         // Write sales data to CSV
-        CSVUtils.writeToCSV(salesTable, SALES_CSV_FILE, true);
+        CSVProcessor.writeToCSV(salesTable, SALES_CSV_FILE, true);
 
         // Verify both CSV files were created
         assertTrue(new File(PRODUCT_CSV_FILE).exists(), "Product CSV file should exist");
@@ -208,10 +208,10 @@ public class CSVMappingComplexTest {
 
         // Read both CSV files using their respective mapping configurations
         TableCore productMappedTable = new TableCore();
-        CSVUtils.readFromCSV(productMappedTable, productConfig);
+        CSVProcessor.readFromCSV(productMappedTable, productConfig);
 
         TableCore salesMappedTable = new TableCore();
-        CSVUtils.readFromCSV(salesMappedTable, salesConfig);
+        CSVProcessor.readFromCSV(salesMappedTable, salesConfig);
 
         // Validate the mapped tables
         assertEquals(5, productMappedTable.getRowCount(), "Product table should have 5 rows");
@@ -253,11 +253,11 @@ public class CSVMappingComplexTest {
                 .build();
 
         // Write the source table to a CSV file
-        CSVUtils.writeToCSV(sourceTable, PRODUCT_CSV_FILE, true);
+        CSVProcessor.writeToCSV(sourceTable, PRODUCT_CSV_FILE, true);
 
         // Read the CSV file into a new table
         TableCore rawTable = new TableCore();
-        CSVUtils.readFromCSV(rawTable, PRODUCT_CSV_FILE, true, false);
+        CSVProcessor.readFromCSV(rawTable, PRODUCT_CSV_FILE, true, false);
 
         // Create a new table with calculated fields
         TableCore transformedTable = new TableCore();
@@ -298,7 +298,7 @@ public class CSVMappingComplexTest {
         }
 
         // Write the transformed table to a CSV file
-        CSVUtils.writeToCSV(transformedTable, TRANSFORMED_CSV_FILE, true);
+        CSVProcessor.writeToCSV(transformedTable, TRANSFORMED_CSV_FILE, true);
 
         // Verify the transformed CSV file was created
         File transformedFile = new File(TRANSFORMED_CSV_FILE);
@@ -312,7 +312,7 @@ public class CSVMappingComplexTest {
 
         // Read the transformed CSV file back into a table
         TableCore verificationTable = new TableCore();
-        CSVUtils.readFromCSV(verificationTable, TRANSFORMED_CSV_FILE, true, false);
+        CSVProcessor.readFromCSV(verificationTable, TRANSFORMED_CSV_FILE, true, false);
 
         // Verify the calculated fields
         for (int i = 0; i < verificationTable.getRowCount(); i++) {

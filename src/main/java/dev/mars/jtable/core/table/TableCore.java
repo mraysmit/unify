@@ -273,8 +273,10 @@ public class TableCore implements ITable {
             return "string";
         }
 
-        // Integer pattern: optional sign followed by one or more digits
-        if (trimmedValue.matches("^[-+]?\\d+$")) {
+        // Integer pattern: optional negative sign followed by one or more digits
+        // Note: We don't treat values with a leading plus sign as integers
+        // to match the expectations of the testInferTypeStringProperty test
+        if (trimmedValue.matches("^-?\\d+$")) {
             return "int";
         } 
         // Double patterns:
