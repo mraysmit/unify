@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Complex integration tests for CSV mapping functionality.
  * This class tests more advanced scenarios for CSV mapping.
  */
-public class CSVMappingComplexTest {
+public class CSVMappingReaderComplexTest {
 
     private static final String EMPLOYEE_CSV_FILE = "employee_data.csv";
     private static final String PRODUCT_CSV_FILE = "product_data.csv";
@@ -77,9 +77,9 @@ public class CSVMappingComplexTest {
             String lastName = "LastName" + i;
             int age = 25 + (i % 30); // Ages between 25 and 54
             String department = i % 5 == 0 ? "HR" : i % 4 == 0 ? "Finance" : i % 3 == 0 ? "IT" : i % 2 == 0 ? "Sales" : "Marketing";
-            double salary = 40000 + (i * 1000); // Salaries between 41000 and 90000
+            double salary = 40000 + (i * 1000); // Salaries between 41000 and 90000 :-)
             String hireDate = "2020-" + String.format("%02d", (i % 12) + 1) + "-" + String.format("%02d", (i % 28) + 1);
-            boolean isManager = i % 10 == 0; // Every 10th employee is a manager
+            boolean isManager = i % 10 == 0; // Every 10th employee is a manager. We probably need more LOL.
 
             builder.addRow(
                 "ID", id,

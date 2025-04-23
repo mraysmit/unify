@@ -9,10 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -62,7 +59,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testWriteToCSVWithHeaderRow() {
+    void testWriteToCSVWithHeaderRow() throws IOException {
         // Create a mapping configuration
         MappingConfiguration config = new MappingConfiguration()
                 .setSourceLocation(testFileName)
@@ -94,7 +91,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testWriteToCSVWithoutHeaderRow() {
+    void testWriteToCSVWithoutHeaderRow() throws IOException {
         // Create a mapping configuration
         MappingConfiguration config = new MappingConfiguration()
                 .setSourceLocation(testFileName)
@@ -123,21 +120,22 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testEmptyTable() {
+    void testEmptyTable() throws IOException {
         Table emptyTable = new Table();
-        
+
         // Create a mapping configuration
         MappingConfiguration config = new MappingConfiguration()
                 .setSourceLocation(testFileName)
-                .setOption("withHeaderRow", false);
-        
+                .setOption("withHeaderRow", false)
+                .addColumnMapping(new ColumnMapping("DummyColumn", "DummyColumn", "string"));
+
         // Write the empty table to a CSV file using CSVMappingWriter
         CSVMappingWriter writer = new CSVMappingWriter();
         writer.writeToCSV(emptyTable, config);
-        
+
         File file = new File(testFileName);
         assertTrue(file.exists());
-        
+
         // Verify the file is empty or has only a header row
         try {
             List<String> lines = Files.readAllLines(Paths.get(testFileName));
@@ -148,7 +146,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testSingleRowTable() {
+    void testSingleRowTable() throws IOException {
         Table singleRowTable = getTableWithColumns();
         Map<String, String> row = new HashMap<>();
         row.put("Name", "Charlie");
@@ -183,7 +181,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testSingleColumnTable() {
+    void testSingleColumnTable() throws IOException {
         Table singleColumnTable = new Table();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name", "string");
@@ -223,7 +221,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testSpecialCharacters() {
+    void testSpecialCharacters() throws IOException {
         Table specialCharTable = getTableWithColumns();
         Map<String, String> row = new HashMap<>();
         row.put("Name", "D@vid");
@@ -258,7 +256,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testMixedDataTypes() {
+    void testMixedDataTypes() throws IOException, FileNotFoundException {
         Table mixedDataTable = new Table();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name", "string");
@@ -299,7 +297,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testSpecialCharactersInHeader() {
+    void testSpecialCharactersInHeader() throws IOException, FileNotFoundException {
         Table specialHeaderTable = new Table();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("N@me", "string");
@@ -340,7 +338,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testLargeDataSet() {
+    void testLargeDataSet() throws IOException, FileNotFoundException {
         Table largeDataTable = new Table();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("ID", "int");
@@ -381,7 +379,7 @@ public class CSVMappingWriterProcessorTest {
     }
 
     @Test
-    void testEmptyValues() {
+    void testEmptyValues() throws IOException, FileNotFoundException {
         Table emptyValuesTable = new Table();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name", "string");

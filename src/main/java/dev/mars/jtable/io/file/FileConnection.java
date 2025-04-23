@@ -90,7 +90,7 @@ public class FileConnection implements IDataSourceConnection {
         return properties;
     }
 
-    // Additional file-specific methods
+    // Additional file-specific methods?
     public String getLocation() {
         return location;
     }

@@ -12,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -29,6 +31,8 @@ public class CSVMappingConnectionIntegrationTest {
 
     private static final String TEST_CSV_FILE = "test_connection_data.csv";
     private static final String TEST_MAPPED_CSV_FILE = "test_connection_mapped.csv";
+    private static final String NON_EXISTENT_FILE = "non_existent_file.csv";
+    private static final String INVALID_COLUMNS_FILE = "invalid_columns_file.csv";
 
     @BeforeEach
     void setUp() {
@@ -43,7 +47,7 @@ public class CSVMappingConnectionIntegrationTest {
     }
 
     private void deleteTestFiles() {
-        Arrays.asList(TEST_CSV_FILE, TEST_MAPPED_CSV_FILE)
+        Arrays.asList(TEST_CSV_FILE, TEST_MAPPED_CSV_FILE, INVALID_COLUMNS_FILE)
                 .forEach(file -> {
                     try {
                         Files.deleteIfExists(Paths.get(file));
@@ -198,6 +202,157 @@ public class CSVMappingConnectionIntegrationTest {
         // Disconnect
         connection.disconnect();
         assertFalse(connection.isConnected(), "Connection should be disconnected");
+    }
+
+    @Test
+    void testCSVMappingReaderWithColumnNameNotFound() throws Exception {
+        // Create a test CSV file with specific columns
+        String csvContent = "Name,Age,City\nAlice,30,New York\nBob,25,San Francisco\n";
+        Files.write(Paths.get(INVALID_COLUMNS_FILE), csvContent.getBytes());
+
+        // Create a mapping configuration with a column name that doesn't exist in the file
+        MappingConfiguration config = new MappingConfiguration()
+                .setSourceLocation(INVALID_COLUMNS_FILE)
+                .setOption("hasHeaderRow", true)
+                .setOption("allowEmptyValues", false)
+                .addColumnMapping(new ColumnMapping("Name", "FullName", "string"))
+                .addColumnMapping(new ColumnMapping("Age", "Years", "int"))
+                .addColumnMapping(new ColumnMapping("Occupation", "Job", "string").setDefaultValue("Unknown")); // This column doesn't exist
+
+        // Try to read the file
+        TableCore table = new TableCore();
+        CSVMappingReader reader = new CSVMappingReader();
+        reader.readFromCSV(table, config);
+
+        // Verify that the table has the expected rows and columns
+        assertEquals(2, table.getRowCount(), "Table should have 2 rows");
+        assertEquals(3, table.getColumnCount(), "Table should have 3 columns");
+        assertEquals("Alice", table.getValueAt(0, "FullName"), "First row, FullName column should match");
+        assertEquals("30", table.getValueAt(0, "Years"), "First row, Years column should match");
+        assertEquals("Unknown", table.getValueAt(0, "Job"), "First row, Job column should use default value");
+        assertEquals("Bob", table.getValueAt(1, "FullName"), "Second row, FullName column should match");
+        assertEquals("25", table.getValueAt(1, "Years"), "Second row, Years column should match");
+        assertEquals("Unknown", table.getValueAt(1, "Job"), "Second row, Job column should use default value");
+    }
+
+    @Test
+    void testCSVMappingReaderWithDifferentNumberOfColumns() throws Exception {
+        // Create a test CSV file with fewer columns than expected
+        String csvContent = "ID,Name\n1,Alice\n2,Bob\n";
+        Files.write(Paths.get(INVALID_COLUMNS_FILE), csvContent.getBytes());
+
+        // Create a mapping configuration with more columns than the file has
+        MappingConfiguration config = new MappingConfiguration()
+                .setSourceLocation(INVALID_COLUMNS_FILE)
+                .setOption("hasHeaderRow", true)
+                .setOption("allowEmptyValues", false)
+                .addColumnMapping(new ColumnMapping("ID", "UserID", "string"))
+                .addColumnMapping(new ColumnMapping("Name", "UserName", "string"))
+                .addColumnMapping(new ColumnMapping("Age", "UserAge", "int").setDefaultValue("0"))
+                .addColumnMapping(new ColumnMapping("Department", "UserDept", "string").setDefaultValue("Unknown"));
+
+        // Try to read the file
+        TableCore table = new TableCore();
+        CSVMappingReader reader = new CSVMappingReader();
+        reader.readFromCSV(table, config);
+
+        // Verify that the table has the expected rows and columns
+        assertEquals(2, table.getRowCount(), "Table should have 2 rows");
+        assertEquals(4, table.getColumnCount(), "Table should have 4 columns");
+        assertEquals("1", table.getValueAt(0, "UserID"), "First row, UserID column should match");
+        assertEquals("Alice", table.getValueAt(0, "UserName"), "First row, UserName column should match");
+        assertEquals("0", table.getValueAt(0, "UserAge"), "First row, UserAge column should use default value");
+        assertEquals("Unknown", table.getValueAt(0, "UserDept"), "First row, UserDept column should use default value");
+    }
+
+    @Test
+    void testCSVMappingReaderWithEmptySourceFile() throws Exception {
+        // Create an empty CSV file with just a header
+        String csvContent = "Name,Age,Occupation\n";
+        Files.write(Paths.get(INVALID_COLUMNS_FILE), csvContent.getBytes());
+
+        // Create a mapping configuration
+        MappingConfiguration config = new MappingConfiguration()
+                .setSourceLocation(INVALID_COLUMNS_FILE)
+                .setOption("hasHeaderRow", true)
+                .setOption("allowEmptyValues", false)
+                .addColumnMapping(new ColumnMapping("Name", "FullName", "string"))
+                .addColumnMapping(new ColumnMapping("Age", "Years", "int"))
+                .addColumnMapping(new ColumnMapping("Occupation", "Job", "string"));
+
+        // Try to read the file
+        TableCore table = new TableCore();
+        CSVMappingReader reader = new CSVMappingReader();
+        reader.readFromCSV(table, config);
+
+        // Verify that the table is empty (no rows added)
+        assertEquals(0, table.getRowCount(), "Table should have 0 rows when reading from an empty source file");
+        assertEquals(3, table.getColumnCount(), "Table should have 3 columns based on the mapping");
+    }
+
+    @Test
+    void testCSVMappingReaderWithNoHeaderWhenExpected() throws Exception {
+        // Create a CSV file with no header row, just data
+        String csvContent = "Alice,30,Engineer\nBob,25,Designer\n";
+        Files.write(Paths.get(INVALID_COLUMNS_FILE), csvContent.getBytes());
+
+        // Create a mapping configuration that expects a header row
+        MappingConfiguration config = new MappingConfiguration()
+                .setSourceLocation(INVALID_COLUMNS_FILE)
+                .setOption("hasHeaderRow", true) // Expecting a header, but there isn't one
+                .setOption("allowEmptyValues", false)
+                .addColumnMapping(new ColumnMapping("Name", "FullName", "string"))
+                .addColumnMapping(new ColumnMapping("Age", "Years", "int"))
+                .addColumnMapping(new ColumnMapping("Occupation", "Job", "string"));
+
+        // Try to read the file
+        TableCore table = new TableCore();
+        CSVMappingReader reader = new CSVMappingReader();
+        reader.readFromCSV(table, config);
+
+        // Verify the behavior - the first row of data will be treated as the header
+        // So we should only have one row of data (the second row in the file)
+        assertEquals(1, table.getRowCount(), "Table should have 1 row when first row is treated as header");
+        assertEquals(3, table.getColumnCount(), "Table should have 3 columns based on the mapping");
+
+        // The first row of data (Alice,30,Engineer) is treated as the header
+        // So the mapping will try to find columns named "Alice", "30", "Engineer"
+        // Since these don't match our mapping ("Name", "Age", "Occupation"), we'll get null values or default values
+
+        // The second row of data (Bob,25,Designer) will be the only data row
+        // But since the column names don't match, we'll get null values or default values
+        // We can't make specific assertions about the values because the behavior depends on how findColumnIndex works
+    }
+
+    @Test
+    void testCSVMappingReaderWithNonExistentFile() {
+        // Create a mapping configuration with a non-existent file
+        MappingConfiguration config = new MappingConfiguration()
+                .setSourceLocation(NON_EXISTENT_FILE)
+                .setOption("hasHeaderRow", true)
+                .setOption("allowEmptyValues", false)
+                .addColumnMapping(new ColumnMapping("Name", "FullName", "string"))
+                .addColumnMapping(new ColumnMapping("Age", "Years", "int"))
+                .addColumnMapping(new ColumnMapping("Occupation", "Job", "string"));
+
+        // Try to read the non-existent file
+        TableCore table = new TableCore();
+        CSVMappingReader reader = new CSVMappingReader();
+
+        try {
+            // This should throw a FileNotFoundException
+            reader.readFromCSV(table, config);
+            fail("Expected FileNotFoundException was not thrown");
+        } catch (FileNotFoundException e) {
+            // Expected exception, verify the error message
+            assertTrue(e.getMessage().contains("does not exist"), 
+                "Error message should indicate file does not exist");
+        } catch (IOException e) {
+            fail("Unexpected IOException: " + e.getMessage());
+        }
+
+        // Verify that the table is empty (no rows added)
+        assertEquals(0, table.getRowCount(), "Table should have 0 rows when reading from a non-existent file");
     }
 
     @Test

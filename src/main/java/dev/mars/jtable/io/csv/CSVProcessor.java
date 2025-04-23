@@ -7,6 +7,8 @@ import dev.mars.jtable.io.file.FileConnection;
 import dev.mars.jtable.io.mapping.MappingConfiguration;
 import dev.mars.jtable.core.model.ITable;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,7 +63,13 @@ public class CSVProcessor {
      * @param config the mapping configuration
      */
     public static void readFromCSV(ITable table, MappingConfiguration config) {
-        csvMappingReader.readFromCSV(table, config);
+        try {
+            csvMappingReader.readFromCSV(table, config);
+        } catch (FileNotFoundException e) {
+            System.err.println("File not found: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error reading CSV file: " + e.getMessage());
+        }
     }
 
     /**
@@ -71,6 +79,12 @@ public class CSVProcessor {
      * @param config the mapping configuration
      */
     public static void writeToCSV(ITable table, MappingConfiguration config) {
-        csvMappingWriter.writeToCSV(table, config);
+        try {
+            csvMappingWriter.writeToCSV(table, config);
+        } catch (FileNotFoundException e) {
+            System.err.println("File not found: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error writing CSV file: " + e.getMessage());
+        }
     }
 }

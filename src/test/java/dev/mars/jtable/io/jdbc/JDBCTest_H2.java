@@ -3,6 +3,8 @@ package dev.mars.jtable.io.jdbc;
 import dev.mars.jtable.core.table.Table;
 import dev.mars.jtable.io.adapter.JDBCTableAdapter;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -18,14 +20,44 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JDBCTest_H2 extends AbstractDatabaseTest {
 
-    protected JDBCTest_H2(IDatabaseTestConfig config) {
-        super(config);
+    @BeforeEach
+    @Override
+    void setUp() throws Exception {
+        super.setUp();
+        initializeDatabase();
+    }
+
+    @AfterEach
+    void tearDown() throws Exception {
+        cleanUpDatabase();
+    }
+
+    private void initializeDatabase() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + testTableName + " (" +
+                    "Name VARCHAR(255), Age INTEGER, Occupation VARCHAR(255), Salary DOUBLE PRECISION, IsEmployed BOOLEAN)");
+
+            statement.executeUpdate("INSERT INTO " + testTableName + " VALUES " +
+                    "('Alice', 30, 'Engineer', 75000.50, TRUE), " +
+                    "('Bob', 25, 'Designer', 65000.75, TRUE), " +
+                    "('Charlie', 35, 'Manager', 85000.25, TRUE), " +
+                    "('David', 28, 'Developer', 72000.00, TRUE), " +
+                    "('Eve', 22, 'Intern', 45000.00, FALSE)");
+        }
+    }
+
+    private void cleanUpDatabase() throws SQLException {
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = connection.createStatement()) {
+            statement.executeUpdate("DROP TABLE IF EXISTS " + testTableName);
+        }
     }
 
 
     @Test
     void testReadFromDatabase() {
-        reader.readFromDatabase(adapter, config.getConnectionString(), testTableName, config.getUsername(), config.getPassword());
+        reader.readFromDatabase(adapter, connectionString, testTableName, username, password);
 
         // Verify data
         assertEquals(5, table.getRowCount());
@@ -43,19 +75,19 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
         assertEquals("30", table.getValueAt(0, "AGE"));
         assertEquals("Engineer", table.getValueAt(0, "OCCUPATION"));
         assertEquals("75000.5", table.getValueAt(0, "SALARY"));
-        assertEquals("true", table.getValueAt(0, "ISEMPLOYED"));
+        assertEquals("TRUE", table.getValueAt(0, "ISEMPLOYED"));
 
         assertEquals("Eve", table.getValueAt(4, "NAME"));
         assertEquals("22", table.getValueAt(4, "AGE"));
         assertEquals("Intern", table.getValueAt(4, "OCCUPATION"));
         assertEquals("45000.0", table.getValueAt(4, "SALARY"));
-        assertEquals("false", table.getValueAt(4, "ISEMPLOYED"));
+        assertEquals("FALSE", table.getValueAt(4, "ISEMPLOYED"));
     }
 
     @Test
     void testReadFromQuery() {
         String query = "SELECT * FROM " + testTableName + " WHERE Age > 25";
-        reader.readFromQuery(adapter, config.getConnectionString(), query, config.getUsername(), config.getPassword());
+        reader.readFromQuery(adapter, connectionString, query, username, password);
 
         // Verify data
         assertEquals(3, table.getRowCount());
@@ -94,9 +126,9 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
         table.addRow(row2);
 
         String newTableName = "new_table";
-        writer.writeToDatabase(adapter, config.getConnectionString(), newTableName, config.getUsername(), config.getPassword(), true);
+        writer.writeToDatabase(adapter, connectionString, newTableName, username, password, true);
 
-        try (Connection connection = DriverManager.getConnection(config.getConnectionString(), config.getUsername(), config.getPassword());
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + newTableName)) {
             resultSet.next();
@@ -104,7 +136,7 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
         }
 
         // Clean up
-        try (Connection connection = DriverManager.getConnection(config.getConnectionString(), config.getUsername(), config.getPassword());
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + newTableName);
         }
@@ -112,15 +144,15 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
 
     @Test
     void testRoundTrip() throws SQLException {
-        reader.readFromDatabase(adapter, config.getConnectionString(), testTableName, config.getUsername(), config.getPassword());
+        reader.readFromDatabase(adapter, connectionString, testTableName, username, password);
 
         String newTableName = "round_trip_table";
-        writer.writeToDatabase(adapter, config.getConnectionString(), newTableName, config.getUsername(), config.getPassword(), true);
+        writer.writeToDatabase(adapter, connectionString, newTableName, username, password, true);
 
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
-        reader.readFromDatabase(newAdapter, config.getConnectionString(), newTableName, config.getUsername(), config.getPassword());
+        reader.readFromDatabase(newAdapter, connectionString, newTableName, username, password);
 
         assertEquals(table.getRowCount(), newTable.getRowCount());
         assertEquals(table.getColumnCount(), newTable.getColumnCount());
@@ -132,7 +164,7 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
             }
         }
 
-        try (Connection connection = DriverManager.getConnection(config.getConnectionString(), config.getUsername(), config.getPassword());
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + newTableName);
         }
@@ -156,22 +188,22 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
         table.addRow(row2);
 
         String batchTableName = "batch_table";
-        try (Connection connection = DriverManager.getConnection(config.getConnectionString(), config.getUsername(), config.getPassword());
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + batchTableName + " (Name VARCHAR(255), Age INTEGER)");
         }
 
         String sqlTemplate = "INSERT INTO " + batchTableName + " (Name, Age) VALUES (:Name, :Age)";
-        writer.executeBatch(adapter, config.getConnectionString(), sqlTemplate, config.getUsername(), config.getPassword());
+        writer.executeBatch(adapter, connectionString, sqlTemplate, username, password);
 
-        try (Connection connection = DriverManager.getConnection(config.getConnectionString(), config.getUsername(), config.getPassword());
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + batchTableName)) {
             resultSet.next();
             assertEquals(2, resultSet.getInt(1));
         }
 
-        try (Connection connection = DriverManager.getConnection(config.getConnectionString(), config.getUsername(), config.getPassword());
+        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + batchTableName);
         }

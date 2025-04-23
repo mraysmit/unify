@@ -14,18 +14,21 @@ import java.util.logging.Level;
 public class DatabaseAvailableCondition_PG implements ExecutionCondition {
     private static final Logger logger = Logger.getLogger(DatabaseAvailableCondition_PG.class.getName());
 
+    // Connection details for PostgreSQL
+    private static final String connectionString = "jdbc:postgresql://localhost/testdb";
+    private static final String username = "postgres_user";
+    private static final String password = "postgres_password";
+
     @Override
     public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
         try {
             Class.forName("org.postgresql.Driver");
 
-            // Use the existing config class
-            DatabaseTestConfig_PG config = new DatabaseTestConfig_PG();
             Properties props = new Properties();
-            props.setProperty("user", config.getUsername());
-            props.setProperty("password", config.getPassword());
+            props.setProperty("user", username);
+            props.setProperty("password", password);
 
-            try (Connection conn = DriverManager.getConnection("jdbc:postgresql://localhost/testdb", props)) {
+            try (Connection conn = DriverManager.getConnection(connectionString, props)) {
                 return ConditionEvaluationResult.enabled("PostgreSQL database is available");
             }
         } catch (ClassNotFoundException e) {
