@@ -17,6 +17,7 @@ import java.util.Map;
 
 /**
  * Implementation of the IJSONReader interface for reading data from JSON files.
+ * TODO: decide if readData or readFromJSON should be the main method
  */
 public class JSONReader implements IJSONReader {
     /**

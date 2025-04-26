@@ -34,6 +34,12 @@ public class JDBCReader implements IJDBCReader {
             throw new IllegalArgumentException("Data source must implement IJDBCDataSource");
         }
 
+        // Call the JDBC-specific method
+        readData(jdbcDataSource, connection, options);
+    }
+
+    @Override
+    public void readData(IJDBCDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) {
         // Ensure we have a JDBC connection
         if (!(connection instanceof JDBCConnection)) {
             throw new IllegalArgumentException("Connection must be a JDBCConnection");
@@ -51,9 +57,9 @@ public class JDBCReader implements IJDBCReader {
 
         // Call the appropriate JDBC-specific method
         if (query != null) {
-            readFromQuery(jdbcDataSource, jdbcConnection, query);
+            readFromQuery(dataSource, jdbcConnection, query);
         } else if (tableName != null) {
-            readFromDatabase(jdbcDataSource, jdbcConnection, tableName);
+            readFromDatabase(dataSource, jdbcConnection, tableName);
         } else {
             throw new IllegalArgumentException("Either 'tableName' or 'query' must be specified in options");
         }
@@ -104,6 +110,12 @@ public class JDBCReader implements IJDBCReader {
                     for (int i = 1; i <= columnCount; i++) {
                         String columnName = metaData.getColumnName(i);
                         String value = resultSet.getString(i);
+
+                        // Convert boolean values to lowercase
+                        if (value != null && (value.equalsIgnoreCase("TRUE") || value.equalsIgnoreCase("FALSE"))) {
+                            value = value.toLowerCase();
+                        }
+
                         row.put(columnName, value != null ? value : "");
                     }
                     dataSource.addRow(row);
@@ -122,57 +134,4 @@ public class JDBCReader implements IJDBCReader {
         return "string"; // Simplified for example
     }
 
-    /**
-     * Reads data from a database table into a data source.
-     * This is a convenience method that creates a JDBCConnection and then calls readFromDatabase.
-     *
-     * @param dataSource the data source to read into
-     * @param connectionString the JDBC connection string
-     * @param tableName the name of the table to read from
-     * @param username the database username
-     * @param password the database password
-     */
-    public void readFromDatabase(IJDBCDataSource dataSource, String connectionString, String tableName, String username, String password) {
-        // Create a JDBC connection
-        JDBCConnection connection = (JDBCConnection) DataSourceConnectionFactory.createDatabaseConnection(
-                connectionString, username, password);
-
-        // Connect to the database
-        connection.connect();
-
-        try {
-            // Read from the database
-            readFromDatabase(dataSource, connection, tableName);
-        } finally {
-            // Disconnect from the database
-            connection.disconnect();
-        }
-    }
-
-    /**
-     * Reads data from a SQL query into a data source.
-     * This is a convenience method that creates a JDBCConnection and then calls readFromQuery.
-     *
-     * @param dataSource the data source to read into
-     * @param connectionString the JDBC connection string
-     * @param query the SQL query to execute
-     * @param username the database username
-     * @param password the database password
-     */
-    public void readFromQuery(IJDBCDataSource dataSource, String connectionString, String query, String username, String password) {
-        // Create a JDBC connection
-        JDBCConnection connection = (JDBCConnection) DataSourceConnectionFactory.createDatabaseConnection(
-                connectionString, username, password);
-
-        // Connect to the database
-        connection.connect();
-
-        try {
-            // Read from the query
-            readFromQuery(dataSource, connection, query);
-        } finally {
-            // Disconnect from the database
-            connection.disconnect();
-        }
-    }
 }

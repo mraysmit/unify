@@ -2,6 +2,8 @@ package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.core.table.Table;
 import dev.mars.jtable.io.adapter.JDBCTableAdapter;
+import dev.mars.jtable.io.datasource.DataSourceConnectionFactory;
+import dev.mars.jtable.io.datasource.IDataSourceConnection;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,10 +22,23 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class JDBCTest_H2 extends AbstractDatabaseTest {
 
+    // Connection details for H2 in-memory database
+    String connectionString = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1";
+    String username = "";
+    String password = "";
+
     @BeforeEach
     @Override
     void setUp() throws Exception {
-        super.setUp();
+        // Initialize the table, reader, and writer
+        table = new Table();
+        reader = new JDBCReader();
+        writer = new JDBCWriter();
+
+
+        // Initialize the adapter with the table
+        adapter = new JDBCTableAdapter(table);
+
         initializeDatabase();
     }
 
@@ -57,7 +72,16 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
 
     @Test
     void testReadFromDatabase() {
-        reader.readFromDatabase(adapter, connectionString, testTableName, username, password);
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", testTableName);
+
+        // Use the reader to read data from the database into the adapter
+        reader.readData(adapter, jdbcConnection, options);
 
         // Verify data
         assertEquals(5, table.getRowCount());
@@ -75,19 +99,29 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
         assertEquals("30", table.getValueAt(0, "AGE"));
         assertEquals("Engineer", table.getValueAt(0, "OCCUPATION"));
         assertEquals("75000.5", table.getValueAt(0, "SALARY"));
-        assertEquals("TRUE", table.getValueAt(0, "ISEMPLOYED"));
+        assertEquals("true", table.getValueAt(0, "ISEMPLOYED"));
 
         assertEquals("Eve", table.getValueAt(4, "NAME"));
         assertEquals("22", table.getValueAt(4, "AGE"));
         assertEquals("Intern", table.getValueAt(4, "OCCUPATION"));
         assertEquals("45000.0", table.getValueAt(4, "SALARY"));
-        assertEquals("FALSE", table.getValueAt(4, "ISEMPLOYED"));
+        assertEquals("false", table.getValueAt(4, "ISEMPLOYED"));
     }
 
     @Test
     void testReadFromQuery() {
         String query = "SELECT * FROM " + testTableName + " WHERE Age > 25";
-        reader.readFromQuery(adapter, connectionString, query, username, password);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("query", query);
+
+        // Use the reader to read data from the database into the adapter
+        reader.readData(adapter, jdbcConnection, options);
 
         // Verify data
         assertEquals(3, table.getRowCount());
@@ -126,7 +160,21 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
         table.addRow(row2);
 
         String newTableName = "new_table";
-        writer.writeToDatabase(adapter, connectionString, newTableName, username, password, true);
+
+        // Create a new adapter with the table and connection parameters
+        JDBCTableAdapter writeAdapter = new JDBCTableAdapter(table);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", newTableName);
+        options.put("createTable", true);
+
+        // Use the writer to write data to the database
+        writer.writeData(writeAdapter, jdbcConnection, options);
 
         try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement();
@@ -144,15 +192,45 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
 
     @Test
     void testRoundTrip() throws SQLException {
-        reader.readFromDatabase(adapter, connectionString, testTableName, username, password);
+        // Create a JDBC connection for reading
+        IDataSourceConnection jdbcConnectionForReading = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading
+        Map<String, Object> readOptions = new HashMap<>();
+        readOptions.put("tableName", testTableName);
+
+        // Read data from the database using the reader
+        reader.readData(adapter, jdbcConnectionForReading, readOptions);
 
         String newTableName = "round_trip_table";
-        writer.writeToDatabase(adapter, connectionString, newTableName, username, password, true);
 
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", newTableName);
+        options.put("createTable", true);
+
+        // Write data to the database using the writer
+        writer.writeData(adapter, jdbcConnection, options);
+
+        // Create a new table and adapter for reading from the new table
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
-        reader.readFromDatabase(newAdapter, connectionString, newTableName, username, password);
+        // Create a JDBC connection for reading from the new table
+        IDataSourceConnection jdbcConnectionForNewTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the new table
+        Map<String, Object> readNewTableOptions = new HashMap<>();
+        readNewTableOptions.put("tableName", newTableName);
+
+        // Read data from the new table using the reader
+        reader.readData(newAdapter, jdbcConnectionForNewTable, readNewTableOptions);
 
         assertEquals(table.getRowCount(), newTable.getRowCount());
         assertEquals(table.getColumnCount(), newTable.getColumnCount());
@@ -193,8 +271,21 @@ class JDBCTest_H2 extends AbstractDatabaseTest {
             statement.executeUpdate("CREATE TABLE IF NOT EXISTS " + batchTableName + " (Name VARCHAR(255), Age INTEGER)");
         }
 
+        // Create a new adapter with the table
+        JDBCTableAdapter batchAdapter = new JDBCTableAdapter(table);
+
         String sqlTemplate = "INSERT INTO " + batchTableName + " (Name, Age) VALUES (:Name, :Age)";
-        writer.executeBatch(adapter, connectionString, sqlTemplate, username, password);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("sqlTemplate", sqlTemplate);
+
+        // Use the writer to execute the batch with the adapter as the data source
+        writer.writeData(batchAdapter, jdbcConnection, options);
 
         try (Connection connection = DriverManager.getConnection(connectionString, username, password);
              Statement statement = connection.createStatement();

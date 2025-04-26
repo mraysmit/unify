@@ -2,6 +2,8 @@ package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.core.table.Table;
 import dev.mars.jtable.io.adapter.JDBCTableAdapter;
+import dev.mars.jtable.io.datasource.DataSourceConnectionFactory;
+import dev.mars.jtable.io.datasource.IDataSourceConnection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,8 +87,16 @@ class JDBCTest {
 
     @Test
     void testReadFromDatabase() {
-        // Read data from the test database table
-        reader.readFromDatabase(adapter, connectionString, testTableName, username, password);
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", testTableName);
+
+        // Read data using the new method
+        reader.readData(adapter, jdbcConnection, options);
 
         // Verify that the data was read correctly
         assertEquals(5, table.getRowCount());
@@ -118,7 +128,17 @@ class JDBCTest {
     void testReadFromQuery() {
         // Read data from a SQL query
         String query = "SELECT * FROM " + testTableName + " WHERE Age > 25";
-        reader.readFromQuery(adapter, connectionString, query, username, password);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("query", query);
+
+        // Read data using the new method
+        reader.readData(adapter, jdbcConnection, options);
 
         // Verify that the data was read correctly
         assertEquals(3, table.getRowCount());
@@ -161,38 +181,76 @@ class JDBCTest {
 
         // Write the table to a new database table
         String newTableName = "new_table";
-        writer.writeToDatabase(adapter, connectionString, newTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", newTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Verify that the data was written correctly
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement();
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + newTableName)) {
             resultSet.next();
             assertEquals(2, resultSet.getInt(1));
         }
 
         // Clean up the new table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + newTableName);
         }
     }
 
     @Test
     void testRoundTrip() throws SQLException {
-        // Read data from the test database table
-        reader.readFromDatabase(adapter, connectionString, testTableName, username, password);
+        // Create a JDBC connection for reading
+        IDataSourceConnection jdbcConnectionForReading = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading
+        Map<String, Object> readOptions = new HashMap<>();
+        readOptions.put("tableName", testTableName);
+
+        // Read data using the new method
+        reader.readData(adapter, jdbcConnectionForReading, readOptions);
 
         // Write the data to a new database table
         String newTableName = "round_trip_table";
-        writer.writeToDatabase(adapter, connectionString, newTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", newTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Create a new table and adapter
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
+        // Create a JDBC connection for reading from the new table
+        IDataSourceConnection jdbcConnectionForNewTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the new table
+        Map<String, Object> readNewTableOptions = new HashMap<>();
+        readNewTableOptions.put("tableName", newTableName);
+
         // Read the data back from the new database table
-        reader.readFromDatabase(newAdapter, connectionString, newTableName, username, password);
+        reader.readData(newAdapter, jdbcConnectionForNewTable, readNewTableOptions);
 
         // Verify that the data is the same
         assertEquals(table.getRowCount(), newTable.getRowCount());
@@ -241,19 +299,29 @@ class JDBCTest {
 
         // Execute a batch of SQL statements
         String sqlTemplate = "INSERT INTO " + batchTableName + " (Name, Age) VALUES (:Name, :Age)";
-        writer.executeBatch(adapter, connectionString, sqlTemplate, username, password);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("sqlTemplate", sqlTemplate);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Verify that the data was written correctly
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement();
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + batchTableName)) {
             resultSet.next();
             assertEquals(2, resultSet.getInt(1));
         }
 
         // Clean up the batch table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + batchTableName);
         }
     }
@@ -272,19 +340,30 @@ class JDBCTest {
 
         // Write the empty table to a database table
         String emptyTableName = "empty_table";
-        writer.writeToDatabase(emptyAdapter, connectionString, emptyTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", emptyTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(emptyAdapter, jdbcConnection, options);
 
         // Verify that the table was created but is empty
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement();
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT COUNT(*) FROM " + emptyTableName)) {
             resultSet.next();
             assertEquals(0, resultSet.getInt(1));
         }
 
         // Clean up the empty table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + emptyTableName);
         }
     }
@@ -305,22 +384,41 @@ class JDBCTest {
 
         // Write the table to a database table
         String specialTableName = "special_table";
-        writer.writeToDatabase(adapter, connectionString, specialTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", specialTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Create a new table and adapter
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
+        // Create a JDBC connection for reading from the special table
+        IDataSourceConnection jdbcConnectionForSpecialTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the special table
+        Map<String, Object> readSpecialTableOptions = new HashMap<>();
+        readSpecialTableOptions.put("tableName", specialTableName);
+
         // Read the data back from the database table
-        reader.readFromDatabase(newAdapter, connectionString, specialTableName, username, password);
+        reader.readData(newAdapter, jdbcConnectionForSpecialTable, readSpecialTableOptions);
 
         // Verify that the special characters were preserved
         assertEquals("Special \"Quoted\" Name", newTable.getValueAt(0, "NAME"));
         assertEquals("Contains special characters: ' \" \\ % _", newTable.getValueAt(0, "DESCRIPTION"));
 
         // Clean up the special table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + specialTableName);
         }
     }
@@ -343,14 +441,33 @@ class JDBCTest {
 
         // Write the table to a database table
         String singleRowTableName = "single_row_table";
-        writer.writeToDatabase(adapter, connectionString, singleRowTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", singleRowTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Create a new table and adapter
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
+        // Create a JDBC connection for reading from the single row table
+        IDataSourceConnection jdbcConnectionForSingleRowTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the single row table
+        Map<String, Object> readSingleRowTableOptions = new HashMap<>();
+        readSingleRowTableOptions.put("tableName", singleRowTableName);
+
         // Read the data back from the database table
-        reader.readFromDatabase(newAdapter, connectionString, singleRowTableName, username, password);
+        reader.readData(newAdapter, jdbcConnectionForSingleRowTable, readSingleRowTableOptions);
 
         // Verify that the data was read correctly
         assertEquals(1, newTable.getRowCount());
@@ -360,8 +477,8 @@ class JDBCTest {
         assertEquals("Artist", newTable.getValueAt(0, "OCCUPATION"));
 
         // Clean up the single row table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + singleRowTableName);
         }
     }
@@ -384,14 +501,33 @@ class JDBCTest {
 
         // Write the table to a database table
         String singleColumnTableName = "single_column_table";
-        writer.writeToDatabase(adapter, connectionString, singleColumnTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", singleColumnTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Create a new table and adapter
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
+        // Create a JDBC connection for reading from the single column table
+        IDataSourceConnection jdbcConnectionForSingleColumnTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the single column table
+        Map<String, Object> readSingleColumnTableOptions = new HashMap<>();
+        readSingleColumnTableOptions.put("tableName", singleColumnTableName);
+
         // Read the data back from the database table
-        reader.readFromDatabase(newAdapter, connectionString, singleColumnTableName, username, password);
+        reader.readData(newAdapter, jdbcConnectionForSingleColumnTable, readSingleColumnTableOptions);
 
         // Verify that the data was read correctly
         assertEquals(2, newTable.getRowCount());
@@ -400,8 +536,8 @@ class JDBCTest {
         assertEquals("Bob", newTable.getValueAt(1, "NAME"));
 
         // Clean up the single column table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + singleColumnTableName);
         }
     }
@@ -430,14 +566,33 @@ class JDBCTest {
 
         // Write the table to a database table
         String emptyValuesTableName = "empty_values_table";
-        writer.writeToDatabase(adapter, connectionString, emptyValuesTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", emptyValuesTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Create a new table and adapter
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
+        // Create a JDBC connection for reading from the empty values table
+        IDataSourceConnection jdbcConnectionForEmptyValuesTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the empty values table
+        Map<String, Object> readEmptyValuesTableOptions = new HashMap<>();
+        readEmptyValuesTableOptions.put("tableName", emptyValuesTableName);
+
         // Read the data back from the database table
-        reader.readFromDatabase(newAdapter, connectionString, emptyValuesTableName, username, password);
+        reader.readData(newAdapter, jdbcConnectionForEmptyValuesTable, readEmptyValuesTableOptions);
 
         // Verify that the empty values were preserved
         assertEquals(2, newTable.getRowCount());
@@ -449,8 +604,8 @@ class JDBCTest {
         assertEquals("Designer", newTable.getValueAt(1, "OCCUPATION"));
 
         // Clean up the empty values table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + emptyValuesTableName);
         }
     }
@@ -479,14 +634,33 @@ class JDBCTest {
 
         // Write the table to a database table
         String numericTableName = "numeric_table";
-        writer.writeToDatabase(adapter, connectionString, numericTableName, username, password, true);
+
+        // Create a JDBC connection
+        IDataSourceConnection jdbcConnection = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map
+        Map<String, Object> options = new HashMap<>();
+        options.put("tableName", numericTableName);
+        options.put("createTable", true);
+
+        // Write data using the new method
+        writer.writeData(adapter, jdbcConnection, options);
 
         // Create a new table and adapter
         Table newTable = new Table();
         JDBCTableAdapter newAdapter = new JDBCTableAdapter(newTable);
 
+        // Create a JDBC connection for reading from the numeric table
+        IDataSourceConnection jdbcConnectionForNumericTable = DataSourceConnectionFactory.createDatabaseConnection(
+                connectionString, username, password);
+
+        // Create options map for reading from the numeric table
+        Map<String, Object> readNumericTableOptions = new HashMap<>();
+        readNumericTableOptions.put("tableName", numericTableName);
+
         // Read the data back from the database table
-        reader.readFromDatabase(newAdapter, connectionString, numericTableName, username, password);
+        reader.readData(newAdapter, jdbcConnectionForNumericTable, readNumericTableOptions);
 
         // Verify that the numeric values were preserved
         assertEquals(2, newTable.getRowCount());
@@ -501,8 +675,8 @@ class JDBCTest {
         assertEquals("false", newTable.getValueAt(1, "BOOLEANVALUE"));
 
         // Clean up the numeric table
-        try (Connection connection = DriverManager.getConnection(connectionString, username, password);
-             Statement statement = connection.createStatement()) {
+        try (Connection sqlConnection = DriverManager.getConnection(connectionString, username, password);
+             Statement statement = sqlConnection.createStatement()) {
             statement.executeUpdate("DROP TABLE IF EXISTS " + numericTableName);
         }
     }

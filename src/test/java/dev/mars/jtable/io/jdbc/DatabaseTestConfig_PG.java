@@ -16,6 +16,7 @@ import java.util.Map;
  */
 public class DatabaseTestConfig_PG implements IJDBCDataSource {
 
+    // Connection details for PostgreSQL database
     private final String connectionString = "jdbc:postgresql://localhost/testdb";
     private final String username = "postgres_user";
     private final String password = "postgres_password";

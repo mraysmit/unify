@@ -1,6 +1,9 @@
 package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.io.datasource.IDataReader;
+import dev.mars.jtable.io.datasource.IDataSourceConnection;
+
+import java.util.Map;
 
 /**
  * Interface for reading data from databases via JDBC.
@@ -8,20 +11,15 @@ import dev.mars.jtable.io.datasource.IDataReader;
  */
 public interface IJDBCReader extends IDataReader {
     /**
-     * Reads data from a database table into a data source.
+     * Reads data from a source into a data source using the provided connection.
+     * This method can be used to read data from a database table or execute a SQL query.
      *
      * @param dataSource the data source to read into
-     * @param connection the JDBC connection
-     * @param tableName the name of the table to read from
+     * @param connection the connection to the data source
+     * @param options additional options for reading:
+     *               - "tableName" (String): the name of the table to read from
+     *               - "query" (String): the SQL query to execute
      */
-    void readFromDatabase(IJDBCDataSource dataSource, JDBCConnection connection, String tableName);
+    void readData(IJDBCDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options);
 
-    /**
-     * Reads data from a SQL query into a data source.
-     *
-     * @param dataSource the data source to read into
-     * @param connection the JDBC connection
-     * @param query the SQL query to execute
-     */
-    void readFromQuery(IJDBCDataSource dataSource, JDBCConnection connection, String query);
 }

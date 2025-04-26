@@ -60,6 +60,44 @@ public class JDBCTableAdapter extends DataSourceTableAdapter implements IJDBCDat
         this.password = password;
     }
 
+    /**
+     * Gets the JDBC connection string.
+     *
+     * @return the JDBC connection string
+     */
+    public String getConnectionString() {
+        return connectionString;
+    }
+
+    /**
+     * Gets the database username.
+     *
+     * @return the database username
+     */
+    public String getUsername() {
+        return username;
+    }
+
+    /**
+     * Gets the database password.
+     *
+     * @return the database password
+     */
+    public String getPassword() {
+        return password;
+    }
+
+    /**
+     * Gets the table name.
+     *
+     * @return the table name
+     */
+    public String getTableName() {
+        return tableName;
+    }
+
+
+
     public ITable readTable() {
         // Create a JDBC data source
         IJDBCDataSource dataSource = createJDBCDataSource();

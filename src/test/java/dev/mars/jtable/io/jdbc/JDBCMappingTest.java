@@ -25,6 +25,11 @@ class JDBCMappingTest extends AbstractDatabaseTest {
     private MappingConfiguration mappingConfig;
     private JDBCConnection jdbcConnection;
 
+    // Connection details for H2 in-memory database
+    private String connectionString = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1";
+    String username = "";
+    String password = "";
+
     @BeforeEach
     @Override
     void setUp() throws Exception {
@@ -33,6 +38,8 @@ class JDBCMappingTest extends AbstractDatabaseTest {
         
         mappingReader = new JDBCMappingReader();
         mappingWriter = new JDBCMappingWriter();
+
+
 
         // Create a JDBC connection using the connection details from the parent class
         jdbcConnection = new JDBCConnection(

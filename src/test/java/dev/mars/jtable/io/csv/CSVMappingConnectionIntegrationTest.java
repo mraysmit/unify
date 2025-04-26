@@ -23,10 +23,32 @@ import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/**
- * Integration tests for CSV mapping functionality with FileConnection and DataSourceConnectionFactory.
- * This class tests the integration between CSVMappingReader, CSVMappingWriter, FileConnection, and DataSourceConnectionFactory.
- */
+///# CSVMappingConnectionIntegrationTest
+///This integration test class validates the CSV mapping functionality in the `dev.mars.jtable.io.csv` package, focusing on how CSVMappingReader, CSVMappingWriter, FileConnection, and DataSourceConnectionFactory work together.
+///## Key Features Tested:
+///1. **Reading CSV with Mapping**:
+///- Maps CSV columns to table columns with different names
+///- Handles header rows
+///- Manages column name lookup and type conversion
+///2. **Writing Tables to CSV**:
+///- Creates properly formatted CSV files
+///- Applies column mappings during export
+///- Correctly includes header rows when configured
+///3. **Edge Cases**:
+///- Missing columns in CSV files (uses default values)
+///- Files with different numbers of columns
+///- Empty source files
+///- Files with no headers when headers are expected
+///- Non-existent files
+///4. **Connection Management**:
+///- Creates FileConnections via DataSourceConnectionFactory
+///- Connects/disconnects properly
+///- Accesses file locations through connection objects
+///5. **Full Processing Cycle**:
+///- Tests reading and writing in sequence
+///- Validates data integrity through the entire process
+///The class uses JUnit 5 with thorough setup/teardown methods to ensure test isolation by creating and cleaning up test files for each test case.
+///
 public class CSVMappingConnectionIntegrationTest {
 
     private static final String TEST_CSV_FILE = "test_connection_data.csv";

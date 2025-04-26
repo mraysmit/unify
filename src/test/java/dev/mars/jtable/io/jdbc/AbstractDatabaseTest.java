@@ -12,11 +12,6 @@ public abstract class AbstractDatabaseTest {
     protected JDBCWriter writer;
     protected final String testTableName = "test_table";
 
-    // Connection details for H2 in-memory database
-    protected final String connectionString = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1";
-    protected final String username = "";
-    protected final String password = "";
-
     @BeforeEach
     void setUp() throws Exception {
         table = new Table();
