@@ -422,6 +422,84 @@ class CSVProcessorTest {
         assertEquals("Designer", newTable.getValueAt(1, "Occupation"));
     }
 
+
+    /**
+     * Property: Writing a table to CSV and reading it back should preserve the data
+     */
+    @Test
+    void testCSVRoundTripProperty() {
+        // Generate a small number of rows with random data
+        qt()
+                .withExamples(10) // Limit to 10 examples to avoid creating too many files
+                .forAll(integers().between(1, 5)) // Number of rows to generate
+                .check(rowCount -> {
+                    // Create a new table for this test
+                    Table sourceTable = new Table();
+                    var columnNames = new LinkedHashMap<String, String>();
+                    columnNames.put("Name", "string");
+                    columnNames.put("Age", "int");
+                    columnNames.put("Salary", "double");
+                    sourceTable.setColumns(columnNames);
+
+                    // Add random rows
+                    for (int i = 0; i < rowCount; i++) {
+                        Map<String, String> row = new HashMap<>();
+                        row.put("Name", "Person" + i);
+                        row.put("Age", String.valueOf(20 + i));
+                        row.put("Salary", String.valueOf(50000.0 + i * 1000.0));
+                        sourceTable.addRow(row);
+                    }
+
+                    // Create a temporary file for the CSV
+                    String tempFileName = "temp_test_" + System.currentTimeMillis() + ".csv";
+
+                    try {
+                        // Write the table to CSV
+                        CSVProcessor.writeToCSV(sourceTable, tempFileName, true);
+
+                        // Create a new table to read the CSV into
+                        Table targetTable = new Table();
+
+                        // Read the CSV back into the new table
+                        CSVProcessor.readFromCSV(targetTable, tempFileName, true, false);
+
+                        // Verify that the tables have the same number of rows
+                        if (sourceTable.getRowCount() != targetTable.getRowCount()) {
+                            return false;
+                        }
+
+                        // Verify that the data in each row matches
+                        for (int i = 0; i < sourceTable.getRowCount(); i++) {
+                            String sourceName = sourceTable.getValueAt(i, "Name");
+                            String targetName = targetTable.getValueAt(i, "Name");
+                            if (!sourceName.equals(targetName)) {
+                                return false;
+                            }
+
+                            String sourceAge = sourceTable.getValueAt(i, "Age");
+                            String targetAge = targetTable.getValueAt(i, "Age");
+                            if (!sourceAge.equals(targetAge)) {
+                                return false;
+                            }
+
+                            // For salary (double), we need to handle potential formatting differences
+                            Object sourceSalary = sourceTable.getValue(i, "Salary");
+                            Object targetSalary = targetTable.getValue(i, "Salary");
+                            if (!(sourceSalary instanceof Double && targetSalary instanceof Double &&
+                                    Math.abs((Double)sourceSalary - (Double)targetSalary) < 0.0001)) {
+                                return false;
+                            }
+                        }
+
+                        return true;
+                    } finally {
+                        // Clean up the temporary file
+                        new File(tempFileName).delete();
+                    }
+                });
+    }
+
+
     private static Table getTableWithColumns() {
         Table newTable = new Table();
         var columns = createColumns(Strings.of("Name", "Age", "Occupation"), Strings.of("string", "int", "string"));
