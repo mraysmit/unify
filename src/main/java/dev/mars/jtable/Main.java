@@ -1,8 +1,8 @@
 package dev.mars.jtable;
 
-import dev.mars.jtable.io.csv.CSVProcessor;
-import dev.mars.jtable.io.mapping.ColumnMapping;
-import dev.mars.jtable.io.mapping.MappingConfiguration;
+import dev.mars.jtable.io.files.csv.CSVProcessor;
+import dev.mars.jtable.io.files.mapping.ColumnMapping;
+import dev.mars.jtable.io.files.mapping.MappingConfiguration;
 import dev.mars.jtable.core.table.TableBuilder;
 import dev.mars.jtable.core.table.TableCore;
 

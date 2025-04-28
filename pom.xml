@@ -21,6 +21,8 @@
 
 
         <module>java-table-core</module>
+        <module>java-table-io-common</module>
+        <module>java-table-io-files</module>
     </modules>
 
     <dependencyManagement>
