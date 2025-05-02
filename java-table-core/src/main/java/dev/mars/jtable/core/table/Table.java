@@ -48,7 +48,7 @@ public class Table implements ITable {
     public void setCreateDefaultValue(boolean createDefaultValue) {tableCore.setCreateDefaultValue(createDefaultValue);}
 
     @Override
-    public boolean isCreateDefaultValue() {return createDefaultValue;}
+    public boolean isCreateDefaultValue() {return tableCore.isCreateDefaultValue();}
 
     @Override
     public String getDefaultValue(String type) {
