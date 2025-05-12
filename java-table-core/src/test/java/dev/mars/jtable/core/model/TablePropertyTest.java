@@ -8,6 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.quicktheories.core.Gen;
 
 import java.io.File;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -32,6 +36,9 @@ public class TablePropertyTest {
         columnNames.put("Age", "int");
         columnNames.put("Salary", "double");
         columnNames.put("IsActive", "boolean");
+        columnNames.put("BirthDate", "date");
+        columnNames.put("StartTime", "time");
+        columnNames.put("CreatedAt", "datetime");
         table.setColumns(columnNames);
     }
 
@@ -68,6 +75,7 @@ public class TablePropertyTest {
             .forAll(booleans().all().map(Object::toString))
             .check(value -> table.inferType(value).equals("boolean"));
     }
+
 
     /**
      * Property: For any string that doesn't match int, double, or boolean patterns,
@@ -113,6 +121,14 @@ public class TablePropertyTest {
                 row.put("Salary", salary.toString());
                 row.put("IsActive", isActive.toString());
 
+                // Add date, time, and datetime values
+                String birthDate = "2000-01-01";
+                String startTime = "09:30:00";
+                String createdAt = "2023-01-01T12:00:00";
+                row.put("BirthDate", birthDate);
+                row.put("StartTime", startTime);
+                row.put("CreatedAt", createdAt);
+
                 // Add the row to the table
                 table.addRow(row);
 
@@ -131,7 +147,13 @@ public class TablePropertyTest {
 
                 boolean isActiveMatches = table.getValueAt(rowIndex, "IsActive").equals(isActive.toString());
 
-                return nameMatches && ageMatches && salaryMatches && isActiveMatches;
+                // Verify date, time, and datetime values
+                boolean birthDateMatches = table.getValueAt(rowIndex, "BirthDate").equals(birthDate);
+                boolean startTimeMatches = table.getValueAt(rowIndex, "StartTime").equals(startTime);
+                boolean createdAtMatches = table.getValueAt(rowIndex, "CreatedAt").equals(createdAt);
+
+                return nameMatches && ageMatches && salaryMatches && isActiveMatches &&
+                       birthDateMatches && startTimeMatches && createdAtMatches;
             });
     }
 

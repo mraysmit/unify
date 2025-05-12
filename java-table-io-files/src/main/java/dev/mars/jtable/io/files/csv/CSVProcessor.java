@@ -30,7 +30,7 @@ public class CSVProcessor {
      * @param fileName the name of the file to write to
      * @param withHeaderRow whether to include a header row in the CSV file
      */
-    public static void writeToCSV(ITable table, String fileName, boolean withHeaderRow) {
+    public static void writeToCSV(ITable table, String fileName, boolean withHeaderRow) throws IOException {
         CSVTableAdapter adapter = new CSVTableAdapter(table);
         FileConnection connection = (FileConnection) DataSourceConnectionFactory.createConnection(fileName);
         connection.connect();
@@ -49,7 +49,7 @@ public class CSVProcessor {
      * @param hasHeaderRow whether the CSV file has a header row
      * @param allowEmptyValues whether to allow empty values in the CSV file
      */
-    public static void readFromCSV(ITable table, String fileName, boolean hasHeaderRow, boolean allowEmptyValues) {
+    public static void readFromCSV(ITable table, String fileName, boolean hasHeaderRow, boolean allowEmptyValues) throws IOException {
         CSVTableAdapter adapter = new CSVTableAdapter(table);
         FileConnection connection = (FileConnection) DataSourceConnectionFactory.createConnection(fileName);
         connection.connect();

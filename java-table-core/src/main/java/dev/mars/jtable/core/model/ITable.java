@@ -45,6 +45,8 @@ public interface ITable {
 
     void setValue(int rowIndex, String columnName, Object value);
 
+    String getValueAt(int rowIndex, String columnName);
+
     void setValueAt(int rowIndex, String columnName, String value);
 
     @SuppressWarnings("unchecked")

@@ -4,6 +4,12 @@ package dev.mars.jtable.core.table;
 import dev.mars.jtable.core.model.ICell;
 import dev.mars.jtable.core.model.IColumn;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+
 public class Column<T> implements IColumn<T> {
     private final String name;
     private final Class<T> type;
@@ -68,6 +74,24 @@ public class Column<T> implements IColumn<T> {
             return (T) Double.valueOf(value);
         } else if (type == Boolean.class) {
             return (T) Boolean.valueOf(value);
+        } else if (type == LocalDate.class) {
+            try {
+                return (T) LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid date format. Expected format: yyyy-MM-dd", e);
+            }
+        } else if (type == LocalTime.class) {
+            try {
+                return (T) LocalTime.parse(value, DateTimeFormatter.ISO_LOCAL_TIME);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid time format. Expected format: HH:mm:ss", e);
+            }
+        } else if (type == LocalDateTime.class) {
+            try {
+                return (T) LocalDateTime.parse(value, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } catch (DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid date-time format. Expected format: yyyy-MM-ddTHH:mm:ss", e);
+            }
         } else {
             throw new IllegalArgumentException("Unsupported type: " + type.getName());
         }
