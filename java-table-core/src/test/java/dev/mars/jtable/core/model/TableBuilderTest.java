@@ -267,9 +267,9 @@ class TableBuilderTest {
         ITable table = builder.build();
 
         // Verify the values were converted correctly
-        assertEquals("Alice", table.getValue(0, "Name"));
-        assertEquals(30, table.getValue(0, "Age"));
-        assertEquals(75000.50, table.getValue(0, "Salary"));
-        assertEquals(true, table.getValue(0, "IsActive"));
+        assertEquals("Alice", table.getValueObject(0, "Name"));
+        assertEquals(30, table.getValueObject(0, "Age"));
+        assertEquals(75000.50, table.getValueObject(0, "Salary"));
+        assertEquals(true, table.getValueObject(0, "IsActive"));
     }
 }

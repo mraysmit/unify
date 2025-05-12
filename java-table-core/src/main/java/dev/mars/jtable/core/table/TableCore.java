@@ -194,7 +194,7 @@ public class TableCore implements ITable {
     }
 
     @Override
-    public Object getValue(int rowIndex, String columnName) {
+    public Object getValueObject(int rowIndex, String columnName) {
         IRow row = getRow(rowIndex);
         ICell<?> cell = row.getCell(columnName);
         if (cell == null) {
@@ -334,7 +334,7 @@ public class TableCore implements ITable {
 
     @Override
     public String getValueAt(int rowIndex, String columnName) {
-        Object value = getValue(rowIndex, columnName);
+        Object value = getValueObject(rowIndex, columnName);
         if (value == null) {
             return null;
         }

@@ -483,8 +483,8 @@ class CSVProcessorTest {
                             }
 
                             // For salary (double), we need to handle potential formatting differences
-                            Object sourceSalary = sourceTable.getValue(i, "Salary");
-                            Object targetSalary = targetTable.getValue(i, "Salary");
+                            Object sourceSalary = sourceTable.getValueObject(i, "Salary");
+                            Object targetSalary = targetTable.getValueObject(i, "Salary");
                             if (!(sourceSalary instanceof Double && targetSalary instanceof Double &&
                                     Math.abs((Double)sourceSalary - (Double)targetSalary) < 0.0001)) {
                                 return false;

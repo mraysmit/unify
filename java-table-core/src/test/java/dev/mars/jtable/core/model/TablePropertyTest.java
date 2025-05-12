@@ -125,7 +125,7 @@ public class TablePropertyTest {
 
                 // For salary (double), we need to handle potential formatting differences
                 // The actual value might be formatted differently than the input string
-                Object salaryValue = table.getValue(rowIndex, "Salary");
+                Object salaryValue = table.getValueObject(rowIndex, "Salary");
                 boolean salaryMatches = salaryValue instanceof Double && 
                                        Math.abs((Double)salaryValue - salary) < 0.0001;
 

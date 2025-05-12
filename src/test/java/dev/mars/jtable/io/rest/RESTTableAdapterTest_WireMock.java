@@ -91,7 +91,7 @@ class RESTTableAdapterTest_WireMock {
         // Now reads from your controllable mock server
         adapter.readTable();
         assertEquals(1, adapter.getTable().getRowCount());
-        assertEquals("Test Post", adapter.getTable().getValue(0, "title"));
+        assertEquals("Test Post", adapter.getTable().getValueObject(0, "title"));
     }
 
     @Test
@@ -127,7 +127,7 @@ class RESTTableAdapterTest_WireMock {
 
         // Verify that authenticated data was read
         assertEquals(1, authAdapter.getTable().getRowCount());
-        assertEquals("Authenticated Post", authAdapter.getTable().getValue(0, "title"));
+        assertEquals("Authenticated Post", authAdapter.getTable().getValueObject(0, "title"));
     }
 
     @Test

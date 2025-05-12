@@ -61,15 +61,11 @@ public class CSVProcessor {
      *
      * @param table the table to read into
      * @param config the mapping configuration
+     * @throws FileNotFoundException if the file does not exist
+     * @throws IOException if there is an error reading the file
      */
-    public static void readFromCSV(ITable table, MappingConfiguration config) {
-        try {
-            csvMappingReader.readFromCSV(table, config);
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
-        } catch (IOException e) {
-            System.err.println("Error reading CSV file: " + e.getMessage());
-        }
+    public static void readFromCSV(ITable table, MappingConfiguration config) throws FileNotFoundException, IOException {
+        csvMappingReader.readFromCSV(table, config);
     }
 
     /**
@@ -77,14 +73,10 @@ public class CSVProcessor {
      *
      * @param table the table to write from
      * @param config the mapping configuration
+     * @throws FileNotFoundException if the file cannot be created or accessed
+     * @throws IOException if there is an error writing to the file
      */
-    public static void writeToCSV(ITable table, MappingConfiguration config) {
-        try {
-            csvMappingWriter.writeToCSV(table, config);
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
-        } catch (IOException e) {
-            System.err.println("Error writing CSV file: " + e.getMessage());
-        }
+    public static void writeToCSV(ITable table, MappingConfiguration config) throws FileNotFoundException, IOException {
+        csvMappingWriter.writeToCSV(table, config);
     }
 }

@@ -21,9 +21,11 @@ public class CSVWriter implements ICSVWriter {
      * @param dataSource the data source to write from
      * @param connection the connection to the destination
      * @param options additional options for writing (implementation-specific)
+     * @throws IOException if there is an error writing to the destination
+     * @throws IllegalArgumentException if there is an error with the data source or connection
      */
     @Override
-    public void writeData(IDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) {
+    public void writeData(IDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) throws IOException, IllegalArgumentException {
         // Convert the generic dataSource to a CSV-specific dataSource
         ICSVDataSource csvDataSource;
         if (dataSource instanceof ICSVDataSource) {
@@ -58,9 +60,11 @@ public class CSVWriter implements ICSVWriter {
      * @param dataSource the data source to write from
      * @param fileName the name of the file to write to
      * @param withHeaderRow whether to include a header row in the CSV file
+     * @throws IOException if there is an error writing to the file
+     * @throws IllegalArgumentException if there is an error with the data source
      */
     @Override
-    public void writeToCSV(ICSVDataSource dataSource, String fileName, boolean withHeaderRow) {
+    public void writeToCSV(ICSVDataSource dataSource, String fileName, boolean withHeaderRow) throws IOException, IllegalArgumentException {
         try (FileWriter writer = new FileWriter(fileName)) {
             // Write the header if withHeaderRow is true
             if (withHeaderRow) {
@@ -94,9 +98,9 @@ public class CSVWriter implements ICSVWriter {
                 writer.append("\n");
             }
         } catch (IOException e) {
-            System.err.println("Error writing CSV file: " + e.getMessage());
+            throw new IOException("Error writing CSV file: " + e.getMessage(), e);
         } catch (IllegalArgumentException e) {
-            System.err.println("Error processing CSV data: " + e.getMessage());
+            throw new IllegalArgumentException("Error processing CSV data: " + e.getMessage(), e);
         }
     }
 }

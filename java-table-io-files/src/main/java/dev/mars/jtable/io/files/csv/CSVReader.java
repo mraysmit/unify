@@ -28,9 +28,11 @@ public class CSVReader implements ICSVReader {
      * @param dataSource the data source to read into
      * @param connection the source to read from (e.g., file name, URL, etc.)
      * @param options additional options for reading (implementation-specific)
+     * @throws IOException if there is an error reading the file or if the CSV format is invalid
+     * @throws IllegalArgumentException if there is an error with the data source or connection
      */
     @Override
-    public void readData(IDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) {
+    public void readData(IDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) throws IOException, IllegalArgumentException {
         // Convert the generic dataSource to a CSV-specific dataSource
         ICSVDataSource csvDataSource;
         if (dataSource instanceof ICSVDataSource) {
@@ -62,9 +64,11 @@ public class CSVReader implements ICSVReader {
      * @param connection the file connection to read from
      * @param hasHeaderRow whether the CSV file has a header row
      * @param allowEmptyValues whether to allow empty values in the CSV file
+     * @throws IOException if there is an error reading the file or if the CSV format is invalid
+     * @throws IllegalArgumentException if there is an error processing the CSV data
      */
     @Override
-    public void readFromCSV(ICSVDataSource dataSource, FileConnection connection, boolean hasHeaderRow, boolean allowEmptyValues) {
+    public void readFromCSV(ICSVDataSource dataSource, FileConnection connection, boolean hasHeaderRow, boolean allowEmptyValues) throws IOException, IllegalArgumentException {
         String line;
         String[] headers = new String[0];
         var columnNames = new LinkedHashMap<String, String>();
@@ -79,6 +83,7 @@ public class CSVReader implements ICSVReader {
         // Extract the file name from the connection
         String fileName = connection.getLocation();
 
+        // Read headers
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             if (hasHeaderRow) {
                 line = br.readLine();
@@ -98,14 +103,14 @@ public class CSVReader implements ICSVReader {
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error reading CSV file: " + e.getMessage());
-            return;
+            throw new IOException("Error reading CSV file headers: " + e.getMessage(), e);
         }
 
         if (headers.length == 0) {
-            return; // No data to process
+            throw new IOException("No headers found in CSV file");
         }
 
+        // Read data
         try (BufferedReader br = new BufferedReader(new FileReader(fileName))) {
             // Skip the header row if it exists
             if (hasHeaderRow) {
@@ -115,7 +120,7 @@ public class CSVReader implements ICSVReader {
             // Read the first data row to infer types
             line = br.readLine();
             if (line == null) {
-                return; // No data rows to process
+                throw new IOException("No data rows found in CSV file");
             }
             String[] firstRowValues = line.split(",", allowEmptyValues ? -1 : headers.length);
             if (firstRowValues.length != headers.length) {
@@ -148,9 +153,9 @@ public class CSVReader implements ICSVReader {
                 dataSource.addRow(row);
             }
         } catch (IOException e) {
-            System.err.println("Error reading CSV file: " + e.getMessage());
+            throw new IOException("Error reading CSV file data: " + e.getMessage(), e);
         } catch (IllegalArgumentException e) {
-            System.err.println("Error processing CSV data: " + e.getMessage());
+            throw new IllegalArgumentException("Error processing CSV data: " + e.getMessage(), e);
         }
     }
 

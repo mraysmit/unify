@@ -111,8 +111,8 @@ public class Table implements ITable {
     }
 
     @Override
-    public Object getValue(int rowIndex, String columnName) {
-        return tableCore.getValue(rowIndex, columnName);
+    public Object getValueObject(int rowIndex, String columnName) {
+        return tableCore.getValueObject(rowIndex, columnName);
     }
 
     @Override

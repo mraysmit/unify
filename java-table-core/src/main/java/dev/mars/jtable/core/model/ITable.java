@@ -41,20 +41,18 @@ public interface ITable {
 
     int getColumnCount();
 
-    Object getValue(int rowIndex, String columnName);
+    Object getValueObject(int rowIndex, String columnName);
 
     void setValue(int rowIndex, String columnName, Object value);
+
+    void setValueAt(int rowIndex, String columnName, String value);
 
     @SuppressWarnings("unchecked")
     Object convertValue(String value, IColumn<?> column);
 
-    void setValueAt(int rowIndex, String columnName, String value);
-
     void setColumns(LinkedHashMap<String, String> columns);
 
     String inferType(String value);
-
-    String getValueAt(int rowIndex, String columnName);
 
     void printTable();
 }

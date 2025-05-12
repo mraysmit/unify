@@ -1,5 +1,6 @@
 package dev.mars.jtable.io.common.datasource;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -13,6 +14,8 @@ public interface IDataReader {
      * @param dataSource the data source to read into
      * @param connection the connection to the data source
      * @param options additional options for reading (implementation-specific)
+     * @throws IOException if there is an error reading from the source
+     * @throws IllegalArgumentException if there is an error with the data source or connection
      */
-    void readData(IDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options);
+    void readData(IDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) throws IOException, IllegalArgumentException;
 }
