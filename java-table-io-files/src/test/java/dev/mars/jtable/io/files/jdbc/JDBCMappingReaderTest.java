@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.jsbc;
+package dev.mars.jtable.io.files.jdbc;
 
 import dev.mars.jtable.core.table.Table;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
@@ -10,8 +10,6 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 

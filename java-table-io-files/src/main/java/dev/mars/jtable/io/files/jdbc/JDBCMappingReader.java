@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.jsbc;
+package dev.mars.jtable.io.files.jdbc;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
@@ -11,7 +11,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

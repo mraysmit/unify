@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.jsbc;
+package dev.mars.jtable.io.files.jdbc;
 
 
 

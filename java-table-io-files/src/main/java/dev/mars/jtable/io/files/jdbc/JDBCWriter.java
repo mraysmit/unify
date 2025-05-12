@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.jsbc;
+package dev.mars.jtable.io.files.jdbc;
 
 
 
@@ -6,7 +6,6 @@ import dev.mars.jtable.io.common.datasource.IDataSource;
 import dev.mars.jtable.io.common.datasource.IDataSourceConnection;
 import dev.mars.jtable.io.common.datasource.IJDBCDataSource;
 import dev.mars.jtable.io.common.datasource.JDBCConnection;
-import dev.mars.jtable.io.files.jsbc.JDBCTableAdapter;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

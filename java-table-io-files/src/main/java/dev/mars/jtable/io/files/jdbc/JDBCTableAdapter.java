@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.jsbc;
+package dev.mars.jtable.io.files.jdbc;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.io.common.adapter.DataSourceTableAdapter;
