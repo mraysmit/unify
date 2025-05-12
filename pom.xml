@@ -30,6 +30,7 @@
         <module>java-table-io-common</module>
         <module>java-table-io-files</module>
         <module>java-table-coverage</module>
+        <module>java-table-integration</module>
     </modules>
 
     <dependencyManagement>

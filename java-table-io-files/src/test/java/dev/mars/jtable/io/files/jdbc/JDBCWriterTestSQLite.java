@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class for JDBCWriter.
- * This class tests writing data to a database using JDBCWriter.
+ * This class tests writing data to a SQLite database using JDBCWriter.
  */
-class JDBCWriterTest {
+class JDBCWriterTestSQLite {
 
-    private static final String TEST_DB_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
+    private static final String TEST_DB_URL = "jdbc:sqlite:file::memory:?cache=shared";
     private static final String TEST_TABLE = "test_table";
     private JDBCTableAdapter adapter;
     private JDBCWriter writer;

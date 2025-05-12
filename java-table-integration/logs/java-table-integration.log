@@ -1,0 +1,61 @@
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:16:41 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - Could not drop test table: No suitable driver found for jdbc:sqlite:test_sqlite.db
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Testing logging functionality
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - This is a debug message
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - This is an info message
+2025-05-13 00:16:41 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - This is a warning message
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:16:41 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - Could not drop test table: No suitable driver found for jdbc:sqlite:test_sqlite.db
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:16:41 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - Could not drop test table: No suitable driver found for jdbc:sqlite:test_sqlite.db
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 00:16:41 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 00:16:41 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 00:16:41 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 00:16:41 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 00:16:41 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 00:16:41 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:16:41 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - Could not drop test table: No suitable driver found for jdbc:sqlite:test_sqlite.db
+2025-05-13 00:16:41 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Testing logging functionality
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - This is a debug message
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - This is an info message
+2025-05-13 00:18:13 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - This is a warning message
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 00:18:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 00:18:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 00:18:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 00:18:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 00:18:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 00:18:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for id=1
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 00:18:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file

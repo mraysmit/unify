@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Test class for JDBCMappingWriter.
  * This class tests writing data to a database using JDBCMappingWriter with mapping configurations.
  */
-class JDBCMappingWriterTest {
+class JDBCMappingWriterTestH2 {
 
     private static final String TEST_DB_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
     private static final String TEST_TABLE = "test_table";

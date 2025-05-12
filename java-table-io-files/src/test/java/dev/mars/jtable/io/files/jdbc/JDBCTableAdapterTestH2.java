@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * This class tests that the adapter correctly delegates method calls to the Table instance
  * and implements the IJDBCDataSource interface.
  */
-class JDBCTableAdapterTest {
+class JDBCTableAdapterTestH2 {
 
     private Table table;
     private JDBCTableAdapter adapter;

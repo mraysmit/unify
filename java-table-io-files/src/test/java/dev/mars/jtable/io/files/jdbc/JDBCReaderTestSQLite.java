@@ -18,11 +18,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test class for JDBCReader.
- * This class tests reading data from a database using JDBCReader.
+ * This class tests reading data from a SQLite database using JDBCReader.
  */
-class JDBCReaderTest {
+class JDBCReaderTestSQLite {
 
-    private static final String TEST_DB_URL = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1";
+    private static final String TEST_DB_URL = "jdbc:sqlite:file::memory:?cache=shared";
     private static final String TEST_TABLE = "test_table";
     private JDBCTableAdapter adapter;
     private JDBCReader reader;
@@ -81,23 +81,23 @@ class JDBCReaderTest {
         assertEquals(3, adapter.getRowCount(), "Table should have 3 rows");
         assertEquals(3, adapter.getColumnCount(), "Table should have 3 columns");
 
-        // Check column names (H2 database converts column names to uppercase)
-        assertEquals("ID", adapter.getColumnName(0), "First column should be 'ID'");
-        assertEquals("NAME", adapter.getColumnName(1), "Second column should be 'NAME'");
-        assertEquals("AGE", adapter.getColumnName(2), "Third column should be 'AGE'");
+        // Check column names (SQLite preserves case, unlike H2 which converts to uppercase)
+        assertEquals("id", adapter.getColumnName(0), "First column should be 'id'");
+        assertEquals("name", adapter.getColumnName(1), "Second column should be 'name'");
+        assertEquals("age", adapter.getColumnName(2), "Third column should be 'age'");
 
         // Check row values
-        assertEquals("1", adapter.getValueAt(0, "ID"), "First row, ID column should be '1'");
-        assertEquals("Alice", adapter.getValueAt(0, "NAME"), "First row, NAME column should be 'Alice'");
-        assertEquals("30", adapter.getValueAt(0, "AGE"), "First row, AGE column should be '30'");
+        assertEquals("1", adapter.getValueAt(0, "id"), "First row, id column should be '1'");
+        assertEquals("Alice", adapter.getValueAt(0, "name"), "First row, name column should be 'Alice'");
+        assertEquals("30", adapter.getValueAt(0, "age"), "First row, age column should be '30'");
 
-        assertEquals("2", adapter.getValueAt(1, "ID"), "Second row, ID column should be '2'");
-        assertEquals("Bob", adapter.getValueAt(1, "NAME"), "Second row, NAME column should be 'Bob'");
-        assertEquals("25", adapter.getValueAt(1, "AGE"), "Second row, AGE column should be '25'");
+        assertEquals("2", adapter.getValueAt(1, "id"), "Second row, id column should be '2'");
+        assertEquals("Bob", adapter.getValueAt(1, "name"), "Second row, name column should be 'Bob'");
+        assertEquals("25", adapter.getValueAt(1, "age"), "Second row, age column should be '25'");
 
-        assertEquals("3", adapter.getValueAt(2, "ID"), "Third row, ID column should be '3'");
-        assertEquals("Charlie", adapter.getValueAt(2, "NAME"), "Third row, NAME column should be 'Charlie'");
-        assertEquals("35", adapter.getValueAt(2, "AGE"), "Third row, AGE column should be '35'");
+        assertEquals("3", adapter.getValueAt(2, "id"), "Third row, id column should be '3'");
+        assertEquals("Charlie", adapter.getValueAt(2, "name"), "Third row, name column should be 'Charlie'");
+        assertEquals("35", adapter.getValueAt(2, "age"), "Third row, age column should be '35'");
     }
 
     @Test
@@ -113,13 +113,13 @@ class JDBCReaderTest {
         assertEquals(2, adapter.getRowCount(), "Table should have 2 rows");
         assertEquals(3, adapter.getColumnCount(), "Table should have 3 columns");
 
-        // Check row values for Alice (age 30)
+        // Check row values for Alice (age 30) and Charlie (age 35)
         boolean foundAlice = false;
         boolean foundCharlie = false;
 
         for (int i = 0; i < adapter.getRowCount(); i++) {
-            String name = adapter.getValueAt(i, "NAME");
-            String age = adapter.getValueAt(i, "AGE");
+            String name = adapter.getValueAt(i, "name");
+            String age = adapter.getValueAt(i, "age");
 
             if ("Alice".equals(name)) {
                 foundAlice = true;
