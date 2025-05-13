@@ -1,9 +1,11 @@
 package dev.mars.jtable.io.files.csv;
 
-
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
 import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -20,6 +22,7 @@ import java.util.Map;
  * This class reads data from a CSV file according to a mapping configuration.
  */
 public class CSVMappingReader {
+    private static final Logger logger = LoggerFactory.getLogger(CSVMappingReader.class);
     /**
      * Reads data from a CSV file into a table according to a mapping configuration.
      *
@@ -33,20 +36,20 @@ public class CSVMappingReader {
         // Validate input parameters
         if (table == null) {
             String errorMsg = "Table cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         if (config == null) {
             String errorMsg = "Mapping configuration cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         String fileName = config.getSourceLocation();
         if (fileName == null || fileName.trim().isEmpty()) {
             String errorMsg = "Source location in mapping configuration cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -54,7 +57,7 @@ public class CSVMappingReader {
         List<ColumnMapping> columnMappings = config.getColumnMappings();
         if (columnMappings == null || columnMappings.isEmpty()) {
             String errorMsg = "Column mappings cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -66,19 +69,19 @@ public class CSVMappingReader {
             File file = new File(fileName);
             if (!file.exists()) {
                 String errorMsg = "CSV file does not exist: " + fileName;
-                System.err.println(errorMsg);
+                logger.error(errorMsg);
                 throw new FileNotFoundException(errorMsg);
             }
 
             if (!file.isFile()) {
                 String errorMsg = "Path is not a file: " + fileName;
-                System.err.println(errorMsg);
+                logger.error(errorMsg);
                 throw new IOException(errorMsg);
             }
 
             if (!file.canRead()) {
                 String errorMsg = "Cannot read file: " + fileName;
-                System.err.println(errorMsg);
+                logger.error(errorMsg);
                 throw new IOException(errorMsg);
             }
 
@@ -88,7 +91,7 @@ public class CSVMappingReader {
             // Read the CSV file
             List<String[]> rows = readFromCSVFile(fileName, hasHeaderRow, allowEmptyValues);
             if (rows.isEmpty()) {
-                System.err.println("Warning: No data found in CSV file: " + fileName);
+                logger.warn("No data found in CSV file: {}", fileName);
                 return; // No data to process
             }
 
@@ -98,7 +101,7 @@ public class CSVMappingReader {
             // Validate header row if expected
             if (hasHeaderRow && (headers == null || headers.length == 0)) {
                 String errorMsg = "Expected header row but found none in file: " + fileName;
-                System.err.println(errorMsg);
+                logger.error(errorMsg);
                 throw new IOException(errorMsg);
             }
 
@@ -118,16 +121,15 @@ public class CSVMappingReader {
                         if (index >= 0 && index < values.length) {
                             value = values[index];
                         } else {
-                            System.err.println("Warning: Column '" + mapping.getSourceColumnName() + 
-                                "' not found in CSV file or index out of bounds. Using default value if available.");
+                            logger.warn("Column '{}' not found in CSV file or index out of bounds. Using default value if available.", 
+                                mapping.getSourceColumnName());
                         }
                     } else if (mapping.usesSourceColumnIndex()) {
                         int index = mapping.getSourceColumnIndex();
                         if (index >= 0 && index < values.length) {
                             value = values[index];
                         } else {
-                            System.err.println("Warning: Column index " + index + 
-                                " out of bounds. Using default value if available.");
+                            logger.warn("Column index {} out of bounds. Using default value if available.", index);
                         }
                     }
 
@@ -146,13 +148,13 @@ public class CSVMappingReader {
                 table.addRow(rowData);
             }
         } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
+            logger.error("File not found: {}", e.getMessage());
             throw e;
         } catch (IOException e) {
-            System.err.println("Error reading CSV file: " + e.getMessage());
+            logger.error("Error reading CSV file: {}", e.getMessage());
             throw e;
         } catch (IllegalArgumentException e) {
-            System.err.println("Error processing CSV data: " + e.getMessage());
+            logger.error("Error processing CSV data: {}", e.getMessage());
             throw e;
         }
     }
@@ -172,7 +174,7 @@ public class CSVMappingReader {
         // Validate input parameters
         if (fileName == null || fileName.trim().isEmpty()) {
             String errorMsg = "File name cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -186,7 +188,7 @@ public class CSVMappingReader {
 
                 // Skip empty lines
                 if (line.trim().isEmpty()) {
-                    System.err.println("Warning: Empty line found at line " + lineNumber + ", skipping");
+                    logger.warn("Empty line found at line {}, skipping", lineNumber);
                     continue;
                 }
 
@@ -195,21 +197,21 @@ public class CSVMappingReader {
 
                     // Validate that we have at least one value
                     if (values.length == 0) {
-                        System.err.println("Warning: No values found at line " + lineNumber + ", skipping");
+                        logger.warn("No values found at line {}, skipping", lineNumber);
                         continue;
                     }
 
                     rows.add(values);
                 } catch (Exception e) {
-                    System.err.println("Error parsing line " + lineNumber + ": " + e.getMessage());
+                    logger.error("Error parsing line {}: {}", lineNumber, e.getMessage());
                     throw new IOException("Error parsing CSV line " + lineNumber + ": " + e.getMessage(), e);
                 }
             }
         } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + fileName);
+            logger.error("File not found: {}", fileName);
             throw e;
         } catch (IOException e) {
-            System.err.println("Error reading CSV file: " + fileName + " - " + e.getMessage());
+            logger.error("Error reading CSV file: {} - {}", fileName, e.getMessage());
             throw e;
         }
 
@@ -228,32 +230,32 @@ public class CSVMappingReader {
         // Validate input parameters
         if (headers == null) {
             String errorMsg = "Headers array cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         if (columnName == null) {
             String errorMsg = "Column name cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         // If headers array is empty, return -1
         if (headers.length == 0) {
-            System.err.println("Warning: Headers array is empty");
+            logger.warn("Headers array is empty");
             return -1;
         }
 
         // If column name is empty, log a warning but still try to find it
         if (columnName.trim().isEmpty()) {
-            System.err.println("Warning: Column name is empty");
+            logger.warn("Column name is empty");
         }
 
         // Search for the column name in the headers
         for (int i = 0; i < headers.length; i++) {
             // Skip null headers
             if (headers[i] == null) {
-                System.err.println("Warning: Null header at index " + i);
+                logger.warn("Null header at index {}", i);
                 continue;
             }
 
@@ -263,7 +265,7 @@ public class CSVMappingReader {
         }
 
         // Column not found
-        System.err.println("Warning: Column '" + columnName + "' not found in headers");
+        logger.warn("Column '{}' not found in headers", columnName);
         return -1;
     }
 }

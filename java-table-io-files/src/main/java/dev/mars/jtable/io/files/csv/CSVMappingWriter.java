@@ -4,6 +4,9 @@ import dev.mars.jtable.io.files.mapping.ColumnMapping;
 import dev.mars.jtable.io.files.mapping.MappingConfiguration;
 import dev.mars.jtable.core.model.ITable;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -16,6 +19,7 @@ import java.util.List;
  * This class writes data to a CSV file according to a mapping configuration.
  */
 public class CSVMappingWriter {
+    private static final Logger logger = LoggerFactory.getLogger(CSVMappingWriter.class);
     /**
      * Writes data from a table to a CSV file according to a mapping configuration.
      *
@@ -29,20 +33,20 @@ public class CSVMappingWriter {
         // Validate input parameters
         if (table == null) {
             String errorMsg = "Table cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         if (config == null) {
             String errorMsg = "Mapping configuration cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         String fileName = config.getSourceLocation();
         if (fileName == null || fileName.trim().isEmpty()) {
             String errorMsg = "Source location in mapping configuration cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -50,7 +54,7 @@ public class CSVMappingWriter {
         List<ColumnMapping> columnMappings = config.getColumnMappings();
         if (columnMappings == null || columnMappings.isEmpty()) {
             String errorMsg = "Column mappings cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -63,20 +67,20 @@ public class CSVMappingWriter {
         // Check if parent directory exists and is writable
         if (parentDir != null && !parentDir.exists()) {
             String errorMsg = "Parent directory does not exist: " + parentDir.getAbsolutePath();
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new FileNotFoundException(errorMsg);
         }
 
         if (parentDir != null && !parentDir.canWrite()) {
             String errorMsg = "Cannot write to parent directory: " + parentDir.getAbsolutePath();
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IOException(errorMsg);
         }
 
         // Check if file exists and is writable
         if (file.exists() && !file.canWrite()) {
             String errorMsg = "Cannot write to file: " + fileName;
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IOException(errorMsg);
         }
 
@@ -89,7 +93,7 @@ public class CSVMappingWriter {
                     String columnName = mapping.getTargetColumnName();
                     if (columnName == null) {
                         String errorMsg = "Target column name cannot be null at index " + i;
-                        System.err.println(errorMsg);
+                        logger.error(errorMsg);
                         throw new IllegalArgumentException(errorMsg);
                     }
                     writer.append(columnName);
@@ -113,11 +117,11 @@ public class CSVMappingWriter {
                             try {
                                 value = table.getValueAt(rowIndex, sourceColumnName);
                             } catch (Exception e) {
-                                System.err.println("Warning: Error getting value for column '" + sourceColumnName + 
-                                    "' at row " + rowIndex + ": " + e.getMessage());
+                                logger.warn("Error getting value for column '{}' at row {}: {}", sourceColumnName, 
+                                    rowIndex, e.getMessage());
                             }
                         } else {
-                            System.err.println("Warning: Source column name is null or empty at index " + i);
+                            logger.warn("Source column name is null or empty at index {}", i);
                         }
                     } else if (mapping.usesSourceColumnIndex()) {
                         int sourceColumnIndex = mapping.getSourceColumnIndex();
@@ -126,16 +130,15 @@ public class CSVMappingWriter {
                                 String columnName = table.getColumnName(sourceColumnIndex);
                                 value = table.getValueAt(rowIndex, columnName);
                             } catch (Exception e) {
-                                System.err.println("Warning: Error getting value for column index " + sourceColumnIndex + 
-                                    " at row " + rowIndex + ": " + e.getMessage());
+                                logger.warn("Error getting value for column index {} at row {}: {}", sourceColumnIndex, 
+                                    rowIndex, e.getMessage());
                             }
                         } else {
-                            System.err.println("Warning: Source column index " + sourceColumnIndex + 
-                                " is out of bounds (0-" + (table.getColumnCount() - 1) + ")");
+                            logger.warn("Source column index {} is out of bounds (0-{})", sourceColumnIndex, 
+                                (table.getColumnCount() - 1));
                         }
                     } else {
-                        System.err.println("Warning: Mapping at index " + i + 
-                            " does not specify a source column name or index");
+                        logger.warn("Mapping at index {} does not specify a source column name or index", i);
                     }
 
                     // Use default value if the value is null or empty
@@ -154,13 +157,13 @@ public class CSVMappingWriter {
                 writer.append("\n");
             }
         } catch (FileNotFoundException e) {
-            System.err.println("File not found: " + e.getMessage());
+            logger.error("File not found: {}", e.getMessage());
             throw e;
         } catch (IOException e) {
-            System.err.println("Error writing CSV file: " + e.getMessage());
+            logger.error("Error writing CSV file: {}", e.getMessage());
             throw e;
         } catch (IllegalArgumentException e) {
-            System.err.println("Error processing CSV data: " + e.getMessage());
+            logger.error("Error processing CSV data: {}", e.getMessage());
             throw e;
         }
     }

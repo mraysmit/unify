@@ -4,6 +4,8 @@ import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
 import dev.mars.jtable.io.files.mapping.MappingConfiguration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -20,6 +22,7 @@ import java.util.Map;
  * This class reads data from a database table according to a mapping configuration.
  */
 public class JDBCMappingReader {
+    private static final Logger logger = LoggerFactory.getLogger(JDBCMappingReader.class);
     /**
      * Reads data from a database into a table according to a mapping configuration.
      *
@@ -32,20 +35,20 @@ public class JDBCMappingReader {
         // Validate input parameters
         if (table == null) {
             String errorMsg = "Table cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         if (config == null) {
             String errorMsg = "Mapping configuration cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         String connectionString = config.getSourceLocation();
         if (connectionString == null || connectionString.trim().isEmpty()) {
             String errorMsg = "Source location (connection string) in mapping configuration cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -53,7 +56,7 @@ public class JDBCMappingReader {
         List<ColumnMapping> columnMappings = config.getColumnMappings();
         if (columnMappings == null || columnMappings.isEmpty()) {
             String errorMsg = "Column mappings cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -65,7 +68,7 @@ public class JDBCMappingReader {
 
         if (tableName == null && query == null) {
             String errorMsg = "Either 'tableName' or 'query' must be specified in options";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -110,7 +113,7 @@ public class JDBCMappingReader {
                                 if (columnIndex != null) {
                                     value = resultSet.getString(columnIndex);
                                 } else {
-                                    System.err.println("Warning: Source column '" + sourceColumnName + "' not found in result set");
+                                    logger.warn("Source column '{}' not found in result set", sourceColumnName);
                                 }
                             }
                         } else if (mapping.usesSourceColumnIndex()) {
@@ -118,8 +121,8 @@ public class JDBCMappingReader {
                             if (sourceColumnIndex >= 0 && sourceColumnIndex < columnCount) {
                                 value = resultSet.getString(sourceColumnIndex + 1);
                             } else {
-                                System.err.println("Warning: Source column index " + sourceColumnIndex +
-                                        " is out of bounds (0-" + (columnCount - 1) + ")");
+                                logger.warn("Source column index {} is out of bounds (0-{})", sourceColumnIndex, 
+                                        (columnCount - 1));
                             }
                         }
 
@@ -136,7 +139,7 @@ public class JDBCMappingReader {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error reading from database: " + e.getMessage());
+            logger.error("Error reading from database: {}", e.getMessage());
             throw e;
         }
     }

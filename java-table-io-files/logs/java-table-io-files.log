@@ -1,0 +1,15 @@
+2025-05-13 10:08:36 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:08:36 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:08:36 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:08:36 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Mapping configuration cannot be null
+2025-05-13 10:08:36 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Either 'tableName' or 'query' must be specified in options
+2025-05-13 10:08:36 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Table cannot be null
+2025-05-13 10:09:06 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Mapping configuration cannot be null
+2025-05-13 10:09:06 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - 'tableName' must be specified in options
+2025-05-13 10:09:06 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Table cannot be null
+2025-05-13 10:09:08 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:09:08 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:09:08 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:09:08 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Mapping configuration cannot be null
+2025-05-13 10:09:08 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Either 'tableName' or 'query' must be specified in options
+2025-05-13 10:09:08 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Table cannot be null

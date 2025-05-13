@@ -1,10 +1,11 @@
 package dev.mars.jtable.io.files.jdbc;
 
-
-
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
 import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -18,6 +19,7 @@ import java.util.List;
  * This class writes data to a database table according to a mapping configuration.
  */
 public class JDBCMappingWriter {
+    private static final Logger logger = LoggerFactory.getLogger(JDBCMappingWriter.class);
     /**
      * Writes data from a table to a database according to a mapping configuration.
      *
@@ -30,20 +32,20 @@ public class JDBCMappingWriter {
         // Validate input parameters
         if (table == null) {
             String errorMsg = "Table cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         if (config == null) {
             String errorMsg = "Mapping configuration cannot be null";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
         String connectionString = config.getSourceLocation();
         if (connectionString == null || connectionString.trim().isEmpty()) {
             String errorMsg = "Source location (connection string) in mapping configuration cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -51,7 +53,7 @@ public class JDBCMappingWriter {
         List<ColumnMapping> columnMappings = config.getColumnMappings();
         if (columnMappings == null || columnMappings.isEmpty()) {
             String errorMsg = "Column mappings cannot be null or empty";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -63,7 +65,7 @@ public class JDBCMappingWriter {
 
         if (tableName == null) {
             String errorMsg = "'tableName' must be specified in options";
-            System.err.println(errorMsg);
+            logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
         }
 
@@ -108,11 +110,11 @@ public class JDBCMappingWriter {
                                 try {
                                     value = table.getValueAt(rowIndex, sourceColumnName);
                                 } catch (Exception e) {
-                                    System.err.println("Warning: Error getting value for column '" + sourceColumnName +
-                                            "' at row " + rowIndex + ": " + e.getMessage());
+                                    logger.warn("Error getting value for column '{}' at row {}: {}", sourceColumnName,
+                                            rowIndex, e.getMessage());
                                 }
                             } else {
-                                System.err.println("Warning: Source column name is null or empty at index " + i);
+                                logger.warn("Source column name is null or empty at index {}", i);
                             }
                         } else if (mapping.usesSourceColumnIndex()) {
                             int sourceColumnIndex = mapping.getSourceColumnIndex();
@@ -121,16 +123,15 @@ public class JDBCMappingWriter {
                                     String columnName = table.getColumnName(sourceColumnIndex);
                                     value = table.getValueAt(rowIndex, columnName);
                                 } catch (Exception e) {
-                                    System.err.println("Warning: Error getting value for column index " + sourceColumnIndex +
-                                            " at row " + rowIndex + ": " + e.getMessage());
+                                    logger.warn("Error getting value for column index {} at row {}: {}", sourceColumnIndex,
+                                            rowIndex, e.getMessage());
                                 }
                             } else {
-                                System.err.println("Warning: Source column index " + sourceColumnIndex +
-                                        " is out of bounds (0-" + (table.getColumnCount() - 1) + ")");
+                                logger.warn("Source column index {} is out of bounds (0-{})", sourceColumnIndex,
+                                        (table.getColumnCount() - 1));
                             }
                         } else {
-                            System.err.println("Warning: Mapping at index " + i +
-                                    " does not specify a source column name or index");
+                            logger.warn("Mapping at index {} does not specify a source column name or index", i);
                         }
 
                         // Use default value if the value is null or empty
@@ -144,7 +145,7 @@ public class JDBCMappingWriter {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error writing to database: " + e.getMessage());
+            logger.error("Error writing to database: {}", e.getMessage());
             throw e;
         }
     }

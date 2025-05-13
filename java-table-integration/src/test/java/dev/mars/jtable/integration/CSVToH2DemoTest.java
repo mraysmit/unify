@@ -86,8 +86,9 @@ public class CSVToH2DemoTest {
 
         // Verify data was read correctly
         assertEquals(2, table.getRowCount(), "Table should have 2 rows");
-        assertEquals("John Doe", table.getValueAt(0, "name"), "First row name should be John Doe");
-        assertEquals("25", table.getValueAt(1, "age"), "Second row age should be 25");
+        assertEquals("John Doe", table.getValueAt(0, "fullName"), "First row name should be John Doe");
+        assertEquals("25", table.getValueAt(1, "personAge"), "Second row age should be 25");
+        assertEquals("General", table.getValueAt(0, "department"), "First row department should be General");
         logger.info("Successfully verified CSV data was read correctly");
 
         // Write to H2 database
@@ -120,76 +121,5 @@ public class CSVToH2DemoTest {
         logger.info("CSV to H2 integration test completed successfully");
     }
 
-    @Test
-    public void testLoggingFunctionality() throws Exception {
-        logger.info("Testing logging functionality");
 
-        // This test simply verifies that logging is working
-        // The actual verification would be done by checking the log files
-        // or by using a custom appender to capture log messages
-
-        logger.debug("This is a debug message");
-        logger.info("This is an info message");
-        logger.warn("This is a warning message");
-
-        // If we get here without exceptions, logging is working
-        assertTrue(true, "Logging functionality is working");
-    }
-}
-
-/**
- * Utility class for testing CSV to H2 integration.
- */
-class H2TestUtils {
-    private static final Logger logger = LoggerFactory.getLogger(H2TestUtils.class);
-
-    /**
-     * Reads data from a CSV file into a table using MappingConfiguration.
-     *
-     * @param table the table to read into
-     * @param csvFilePath the path to the CSV file
-     * @throws Exception if there is an error reading the file
-     */
-    static void readFromCSV(ITable table, String csvFilePath) throws Exception {
-        logger.debug("Reading from CSV file: {}", csvFilePath);
-        // Directly call the method in CSVToH2Demo
-        CSVToH2Demo.readFromCSV(table, csvFilePath);
-        logger.debug("Successfully read data from CSV file");
-    }
-
-    /**
-     * Writes data from a table to an H2 database.
-     *
-     * @param table the table to write from
-     * @param dbUrl the database URL
-     * @param tableName the table name
-     * @throws Exception if there is an error writing to the database
-     */
-    static void writeToH2Database(ITable table, String dbUrl, String tableName) throws Exception {
-        logger.debug("Writing to H2 database: {} table: {}", dbUrl, tableName);
-
-        // Create a custom method for testing that uses the provided database URL and table name
-        dev.mars.jtable.io.files.mapping.MappingConfiguration h2Config = new dev.mars.jtable.io.files.mapping.MappingConfiguration()
-                .setSourceLocation(dbUrl)
-                .setOption("tableName", tableName)
-                .setOption("username", "sa")
-                .setOption("password", "")
-                .setOption("createTable", true);
-
-        logger.debug("Created H2 mapping configuration");
-
-        // Add column mappings
-        h2Config.addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("id", "ID", "int"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("name", "NAME", "string"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("email", "EMAIL", "string"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("age", "AGE", "int"));
-
-        logger.debug("Added column mappings to H2 configuration");
-
-        // Write to H2 database
-        dev.mars.jtable.io.files.jdbc.JDBCMappingWriter h2Writer = new dev.mars.jtable.io.files.jdbc.JDBCMappingWriter();
-        h2Writer.writeToDatabase(table, h2Config);
-
-        logger.debug("Successfully wrote data to H2 database");
-    }
 }

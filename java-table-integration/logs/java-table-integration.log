@@ -59,3 +59,477 @@
 2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
 2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
 2025-05-13 00:18:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 00:25:29 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 00:25:29 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Testing logging functionality
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - This is a debug message
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - This is an info message
+2025-05-13 00:25:30 [main] WARN  d.m.j.integration.CSVToH2DemoTest - This is a warning message
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 00:25:30 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 00:25:30 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 00:25:30 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 00:25:30 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 00:25:30 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Testing logging functionality
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - This is a debug message
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - This is an info message
+2025-05-13 00:25:30 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - This is a warning message
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 00:25:30 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for id=1
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 00:25:30 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 00:25:30 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 10:09:47 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 10:09:47 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:09:47 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 10:09:47 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Testing logging functionality
+2025-05-13 10:09:47 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - This is a debug message
+2025-05-13 10:09:47 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - This is an info message
+2025-05-13 10:09:47 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - This is a warning message
+2025-05-13 10:09:47 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 10:09:47 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 10:09:48 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 10:09:48 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 10:09:48 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 10:09:48 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 10:09:48 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 10:09:48 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for id=1
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 10:09:48 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 10:09:48 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Testing logging functionality
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - This is a debug message
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - This is an info message
+2025-05-13 10:10:22 [main] WARN  d.m.j.integration.CSVToH2DemoTest - This is a warning message
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 10:10:22 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 10:10:22 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 10:10:22 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 10:10:22 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 10:10:22 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 10:10:22 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 10:10:22 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:10:22 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Testing logging functionality
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - This is a debug message
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - This is an info message
+2025-05-13 10:12:57 [main] WARN  d.m.j.i.CSVToSQLiteDemoTest - This is a warning message
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 10:12:57 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 10:12:57 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 10:12:57 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 10:12:57 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 10:12:57 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 10:12:57 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for id=1
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 10:12:57 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 10:12:57 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 10:46:24 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 10:46:24 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 10:46:24 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 10:46:24 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 10:46:24 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 10:46:24 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 10:46:24 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 10:46:24 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for id=1
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 10:46:24 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 10:46:24 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 10:58:21 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 10:58:21 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 10:58:21 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 10:58:21 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 10:58:21 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 10:58:21 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 10:58:21 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 10:58:21 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 10:58:21 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Successfully connected to CSV file
+2025-05-13 10:58:21 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Created mapping configuration with column transformations and default values
+2025-05-13 10:58:21 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 10:58:21 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 10:58:21 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 10:58:21 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 10:58:21 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 10:58:21 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Disconnected from CSV file
+2025-05-13 10:58:21 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 10:58:21 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 10:58:21 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 10:58:21 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:00:00 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Successfully connected to CSV file
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Created mapping configuration with column transformations and default values
+2025-05-13 11:00:00 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:00:00 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:00:00 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:00:00 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:00:00 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Disconnected from CSV file
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 11:00:00 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 11:00:00 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:00:00 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:02:40 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Successfully connected to CSV file
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Created mapping configuration with column transformations and default values
+2025-05-13 11:02:40 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:02:40 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:02:40 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:02:40 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:02:40 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Disconnected from CSV file
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 11:02:40 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for person_id=1
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 11:02:40 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 11:02:40 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 11:03:10 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 11:03:10 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:03:11 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 11:03:11 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:03:11 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Successfully connected to CSV file
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Created mapping configuration with column transformations and default values
+2025-05-13 11:03:11 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:03:11 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:03:11 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:03:11 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:03:11 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Disconnected from CSV file
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 11:03:11 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 11:03:11 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:03:11 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 11:03:11 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 11:03:11 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:03:11 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:03:13 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Successfully connected to CSV file
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Created mapping configuration with column transformations and default values
+2025-05-13 11:03:13 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:03:13 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:03:13 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:03:13 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:03:13 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Disconnected from CSV file
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Created SQLite mapping configuration
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Added column mappings to SQLite configuration
+2025-05-13 11:03:13 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for person_id=1
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 11:03:13 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 11:03:13 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully connected to CSV file
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Created CSV mapping configuration with column transformations and default values
+2025-05-13 11:27:19 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Reading from CSV file: test_data.csv
+2025-05-13 11:27:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:19 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Disconnected from CSV file
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully connected to SQLite database
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Created SQLite mapping configuration with column transformations and default values
+2025-05-13 11:27:19 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Writing to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 11:27:19 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Successfully wrote data to SQLite database table: test_person
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 11:27:19 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Disconnected from SQLite database
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for person_id=1
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 11:27:19 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 11:27:19 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:27:41 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Successfully connected to CSV file
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Created mapping configuration with column transformations and default values
+2025-05-13 11:27:41 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:41 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:41 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:41 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:41 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Disconnected from CSV file
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 11:27:41 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 11:27:41 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:27:41 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Setting up test environment
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped existing test table if it existed: test_person
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Starting CSV to SQLite integration test
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Created empty table for testing
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully connected to CSV file
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Created CSV mapping configuration with column transformations and default values
+2025-05-13 11:27:56 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Reading from CSV file: test_data.csv
+2025-05-13 11:27:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:56 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully read data from CSV file
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Disconnected from CSV file
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Writing data to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Writing to SQLite database: jdbc:sqlite:test_sqlite.db table: test_person
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully connected to SQLite database
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.CSVToSQLiteDemo - Created SQLite mapping configuration with column transformations and default values
+2025-05-13 11:27:56 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Writing to SQLite database: jdbc:sqlite:test_sqlite.db
+2025-05-13 11:27:56 [main] INFO  d.m.j.integration.CSVToSQLiteDemo - Successfully wrote data to SQLite database table: test_person
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Successfully wrote data to SQLite database
+2025-05-13 11:27:56 [main] DEBUG d.m.j.integration.SQLiteTestUtils - Disconnected from SQLite database
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Verifying data was written correctly to database
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Verified specific data in database for person_id=1
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - CSV to SQLite integration test completed successfully
+2025-05-13 11:27:56 [main] INFO  d.m.j.i.CSVToSQLiteDemoTest - Tearing down test environment
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Dropped test table: test_person
+2025-05-13 11:27:56 [main] DEBUG d.m.j.i.CSVToSQLiteDemoTest - Deleted SQLite database file
+2025-05-13 11:27:58 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Setting up test environment
+2025-05-13 11:27:58 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created test CSV file: test_data.csv
+2025-05-13 11:27:59 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped existing test table if it existed: TEST_PERSON
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Starting CSV to H2 integration test
+2025-05-13 11:27:59 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Created empty table for testing
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Reading data from CSV file: test_data.csv
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.H2TestUtils - Reading from CSV file: test_data.csv
+2025-05-13 11:27:59 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Creating FileConnection for CSV file: test_data.csv
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Successfully connected to CSV file
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Created mapping configuration with column transformations and default values
+2025-05-13 11:27:59 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:59 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:59 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in headers
+2025-05-13 11:27:59 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 11:27:59 [main] INFO  d.m.jtable.integration.CSVToH2Demo - Successfully read data from CSV file with 2 rows and 5 columns
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.CSVToH2Demo - Disconnected from CSV file
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully read data from CSV file
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Successfully verified CSV data was read correctly
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Writing data to H2 database: jdbc:h2:./test_db
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.H2TestUtils - Writing to H2 database: jdbc:h2:./test_db table: TEST_PERSON
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.H2TestUtils - Created H2 mapping configuration
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.H2TestUtils - Added column mappings to H2 configuration
+2025-05-13 11:27:59 [main] DEBUG d.m.jtable.integration.H2TestUtils - Successfully wrote data to H2 database
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Verifying data was written correctly to database
+2025-05-13 11:27:59 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified database table has correct number of rows: 2
+2025-05-13 11:27:59 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Verified specific data in database for ID=1
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - CSV to H2 integration test completed successfully
+2025-05-13 11:27:59 [main] INFO  d.m.j.integration.CSVToH2DemoTest - Tearing down test environment
+2025-05-13 11:27:59 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Deleted test CSV file: test_data.csv (success: true)
+2025-05-13 11:27:59 [main] DEBUG d.m.j.integration.CSVToH2DemoTest - Dropped test table: TEST_PERSON
