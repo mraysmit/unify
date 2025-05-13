@@ -5,7 +5,7 @@ package dev.mars.jtable.io.files.jdbc;
 import dev.mars.jtable.io.common.datasource.IDataSource;
 import dev.mars.jtable.io.common.datasource.IDataSourceConnection;
 import dev.mars.jtable.io.common.datasource.IJDBCDataSource;
-import dev.mars.jtable.io.common.datasource.JDBCConnection;
+import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -35,7 +35,7 @@ public class JDBCWriter implements IJDBCWriter {
         }
 
         // Create a JDBC connection
-        JDBCConnection jdbcConnection = new JDBCConnection(
+        jTableJDBCConnection JTableJdbcConnection = new jTableJDBCConnection(
                 adapter.getConnectionString(),
                 adapter.getUsername() != null ? adapter.getUsername() : "",
                 adapter.getPassword() != null ? adapter.getPassword() : "");
@@ -46,7 +46,7 @@ public class JDBCWriter implements IJDBCWriter {
         options.put("createTable", createTable);
 
         // Write data using the new method
-        writeData(adapter, jdbcConnection, options);
+        writeData(adapter, JTableJdbcConnection, options);
     }
 
     /**
@@ -63,7 +63,7 @@ public class JDBCWriter implements IJDBCWriter {
         }
 
         // Create a JDBC connection
-        JDBCConnection jdbcConnection = new JDBCConnection(
+        jTableJDBCConnection JTableJdbcConnection = new jTableJDBCConnection(
                 adapter.getConnectionString(),
                 adapter.getUsername() != null ? adapter.getUsername() : "",
                 adapter.getPassword() != null ? adapter.getPassword() : "");
@@ -73,7 +73,7 @@ public class JDBCWriter implements IJDBCWriter {
         options.put("sqlTemplate", sqlTemplate);
 
         // Write data using the new method
-        writeData(adapter, jdbcConnection, options);
+        writeData(adapter, JTableJdbcConnection, options);
     }
 
     @Override
@@ -97,10 +97,10 @@ public class JDBCWriter implements IJDBCWriter {
     @Override
     public void writeData(IJDBCDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) {
         // Ensure we have a JDBC connection
-        if (!(connection instanceof JDBCConnection)) {
+        if (!(connection instanceof jTableJDBCConnection)) {
             throw new IllegalArgumentException("Connection must be a JDBCConnection");
         }
-        JDBCConnection jdbcConnection = (JDBCConnection) connection;
+        jTableJDBCConnection JTableJdbcConnection = (jTableJDBCConnection) connection;
 
         // Extract common options
         String tableName = null;
@@ -148,7 +148,7 @@ public class JDBCWriter implements IJDBCWriter {
         }
 
         // Get the connection string
-        String connectionString = jdbcConnection.getConnectionString();
+        String connectionString = JTableJdbcConnection.getConnectionString();
 
         // Execute the appropriate action based on the options
         if (sqlTemplate != null) {

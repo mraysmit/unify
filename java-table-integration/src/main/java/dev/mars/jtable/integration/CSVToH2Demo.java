@@ -2,9 +2,10 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableCore;
+import dev.mars.jtable.integration.utils.DatabaseProperties;
 import dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory;
 import dev.mars.jtable.io.common.datasource.FileConnection;
-import dev.mars.jtable.io.common.datasource.JDBCConnection;
+import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
 import dev.mars.jtable.io.files.csv.CSVMappingReader;
 import dev.mars.jtable.io.files.jdbc.JDBCMappingWriter;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
@@ -130,15 +131,15 @@ public class CSVToH2Demo {
      * @throws SQLException if there is an error writing to the database
      */
     static void writeToH2Database(ITable table) throws SQLException {
-        String connectionString = "jdbc:h2:./demo_db";
-        String username = "sa";
-        String password = "";
+        String connectionString = DatabaseProperties.getH2ConnectionString();
+        String username = DatabaseProperties.getH2Username();
+        String password = DatabaseProperties.getH2Password();
         logger.info("Creating JDBCConnection for H2 database: {}", connectionString);
 
         // Create a JDBCConnection
-        JDBCConnection connection = null;
+        jTableJDBCConnection connection = null;
         try {
-            connection = new JDBCConnection(connectionString, username, password);
+            connection = new jTableJDBCConnection(connectionString, username, password);
             if (!connection.connect()) {
                 throw new SQLException("Failed to connect to H2 database: " + connectionString);
             }

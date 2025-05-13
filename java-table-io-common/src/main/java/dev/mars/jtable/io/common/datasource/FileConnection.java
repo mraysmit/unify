@@ -1,6 +1,8 @@
 package dev.mars.jtable.io.common.datasource;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
@@ -17,6 +19,7 @@ import java.util.Map;
  * Supports local files, network shares, and HTTP/HTTPS URLs.
  */
 public class FileConnection implements IDataSourceConnection {
+    private static final Logger logger = LoggerFactory.getLogger(FileConnection.class);
     private String location;
     private String fileType;
     private Path filePath;
@@ -58,7 +61,7 @@ public class FileConnection implements IDataSourceConnection {
             }
             return isConnected;
         } catch (IOException e) {
-            System.err.println("Error connecting to file: " + e.getMessage());
+            logger.error("Error connecting to file: {}", e.getMessage());
             isConnected = false;
             return false;
 

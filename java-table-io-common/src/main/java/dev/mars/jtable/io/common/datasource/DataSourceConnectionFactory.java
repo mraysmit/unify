@@ -21,7 +21,7 @@ public class DataSourceConnectionFactory {
      * @return a JDBC connection
      */
     public static IDataSourceConnection createDatabaseConnection(String connectionString, String username, String password) {
-        return new JDBCConnection(connectionString, username, password);
+        return new jTableJDBCConnection(connectionString, username, password);
     }
 
     /**
@@ -91,7 +91,7 @@ public class DataSourceConnectionFactory {
      */
     public static IDataSourceConnection createConnection(String location) {
         if (location.startsWith("jdbc:")) {
-            return new JDBCConnection(location, "", "");
+            return new jTableJDBCConnection(location, "", "");
         } else if (location.endsWith(".csv")) {
             return new FileConnection(location, "csv");
         } else if (location.endsWith(".json")) {

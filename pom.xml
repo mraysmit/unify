@@ -111,6 +111,19 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>java/sql/Date</exclude>
+                                <!-- Exclude JDK internal classes -->
+                                <exclude>java/**</exclude>
+                                <exclude>javax/**</exclude>
+                                <exclude>sun/**</exclude>
+                                <exclude>com/sun/**</exclude>
+                                <exclude>jdk/**</exclude>
+                                <exclude>org/w3c/**</exclude>
+
+                            </excludes>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>report</id>

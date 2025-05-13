@@ -2,6 +2,7 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableCore;
+import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -91,7 +92,7 @@ public class CSVToSQLiteDemoTest {
 
         // Read from CSV
         logger.info("Reading data from CSV file: {}", TEST_CSV_FILE);
-        SQLiteTestUtils.readFromCSV(table, TEST_CSV_FILE);
+        readFromCSV(table, TEST_CSV_FILE);
 
         // Verify data was read correctly
         assertEquals(2, table.getRowCount(), "Table should have 2 rows");
@@ -102,7 +103,7 @@ public class CSVToSQLiteDemoTest {
 
         // Write to SQLite database
         logger.info("Writing data to SQLite database: {}", TEST_DB_URL);
-        SQLiteTestUtils.writeToSQLiteDatabase(table, TEST_DB_URL, TEST_TABLE_NAME);
+        writeToSQLiteDatabase(table, TEST_DB_URL, TEST_TABLE_NAME);
 
         // Verify data was written correctly
         logger.info("Verifying data was written correctly to database");
@@ -129,6 +130,82 @@ public class CSVToSQLiteDemoTest {
         }
 
         logger.info("CSV to SQLite integration test completed successfully");
+    }
+
+    /**
+     * Reads data from a CSV file into a table using MappingConfiguration.
+     *
+     * @param table       the table to read into
+     * @param csvFilePath the path to the CSV file
+     * @throws Exception if there is an error reading the file
+     */
+    void readFromCSV(ITable table, String csvFilePath) throws Exception {
+        logger.debug("Reading from CSV file: {}", csvFilePath);
+
+        // Create a FileConnection
+        dev.mars.jtable.io.common.datasource.FileConnection connection = null;
+        try {
+            connection = (dev.mars.jtable.io.common.datasource.FileConnection)
+                    dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory.createConnection(csvFilePath);
+            if (!connection.connect()) {
+                throw new java.io.IOException("Failed to connect to CSV file: " + csvFilePath);
+            }
+            logger.debug("Successfully connected to CSV file");
+
+            // Create a mapping configuration
+            dev.mars.jtable.io.files.mapping.MappingConfiguration csvConfig =
+                    CSVToSQLiteDemo.createCSVMappingConfiguration(connection);
+
+            // Call the method in CSVToSQLiteDemo
+            CSVToSQLiteDemo.readFromCSV(table, csvFilePath, csvConfig);
+            logger.debug("Successfully read data from CSV file");
+        } finally {
+            // Ensure connection is closed
+            if (connection != null && connection.isConnected()) {
+                connection.disconnect();
+                logger.debug("Disconnected from CSV file");
+            }
+        }
+    }
+
+    /**
+     * Writes data from a table to a SQLite database.
+     *
+     * @param table     the table to write from
+     * @param dbUrl     the database URL
+     * @param tableName the table name
+     * @throws Exception if there is an error writing to the database
+     */
+    void writeToSQLiteDatabase(ITable table, String dbUrl, String tableName) throws Exception {
+        logger.debug("Writing to SQLite database: {} table: {}", dbUrl, tableName);
+
+        // Create a JDBCConnection
+        String username = "";  // SQLite doesn't use username/password
+        String password = "";
+        jTableJDBCConnection connection = null;
+        try {
+            connection = new jTableJDBCConnection(dbUrl, username, password);
+            if (!connection.connect()) {
+                throw new java.sql.SQLException("Failed to connect to SQLite database: " + dbUrl);
+            }
+            logger.debug("Successfully connected to SQLite database");
+
+            // Create a mapping configuration
+            dev.mars.jtable.io.files.mapping.MappingConfiguration sqliteConfig = CSVToSQLiteDemo.createSQLiteMappingConfiguration(connection, username, password);
+
+            // Override the table name
+            sqliteConfig.setOption("tableName", tableName);
+
+            // Call the method in CSVToSQLiteDemo
+            CSVToSQLiteDemo.writeToSQLiteDatabase(table, sqliteConfig);
+            logger.debug("Successfully wrote data to SQLite database");
+        } finally {
+            // Ensure connection is closed
+            if (connection != null && connection.isConnected()) {
+                connection.disconnect();
+                logger.debug("Disconnected from SQLite database");
+            }
+        }
     }
 
 

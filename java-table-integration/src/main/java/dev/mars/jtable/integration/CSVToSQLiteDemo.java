@@ -2,9 +2,10 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableCore;
+import dev.mars.jtable.integration.utils.DatabaseProperties;
 import dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory;
 import dev.mars.jtable.io.common.datasource.FileConnection;
-import dev.mars.jtable.io.common.datasource.JDBCConnection;
+import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
 import dev.mars.jtable.io.files.csv.CSVMappingReader;
 import dev.mars.jtable.io.files.jdbc.JDBCMappingWriter;
 import dev.mars.jtable.io.files.mapping.ColumnMapping;
@@ -39,6 +40,7 @@ public class CSVToSQLiteDemo {
             // Create a demo CSV file if it doesn't exist
             String csvFilePath = "demo_data.csv";
             createDemoCSVIfNotExists(csvFilePath);
+            logger.debug("Demo CSV file created or already exists: {}", csvFilePath);
 
             // Create a table to hold the data
             ITable table = new TableCore();
@@ -51,23 +53,28 @@ public class CSVToSQLiteDemo {
                 if (!csvConnection.connect()) {
                     throw new IOException("Failed to connect to CSV file: " + csvFilePath);
                 }
-                logger.debug("Successfully connected to CSV file");
+                logger.debug("Successfully connected to CSV file: {}", csvFilePath);
 
                 // Create a mapping configuration for reading from CSV
                 MappingConfiguration csvConfig = createCSVMappingConfiguration(csvConnection);
+                logger.debug("Created CSV mapping configuration");
 
                 // Read from CSV
                 readFromCSV(table, csvFilePath, csvConfig);
                 logger.info("Successfully read data from CSV file: {}", csvFilePath);
+                logger.debug("Using CSV mapping configuration: {}", csvConfig);
                 logger.info("Table contains {} rows", table.getRowCount());
 
                 // Create a JDBCConnection for SQLite
-                String connectionString = "jdbc:sqlite:demo_sqlite.db";
-                String username = "";  // SQLite doesn't use username/password
-                String password = "";
-                JDBCConnection sqliteConnection = null;
+                String connectionString = DatabaseProperties.getSqliteConnectionString();
+                String username = DatabaseProperties.getSqliteUsername();
+                String password = DatabaseProperties.getSqlitePassword();
+                logger.info("Creating JDBCConnection for SQLite database: {}", connectionString);
+
+
+                jTableJDBCConnection sqliteConnection = null;
                 try {
-                    sqliteConnection = new JDBCConnection(connectionString, username, password);
+                    sqliteConnection = new jTableJDBCConnection(connectionString, username, password);
                     if (!sqliteConnection.connect()) {
                         throw new SQLException("Failed to connect to SQLite database: " + connectionString);
                     }
@@ -75,6 +82,7 @@ public class CSVToSQLiteDemo {
 
                     // Create a mapping configuration for writing to SQLite database
                     MappingConfiguration sqliteConfig = createSQLiteMappingConfiguration(sqliteConnection, username, password);
+                    logger.debug("Created SQLite mapping configuration");
 
                     // Write to SQLite database
                     writeToSQLiteDatabase(table, sqliteConfig);
@@ -165,7 +173,7 @@ public class CSVToSQLiteDemo {
      * @param password the password for the database
      * @return the mapping configuration
      */
-    static MappingConfiguration createSQLiteMappingConfiguration(JDBCConnection connection, String username, String password) {
+    static MappingConfiguration createSQLiteMappingConfiguration(jTableJDBCConnection connection, String username, String password) {
         // Create a mapping configuration for writing to SQLite database
         MappingConfiguration sqliteConfig = new MappingConfiguration()
                 .setSourceLocation(connection.getConnectionString())
@@ -209,8 +217,7 @@ public class CSVToSQLiteDemo {
         JDBCMappingWriter sqliteWriter = new JDBCMappingWriter();
         sqliteWriter.writeToDatabase(table, sqliteConfig);
 
-        logger.info("Successfully wrote data to SQLite database table: {}", 
-                sqliteConfig.getOption("tableName", "person_data"));
+        logger.info("Successfully wrote data to SQLite database table: {}", sqliteConfig.getOption("tableName", "person_data"));
     }
 
     /**

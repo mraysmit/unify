@@ -5,6 +5,9 @@ import dev.mars.jtable.io.common.datasource.IDataSource;
 import dev.mars.jtable.io.common.datasource.IDataSourceConnection;
 import dev.mars.jtable.io.common.datasource.RESTConnection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -20,6 +23,7 @@ import java.util.regex.Pattern;
  * Implementation of IDataReader for reading data from REST APIs.
  */
 public class RESTReader implements IDataReader {
+    private static final Logger logger = LoggerFactory.getLogger(RESTReader.class);
     /**
      * Reads data from a REST API into a data source using the provided connection.
      *
@@ -74,7 +78,7 @@ public class RESTReader implements IDataReader {
                 throw new IOException("HTTP error code: " + responseCode);
             }
         } catch (IOException e) {
-            System.err.println("Error reading from REST API: " + e.getMessage());
+            logger.error("Error reading from REST API: {}", e.getMessage());
         }
     }
 
@@ -157,7 +161,7 @@ public class RESTReader implements IDataReader {
                 dataSource.addRow(row);
             }
         } catch (Exception e) {
-            System.err.println("Error parsing JSON response: " + e.getMessage());
+            logger.error("Error parsing JSON response: {}", e.getMessage());
 
             // Fallback in case of parsing error
             LinkedHashMap<String, String> columns = new LinkedHashMap<>();

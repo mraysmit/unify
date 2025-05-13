@@ -1,6 +1,9 @@
 package dev.mars.jtable.io.common.datasource;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,6 +12,7 @@ import java.util.Map;
  * This is a generic implementation that can be extended for specific NoSQL databases.
  */
 public class NoSQLConnection implements IDataSourceConnection {
+    private static final Logger logger = LoggerFactory.getLogger(NoSQLConnection.class);
     private String connectionString;
     private String database;
     private String collection;
@@ -57,12 +61,12 @@ public class NoSQLConnection implements IDataSourceConnection {
             // MongoDatabase db = mongoClient.getDatabase(database);
             // MongoCollection<Document> coll = db.getCollection(collection);
             // rawConnection = mongoClient;
-            
+
             // Simulate successful connection
             isConnected = true;
             return true;
         } catch (Exception e) {
-            System.err.println("Error connecting to NoSQL database: " + e.getMessage());
+            logger.error("Error connecting to NoSQL database: {}", e.getMessage());
             isConnected = false;
             return false;
         }

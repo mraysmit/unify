@@ -1,6 +1,9 @@
 package dev.mars.jtable.io.common.datasource;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -12,6 +15,7 @@ import java.util.Map;
  * Supports HTTP/HTTPS connections to REST APIs.
  */
 public class RESTConnection implements IDataSourceConnection {
+    private static final Logger logger = LoggerFactory.getLogger(RESTConnection.class);
     private String endpoint;
     private Map<String, String> headers;
     private String authToken;
@@ -49,20 +53,20 @@ public class RESTConnection implements IDataSourceConnection {
         try {
             URL url = new URL(endpoint);
             connection = (HttpURLConnection) url.openConnection();
-            
+
             // Set headers
             for (Map.Entry<String, String> header : headers.entrySet()) {
                 connection.setRequestProperty(header.getKey(), header.getValue());
             }
-            
+
             // Test connection
             connection.setRequestMethod("HEAD");
             int responseCode = connection.getResponseCode();
             isConnected = (responseCode >= 200 && responseCode < 300);
-            
+
             return isConnected;
         } catch (IOException e) {
-            System.err.println("Error connecting to REST API: " + e.getMessage());
+            logger.error("Error connecting to REST API: {}", e.getMessage());
             isConnected = false;
             return false;
         }
@@ -127,12 +131,12 @@ public class RESTConnection implements IDataSourceConnection {
         URL url = new URL(endpoint);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod(method);
-        
+
         // Set headers
         for (Map.Entry<String, String> header : headers.entrySet()) {
             conn.setRequestProperty(header.getKey(), header.getValue());
         }
-        
+
         return conn;
     }
 }

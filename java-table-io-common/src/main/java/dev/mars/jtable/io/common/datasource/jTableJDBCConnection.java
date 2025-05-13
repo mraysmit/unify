@@ -1,6 +1,9 @@
 package dev.mars.jtable.io.common.datasource;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -10,14 +13,15 @@ import java.util.Map;
 /**
  * Implementation of IDataSourceConnection for JDBC database connections.
  */
-public class JDBCConnection implements IDataSourceConnection {
+public class jTableJDBCConnection implements IDataSourceConnection {
+    private static final Logger logger = LoggerFactory.getLogger(jTableJDBCConnection.class);
     private String connectionString;
     private String username;
     private String password;
     private Connection connection;
     private Map<String, Object> properties;
 
-    public JDBCConnection(String connectionString, String username, String password) {
+    public jTableJDBCConnection(String connectionString, String username, String password) {
         this.connectionString = connectionString;
         this.username = username;
         this.password = password;
@@ -30,7 +34,7 @@ public class JDBCConnection implements IDataSourceConnection {
             connection = DriverManager.getConnection(connectionString, username, password);
             return true;
         } catch (SQLException e) {
-            System.err.println("Error connecting to database: " + e.getMessage());
+            logger.error("Error connecting to database: {}", e.getMessage());
             return false;
         }
     }
@@ -42,7 +46,7 @@ public class JDBCConnection implements IDataSourceConnection {
                 connection.close();
                 connection = null;
             } catch (SQLException e) {
-                System.err.println("Error disconnecting from database: " + e.getMessage());
+                logger.error("Error disconnecting from database: {}", e.getMessage());
             }
         }
     }
