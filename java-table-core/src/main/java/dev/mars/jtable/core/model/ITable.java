@@ -11,6 +11,20 @@ import java.util.Map;
  */
 public interface ITable {
 
+    /**
+     * Gets the name of the table.
+     *
+     * @return the name of the table
+     */
+    String getName();
+
+    /**
+     * Sets the name of the table.
+     *
+     * @param name the name to set
+     */
+    void setName(String name);
+
     void setCreateDefaultValue(boolean createDefaultValue);
 
     boolean isCreateDefaultValue();

@@ -19,6 +19,17 @@ public class Table implements ITable {
 
     public Table() {
         this.tableCore = new TableCore();
+        this.tableCore.setName("Table");
+    }
+
+    /**
+     * Creates a new Table with the specified name.
+     *
+     * @param name the name of the table
+     */
+    public Table(String name) {
+        this.tableCore = new TableCore();
+        this.tableCore.setName(name);
     }
 
     @Override
@@ -126,5 +137,15 @@ public class Table implements ITable {
     @Override
     public String getColumnName(int index) {
         return tableCore.getColumnName(index);
+    }
+
+    @Override
+    public String getName() {
+        return tableCore.getName();
+    }
+
+    @Override
+    public void setName(String name) {
+        tableCore.setName(name);
     }
 }

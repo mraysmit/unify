@@ -2,6 +2,8 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.integration.csv.CSVProcessor;
+import dev.mars.jtable.integration.db.SQLiteProcessor;
 import dev.mars.jtable.io.common.datasource.DbConnection;
 import dev.mars.jtable.io.common.mapping.ColumnMapping;
 import dev.mars.jtable.io.common.mapping.MappingConfiguration;
@@ -9,7 +11,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -17,12 +18,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -59,7 +54,7 @@ public class DateTimeTypeIntegrationTest {
     @Test
     void testCSVToH2WithDateTimeTypes() throws Exception {
         // Create a table to hold the data
-        ITable table = new Table();
+        ITable table = new Table("DateTimeTypeIntegrationTest-H2Table");
 
         // Create a mapping configuration for reading from CSV
         MappingConfiguration csvConfig = new MappingConfiguration()
@@ -164,7 +159,7 @@ public class DateTimeTypeIntegrationTest {
     @Test
     void testCSVToSQLiteWithDateTimeTypes() throws Exception {
         // Create a table to hold the data
-        ITable table = new Table();
+        ITable table = new Table("DateTimeTypeIntegrationTest-SQLiteTable");
 
         // Create a mapping configuration for reading from CSV
         MappingConfiguration csvConfig = new MappingConfiguration()
@@ -176,8 +171,9 @@ public class DateTimeTypeIntegrationTest {
                 .addColumnMapping(new ColumnMapping("start_time", "START_TIME", "time"))
                 .addColumnMapping(new ColumnMapping("created_at", "CREATED_AT", "datetime"));
 
-        // Read from CSV
-        CSVToSQLiteDemo.readFromCSV(table, TEST_CSV_FILE, csvConfig);
+        // Read from CSV using CSVProcessor
+        CSVProcessor csvProcessor = new CSVProcessor();
+        csvProcessor.readFromCSV(table, TEST_CSV_FILE, csvConfig);
 
         // Verify the data was read correctly
         assertEquals(2, table.getRowCount(), "Table should have 2 rows");
@@ -213,8 +209,9 @@ public class DateTimeTypeIntegrationTest {
                 .addColumnMapping(new ColumnMapping("START_TIME", "start_time", "time"))
                 .addColumnMapping(new ColumnMapping("CREATED_AT", "created_at", "datetime"));
 
-            // Use the CSVToSQLiteDemo to write to the database with proper dependency injection
-            CSVToSQLiteDemo.writeToSQLiteDatabase(table, connection, sqliteConfig);
+            // Use SQLiteProcessor to write to the database
+            SQLiteProcessor sqliteProcessor = new SQLiteProcessor();
+            sqliteProcessor.writeToSQLiteDatabase(table, connection, sqliteConfig);
 
             // Verify the data was written correctly
             try (Connection conn = DriverManager.getConnection(TEST_SQLITE_DB_URL);

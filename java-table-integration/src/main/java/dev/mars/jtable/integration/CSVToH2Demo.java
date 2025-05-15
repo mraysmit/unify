@@ -55,8 +55,8 @@ public class CSVToH2Demo {
             createDemoCSVIfNotExists(csvFilePath);
 
             // Create a table to hold the data
-            ITable table = new TableCore();
-            logger.debug("Created empty table");
+            ITable table = new TableCore("CSVToH2Demo-InputTable");
+            logger.debug("Created empty table with name '{}'", table.getName());
 
             // Create a FileConnection to get the location
             FileConnection connection = (FileConnection) DataSourceConnectionFactory.createConnection(csvFilePath);

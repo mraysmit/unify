@@ -13,6 +13,7 @@ public class TableCore implements ITable {
     private final Map<String, IColumn<?>> columns = new LinkedHashMap<>();
     private final List<IRow> rows = new ArrayList<>();
     private boolean createDefaultValue = true;
+    private String name;
 
     // Constants for Double handling
     private static final int MAX_FRACTION_DIGITS = 10;
@@ -21,6 +22,16 @@ public class TableCore implements ITable {
     private final java.util.Map<String, java.util.Map<Integer, String>> originalDoubleStrings = new java.util.HashMap<>();
 
     public TableCore() {
+        this.name = "TableCore";
+    }
+
+    /**
+     * Creates a new TableCore with the specified name.
+     *
+     * @param name the name of the table
+     */
+    public TableCore(String name) {
+        this.name = name;
     }
 
     @Override
@@ -453,5 +464,15 @@ public class TableCore implements ITable {
      */
     public boolean isCreateDefaultValue() {
         return createDefaultValue;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
     }
 }

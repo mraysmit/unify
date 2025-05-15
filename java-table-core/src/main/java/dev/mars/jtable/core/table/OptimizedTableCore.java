@@ -39,6 +39,7 @@ public class OptimizedTableCore implements ITable {
     private final Map<String, Map<Integer, String>> originalDoubleStrings = new ConcurrentHashMap<>(16, 0.75f);
 
     private boolean createDefaultValue = true;
+    private String name;
 
     // Constants for Double handling
     private static final int MAX_FRACTION_DIGITS = 10;
@@ -49,6 +50,18 @@ public class OptimizedTableCore implements ITable {
     public OptimizedTableCore() {
         // Initialize with default capacity
         this.rows = new ArrayList<>();
+        this.name = "OptimizedTableCore";
+    }
+
+    /**
+     * Creates a new OptimizedTableCore with the specified name.
+     *
+     * @param name the name of the table
+     */
+    public OptimizedTableCore(String name) {
+        // Initialize with default capacity
+        this.rows = new ArrayList<>();
+        this.name = name;
     }
 
     /**
@@ -62,6 +75,22 @@ public class OptimizedTableCore implements ITable {
         // Initialize with specified capacity for better performance
         // when the number of rows is known in advance
         this.rows = new ArrayList<>(initialRowCapacity);
+        this.name = "OptimizedTableCore";
+    }
+
+    /**
+     * Creates a new OptimizedTableCore with the specified name and initial capacity for rows.
+     * This constructor is useful when the approximate number of rows is known in advance,
+     * which can improve performance by reducing the number of resizing operations.
+     *
+     * @param name the name of the table
+     * @param initialRowCapacity the initial capacity for the rows collection
+     */
+    public OptimizedTableCore(String name, int initialRowCapacity) {
+        // Initialize with specified capacity for better performance
+        // when the number of rows is known in advance
+        this.rows = new ArrayList<>(initialRowCapacity);
+        this.name = name;
     }
 
     /**
@@ -83,6 +112,30 @@ public class OptimizedTableCore implements ITable {
             // Use standard collections for single-threaded access
             this.rows = new ArrayList<>();
         }
+        this.name = "OptimizedTableCore";
+    }
+
+    /**
+     * Creates a new OptimizedTableCore with the specified name, optimized for concurrent access.
+     * This constructor uses thread-safe collections for all internal data structures.
+     *
+     * @param name the name of the table
+     * @param concurrent whether to use thread-safe collections
+     */
+    public OptimizedTableCore(String name, boolean concurrent) {
+        if (concurrent) {
+            // Use thread-safe collections for concurrent access
+            // CopyOnWriteArrayList is appropriate for read-heavy scenarios
+            // No initial capacity parameter is provided as CopyOnWriteArrayList doesn't have a constructor with capacity
+            this.rows = new CopyOnWriteArrayList<>();
+            // Note: ConcurrentHashMap doesn't preserve order, so we need custom ordering logic
+            // This is just a demonstration - in a real implementation, we would need to
+            // implement custom ordering logic for columns
+        } else {
+            // Use standard collections for single-threaded access
+            this.rows = new ArrayList<>();
+        }
+        this.name = name;
     }
 
     /**
@@ -103,6 +156,29 @@ public class OptimizedTableCore implements ITable {
             // Use standard collections for single-threaded access with specified capacity
             this.rows = new ArrayList<>(initialRowCapacity);
         }
+        this.name = "OptimizedTableCore";
+    }
+
+    /**
+     * Creates a new OptimizedTableCore with the specified name, initial capacity, and concurrent access option.
+     * This constructor allows specifying the initial capacity for collections to reduce resizing operations.
+     *
+     * @param name the name of the table
+     * @param concurrent whether to use thread-safe collections
+     * @param initialRowCapacity the initial capacity for the rows collection
+     */
+    public OptimizedTableCore(String name, boolean concurrent, int initialRowCapacity) {
+        if (concurrent) {
+            // Use thread-safe collections for concurrent access
+            // Since CopyOnWriteArrayList doesn't have a constructor with capacity,
+            // we create an ArrayList with the specified capacity and convert it to a CopyOnWriteArrayList
+            List<IRow> initialList = new ArrayList<>(initialRowCapacity);
+            this.rows = new CopyOnWriteArrayList<>(initialList);
+        } else {
+            // Use standard collections for single-threaded access with specified capacity
+            this.rows = new ArrayList<>(initialRowCapacity);
+        }
+        this.name = name;
     }
 
 
@@ -478,6 +554,16 @@ public class OptimizedTableCore implements ITable {
     @Override
     public boolean isCreateDefaultValue() {
         return createDefaultValue;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public void setName(String name) {
+        this.name = name;
     }
 
     /**

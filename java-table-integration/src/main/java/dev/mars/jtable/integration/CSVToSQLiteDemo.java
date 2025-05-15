@@ -2,24 +2,28 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableCore;
+import dev.mars.jtable.integration.config.MappingConfigurationManager;
+import dev.mars.jtable.integration.csv.CSVProcessor;
+import dev.mars.jtable.integration.db.DbConnectionManager;
+import dev.mars.jtable.integration.db.SQLiteProcessor;
+import dev.mars.jtable.integration.db.SQLiteQueryManager;
 import dev.mars.jtable.integration.utils.DatabaseProperties;
-import dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory;
-import dev.mars.jtable.io.common.datasource.FileConnection;
 import dev.mars.jtable.io.common.datasource.DbConnection;
-import dev.mars.jtable.io.files.csv.CSVMappingReader;
-import dev.mars.jtable.io.files.jdbc.JDBCMappingWriter;
 import dev.mars.jtable.io.common.mapping.ColumnMapping;
 import dev.mars.jtable.io.common.mapping.MappingConfiguration;
-import dev.mars.jtable.io.common.mapping.IMappingSerializer;
-import dev.mars.jtable.io.common.mapping.MappingSerializerFactory;
+import dev.mars.jtable.io.files.jdbc.JDBCReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Demonstration of CSV to SQLite database integration using MappingConfiguration.
@@ -27,77 +31,230 @@ import java.sql.SQLException;
  * 1. Read data from a CSV file using MappingConfiguration
  * 2. Write the data to a SQLite database using MappingConfiguration
  * 3. Save and load mapping configurations using JSON serialization
+ * 
+
+ * - MappingConfigurationManager: Handles mapping configuration creation and management
+ * - CSVProcessor: Handles CSV file operations
+ * - DbConnectionManager: Handles database connection creation and management
+ * - SQLiteProcessor: Handles SQLite database operations
  */
 public class CSVToSQLiteDemo {
-
     private static final Logger logger = LoggerFactory.getLogger(CSVToSQLiteDemo.class);
+
+    //Demo CSV file path
+    private static final String DEMO_CSV_FILE_NAME = "demo_data.csv";
 
     // File names for mapping configurations
     private static final String CSV_MAPPING_FILE = "csv_sqlite_mapping.json";
     private static final String SQLITE_MAPPING_FILE = "sqlite_mapping.json";
 
-    // Path to the mappings directory in resources
-    private static final String MAPPINGS_DIR = "mappings";
+    // Default table name for SQLite database
+    public static final String DEFAULT_SQLITE_TABLE_NAME = "person_data";
+
+    // Manager and processor instances
+    private final MappingConfigurationManager configManager;
+    private final CSVProcessor csvProcessor;
+    private final DbConnectionManager dbConnectionManager;
+    private final SQLiteProcessor sqliteProcessor;
+    private final SQLiteQueryManager sqliteQueryManager;
+
+    public CSVToSQLiteDemo() {
+        logger.debug("Initializing CSVToSQLiteDemo");
+        this.configManager = new MappingConfigurationManager();
+        logger.debug("Initialized MappingConfigurationManager");
+        this.csvProcessor = new CSVProcessor();
+        logger.debug("Initialized CSVProcessor");
+        this.dbConnectionManager = new DbConnectionManager();
+        logger.debug("Initialized DbConnectionManager");
+        this.sqliteProcessor = new SQLiteProcessor();
+        logger.debug("Initialized SQLiteProcessor");
+        this.sqliteQueryManager = new SQLiteQueryManager(dbConnectionManager, new JDBCReader());
+        logger.debug("Initialized SQLiteQueryManager");
+        logger.debug("CSVToSQLiteDemo initialization complete");
+    }
+
+    public static void main(String[] args) {
+        var demo = new CSVToSQLiteDemo();
+        demo.run();
+    }
 
     /**
-     * Main method to run the demonstration.
-     *
-     * @param args command line arguments (not used)
+     * Runs the demonstration.
      */
-    public static void main(String[] args) {
+    public void run() {
         try {
             logger.info("Starting CSV to SQLite with mapping demonstration");
+            logger.debug("Demo process starting with the following parameters:");
+            logger.debug("- CSV file name: {}", DEMO_CSV_FILE_NAME);
+            logger.debug("- CSV mapping file: {}", CSV_MAPPING_FILE);
+            logger.debug("- SQLite mapping file: {}", SQLITE_MAPPING_FILE);
+            logger.debug("- Default SQLite table name: {}", DEFAULT_SQLITE_TABLE_NAME);
+
+            String csvFileName = DEMO_CSV_FILE_NAME;
+            String csvContent = getDemoCSVFilePath();
+            logger.debug("Generated CSV content with {} characters", csvContent.length());
 
             // Create a demo CSV file if it doesn't exist
-            String csvFilePath = "demo_data.csv";
-            createDemoCSVIfNotExists(csvFilePath);
-            logger.debug("Demo CSV file created or already exists: {}", csvFilePath);
+            createDemoCSVIfNotExists(csvFileName, csvContent);
+            logger.debug("Demo CSV file created or already exists: {}", csvFileName);
 
             // Create a table to hold the data
-            ITable table = new TableCore();
-            logger.debug("Created empty table");
+            ITable table = new TableCore("CSVToSQLiteDemo-InputTable");
+            logger.debug("Created empty TableCore with name '{}' and initial capacity", table.getName());
 
-            // Create a FileConnection to get the location
-            FileConnection connection = (FileConnection) DataSourceConnectionFactory.createConnection(csvFilePath);
-            if (!connection.connect()) {
-                throw new IOException("Failed to connect to CSV file: " + csvFilePath);
+            // Get the CSV file location
+            String fileLocation = csvProcessor.getCSVFileLocation(csvFileName);
+            logger.debug("Resolved CSV file location: {}", fileLocation);
+
+            // Create CSV column mappings and options
+            List<ColumnMapping> csvColumnMappings = getDemoCSVColumnMappings();
+            logger.debug("Created CSV column mappings with {} mappings", csvColumnMappings.size());
+            for (int i = 0; i < csvColumnMappings.size(); i++) {
+                ColumnMapping mapping = csvColumnMappings.get(i);
+                logger.debug("CSV mapping {}: {} -> {} (type: {}, default: {})", 
+                    i, mapping.getSourceColumnName(), mapping.getTargetColumnName(), 
+                    mapping.getTargetColumnType(), mapping.getDefaultValue());
+            }
+
+            Map<String, Object> csvOptions = getDemoCSVOptions();
+            logger.debug("Created CSV options with {} options", csvOptions.size());
+            for (Map.Entry<String, Object> entry : csvOptions.entrySet()) {
+                logger.debug("CSV option: {} = {}", entry.getKey(), entry.getValue());
             }
 
             // Prepare the mapping configuration
-            MappingConfiguration csvConfig = prepareDemoCSVMappingConfiguration(connection.getLocation());
-            connection.disconnect();
+            logger.debug("Creating CSV mapping configuration with file location: {}", fileLocation);
+            MappingConfiguration csvConfig = configManager.createCSVMappingConfiguration(
+                    fileLocation,
+                    csvColumnMappings,
+                    csvOptions,
+                    CSV_MAPPING_FILE);
+            logger.debug("CSV mapping configuration created successfully");
 
             // Read from CSV
-            readFromCSV(table, csvFilePath, csvConfig);
-            logger.info("Successfully read data from CSV file: {}", csvFilePath);
+            logger.debug("Reading data from CSV file: {} using mapping configuration", csvFileName);
+            int rowsRead = csvProcessor.readFromCSV(table, csvFileName, csvConfig);
+            logger.debug("Read operation completed, processed {} rows", rowsRead);
+            logger.info("Successfully read data from CSV file: {}", csvFileName);
             logger.info("Table contains {} rows", table.getRowCount());
+            logger.debug("Table column count: {}", table.getColumnCount());
 
             // Create a database connection for SQLite
-            String connectionString = DatabaseProperties.getSqliteConnectionString();
-            String username = DatabaseProperties.getSqliteUsername();
-            String password = DatabaseProperties.getSqlitePassword();
-            logger.info("Creating JDBCConnection for SQLite database: {}", connectionString);
-
-            DbConnection dbConnection = new DbConnection(connectionString, username, password);
+            logger.debug("Creating database connection for SQLite");
+            DatabaseProperties dbProperties = new DatabaseProperties();
+            logger.debug("Using database properties: connection string={}, username={}", 
+                dbProperties.getSqliteConnectionString(), 
+                dbProperties.getSqliteUsername() != null ? dbProperties.getSqliteUsername() : "<empty>");
+            DbConnection dbConnection = dbConnectionManager.createSQLiteConnection(dbProperties);
+            logger.debug("SQLite connection created: {}", dbConnection.getConnectionString());
 
             try {
-                if (!dbConnection.connect()) {
-                    throw new SQLException("Failed to connect to SQLite database: " + connectionString);
+                // Connect to the database
+                logger.debug("Connecting to SQLite database");
+                boolean connected = dbConnectionManager.connect(dbConnection);
+                logger.debug("Successfully connected to SQLite database: {}", connected);
+                logger.debug("Connection details: isConnected={}, connectionString={}", 
+                    dbConnection.isConnected(), dbConnection.getConnectionString());
+
+                // Create SQLite column mappings and options
+                List<ColumnMapping> sqliteColumnMappings = getDemoSQLiteColumnMappings();
+                logger.debug("Created SQLite column mappings with {} mappings", sqliteColumnMappings.size());
+                for (int i = 0; i < sqliteColumnMappings.size(); i++) {
+                    ColumnMapping mapping = sqliteColumnMappings.get(i);
+                    logger.debug("SQLite mapping {}: {} -> {} (type: {}, default: {})", 
+                        i, mapping.getSourceColumnName(), mapping.getTargetColumnName(), 
+                        mapping.getTargetColumnType(), mapping.getDefaultValue());
                 }
-                logger.debug("Successfully connected to SQLite database");
+
+                Map<String, Object> sqliteOptions = getDemoSQLiteOptions();
+                logger.debug("Created SQLite options with {} options", sqliteOptions.size());
+                for (Map.Entry<String, Object> entry : sqliteOptions.entrySet()) {
+                    logger.debug("SQLite option: {} = {}", entry.getKey(), entry.getValue());
+                }
 
                 // Prepare the mapping configuration
-                MappingConfiguration sqliteConfig = prepareSQLiteMappingConfiguration(dbConnection, username, password);
+                logger.debug("Creating SQLite mapping configuration for table: {}", DEFAULT_SQLITE_TABLE_NAME);
+                MappingConfiguration sqliteConfig = configManager.createSQLiteMappingConfiguration(
+                        dbConnection,
+                        dbConnection.getUsername(),
+                        dbConnection.getPassword(),
+                        DEFAULT_SQLITE_TABLE_NAME,
+                        sqliteColumnMappings,
+                        sqliteOptions,
+                        SQLITE_MAPPING_FILE);
+                logger.debug("SQLite mapping configuration created successfully");
 
-                // Write to SQLite database using dependency injection
-                writeToSQLiteDatabase(table, dbConnection, sqliteConfig);
+                // Write to SQLite database
+                logger.debug("Writing data to SQLite database: {} rows", table.getRowCount());
+                int rowsWritten = sqliteProcessor.writeToSQLiteDatabase(table, dbConnection, sqliteConfig);
+                logger.debug("Write operation completed, wrote {} rows", rowsWritten);
                 logger.info("Successfully wrote data to SQLite database");
+
+                // Read data from SQLite database (new step)
+                logger.debug("Reading data from SQLite database table: {}", DEFAULT_SQLITE_TABLE_NAME);
+                ITable queryResult = readFromSQLiteDatabase(dbConnection, DEFAULT_SQLITE_TABLE_NAME);
+                logger.debug("Query result table has {} rows and {} columns", queryResult.getRowCount(), queryResult.getColumnCount());
+                logger.info("Successfully read data from SQLite database");
+
+                // Generate a SQL SELECT statement from the mapping configuration
+                logger.debug("Generating SQL SELECT statement from mapping configuration");
+                String sqlQuery = sqliteQueryManager.generateSelectStatement(sqliteConfig);
+                logger.debug("Generated SQL query: {}", sqlQuery);
+
+                // Execute the query using SQLiteQueryManager
+                logger.debug("Executing generated SQL query");
+                ITable queryResultWithMapping = sqliteQueryManager.executeQuery(sqlQuery, dbConnection);
+                logger.debug("Query execution completed");
+                logger.debug("Query result table has {} rows and {} columns", queryResultWithMapping.getRowCount(), queryResultWithMapping.getColumnCount());
+                logger.info("Successfully read data from SQLite database using generated SQL query");
+
+                // Print out the content of the table
+                logger.debug("Logging table data for demonstration purposes");
+                logTableData(queryResultWithMapping);
+                logger.debug("Table data logging complete");
+
+                // Demonstrate the new SQLite mapping configuration with aliases
+                logger.info("Demonstrating SQLite mapping configuration with column aliases");
+
+                // Create SQLite column mappings for the alias demonstration
+                List<ColumnMapping> aliasColumnMappings = getDemoSQLiteColumnMappings();
+                logger.debug("Created SQLite column mappings for alias demonstration with {} mappings", aliasColumnMappings.size());
+
+                // Create a mapping configuration with aliases
+                logger.debug("Creating SQLite mapping configuration with aliases for table: {}", DEFAULT_SQLITE_TABLE_NAME);
+                String aliasMappingFile = "sqlite_alias_mapping.json";
+                MappingConfiguration aliasConfig = configManager.createSQLiteMappingConfigurationWithAliases(
+                        dbConnection,
+                        dbConnection.getUsername(),
+                        dbConnection.getPassword(),
+                        DEFAULT_SQLITE_TABLE_NAME,
+                        aliasColumnMappings,
+                        sqliteOptions,
+                        aliasMappingFile);
+                logger.debug("SQLite mapping configuration with aliases created successfully");
+
+                // Generate a SQL SELECT statement with aliases from the mapping configuration
+                logger.debug("Generating SQL SELECT statement with aliases from mapping configuration");
+                String sqlQueryWithAliases = sqliteQueryManager.generateSelectStatement(aliasConfig);
+                logger.debug("Generated SQL query with aliases: {}", sqlQueryWithAliases);
+
+                // Execute the query using SQLiteQueryManager
+                logger.debug("Executing generated SQL query with aliases");
+                ITable queryResultWithAliases = sqliteQueryManager.executeQuery(sqlQueryWithAliases, dbConnection);
+                logger.debug("Query execution completed");
+                logger.debug("Query result table has {} rows and {} columns", queryResultWithAliases.getRowCount(), queryResultWithAliases.getColumnCount());
+                logger.info("Successfully read data from SQLite database using generated SQL query with aliases");
+
+                // Print out the content of the table
+                logger.debug("Logging table data for alias demonstration");
+                logTableData(queryResultWithAliases);
+                logger.debug("Table data logging complete for alias demonstration");
+
             } finally {
                 // Ensure connection is closed even if an exception occurs
-                if (dbConnection != null && dbConnection.isConnected()) {
-                    dbConnection.disconnect();
-                    logger.debug("Disconnected from SQLite database");
-                }
+                logger.debug("Ensuring database connection is closed");
+                dbConnectionManager.ensureConnectionClosed(dbConnection);
+                logger.debug("Database connection cleanup complete");
             }
 
         } catch (IOException e) {
@@ -110,369 +267,312 @@ public class CSVToSQLiteDemo {
     }
 
 
-    /**
-     * Reads data from a CSV file into a table using MappingConfiguration.
-     * This method demonstrates advanced usage of MappingConfiguration:
-     * - Using FileConnection from DataSourceConnectionFactory
-     * - Using dependency injection for MappingConfiguration
-     *
-     * @param table the table to read into
-     * @param csvFilePath the path to the CSV file
-     * @param csvConfig the mapping configuration to use
-     * @throws IOException if there is an error reading the file
-     */
-    static void readFromCSV(ITable table, String csvFilePath, MappingConfiguration csvConfig) throws IOException {
-        logger.info("Creating FileConnection for CSV file: {}", csvFilePath);
+    public static Map<String, Object> getDemoSQLiteOptions() {
+        logger.debug("Creating demo SQLite options");
+        Map<String, Object> options = new HashMap<>();
 
-        // Create a FileConnection using DataSourceConnectionFactory
-        FileConnection connection = null;
-        try {
-            connection = (FileConnection) DataSourceConnectionFactory.createConnection(csvFilePath);
-            if (!connection.connect()) {
-                throw new IOException("Failed to connect to CSV file: " + csvFilePath);
-            }
-            logger.debug("Successfully connected to CSV file");
+        logger.debug("Setting SQLite option: createTable = true");
+        options.put("createTable", true);
 
-            // Update the source location to the current file
-            csvConfig.setSourceLocation(connection.getLocation());
-
-            // Read from CSV
-            CSVMappingReader csvReader = new CSVMappingReader();
-            csvReader.readFromCSV(table, csvConfig);
-
-            logger.info("Successfully read data from CSV file with {} rows and {} columns",
-                    table.getRowCount(), table.getColumnCount());
-
-        } finally {
-            // Ensure connection is closed even if an exception occurs
-            if (connection != null && connection.isConnected()) {
-                connection.disconnect();
-                logger.debug("Disconnected from CSV file");
-            }
-        }
-    }
-
-    /**
-     * Creates a mapping configuration for reading from CSV file.
-     * This method demonstrates advanced usage of MappingConfiguration:
-     * - Transforming column names (e.g., "name" to "fullName")
-     * - Setting default values for missing columns
-     * - Handling edge cases
-     *
-     * @param fileLocation the location of the CSV file
-     * @return the mapping configuration
-     */
-    static MappingConfiguration createDemoCSVMappingConfiguration(String fileLocation) {
-        // Create a mapping configuration for reading from CSV
-        MappingConfiguration csvConfig = new MappingConfiguration()
-                .setSourceLocation(fileLocation)
-                .setOption("hasHeaderRow", true)
-                .setOption("allowEmptyValues", true);
-
-        // Add column mappings with transformations and default values
-        csvConfig.addColumnMapping(new ColumnMapping("id", "personId", "int")
-                        .setDefaultValue("0"))  // Transform id -> personId with default value
-                .addColumnMapping(new ColumnMapping("name", "fullName", "string")
-                        .setDefaultValue("Unknown"))  // Transform name -> fullName with default value
-                .addColumnMapping(new ColumnMapping("email", "emailAddress", "string")
-                        .setDefaultValue("no-email@example.com"))  // Transform email -> emailAddress with default value
-                .addColumnMapping(new ColumnMapping("age", "personAge", "int")
-                        .setDefaultValue("0"))  // Transform age -> personAge with default value
-                .addColumnMapping(new ColumnMapping("department", "department", "string")
-                        .setDefaultValue("General"));  // Add a column that might not exist in CSV
-
-        logger.debug("Created CSV mapping configuration with column transformations and default values");
-
-        return csvConfig;
-    }
-
-    /**
-     * Prepares a CSV mapping configuration, either by loading an existing one or creating a new one.
-     *
-     * @param fileLocation the location of the CSV file
-     * @return the prepared mapping configuration
-     * @throws IOException if there is an error with the mapping configuration
-     */
-    static MappingConfiguration prepareDemoCSVMappingConfiguration(String fileLocation) throws IOException {
-        // Try to load the mapping configuration from a file
-        MappingConfiguration csvConfig = loadMappingConfiguration(CSV_MAPPING_FILE);
-
-        // If the configuration doesn't exist, create it and save it
-        if (csvConfig == null) {
-            logger.info("Creating new CSV mapping configuration");
-            csvConfig = createDemoCSVMappingConfiguration(fileLocation);
-
-            // Save the configuration to a file
-            saveMappingConfiguration(csvConfig, CSV_MAPPING_FILE);
-        } else {
-            logger.info("Using existing CSV mapping configuration from file");
-
-            // Update the source location to the current file
-            csvConfig.setSourceLocation(fileLocation);
-        }
-
-        return csvConfig;
-    }
-
-
-
-    static MappingConfiguration prepareSQLiteMappingConfiguration(DbConnection connection, String username, String password) throws IOException {
-        // Try to load the mapping configuration from a file
-        MappingConfiguration sqliteConfig = loadMappingConfiguration(SQLITE_MAPPING_FILE);
-
-        // If the configuration doesn't exist, create it and save it
-        if (sqliteConfig == null) {
-            logger.info("Creating new SQLite mapping configuration");
-
-            // Create a mapping configuration for writing to SQLite database
-            sqliteConfig = createDemoSQLiteMappingConfiguration(connection, username, password);
-            logger.debug("Created SQLite mapping configuration");
-
-            // Save the configuration to a file
-            saveMappingConfiguration(sqliteConfig, SQLITE_MAPPING_FILE);
-        } else {
-            logger.info("Using existing SQLite mapping configuration from file");
-
-            // Update the connection information
-            sqliteConfig.setSourceLocation(connection.getConnectionString())
-                    .setOption("username", username)
-                    .setOption("password", password);
-        }
-
-        // Check for system property that can override the default table name (for testing)
-        String tableName = System.getProperty("sqlite.table");
-        if (tableName != null && !tableName.isEmpty()) {
-            logger.info("Overriding table name with system property: {}", tableName);
-            sqliteConfig.setOption("tableName", tableName);
-
-            // If the table name is datetime_test, use the datetime mapping configuration
-            if ("datetime_test".equals(tableName)) {
-                sqliteConfig = createDemoSQLiteDateTimeMappingConfiguration(connection, username, password, tableName);
-            }
-        }
-
-        return sqliteConfig;
-    }
-
-    /**
-     * Writes data from a table to a SQLite database using MappingConfiguration.
-     * This method demonstrates advanced usage of MappingConfiguration:
-     * - Using JDBCConnection for database access
-     * - Saving and loading mapping configurations using JSON serialization
-     *
-     * @param table the table to write from
-     * @param connection the database connection to use
-     * @param sqliteConfig the mapping configuration to use
-     * @throws SQLException if there is an error writing to the database
-     * @throws IOException if there is an error with the mapping configuration
-     */
-    static void writeToSQLiteDatabase(ITable table, DbConnection connection, MappingConfiguration sqliteConfig) throws SQLException, IOException {
-        if (table == null) {
-            throw new IllegalArgumentException("Table cannot be null");
-        }
-        if (connection == null) {
-            throw new IllegalArgumentException("Database connection cannot be null");
-        }
-        if (sqliteConfig == null) {
-            throw new IllegalArgumentException("Mapping configuration cannot be null");
-        }
-
-        try {
-            // Ensure the connection is established
-            if (!connection.isConnected() && !connection.connect()) {
-                throw new SQLException("Failed to connect to SQLite database: " + connection.getConnectionString());
-            }
-            logger.debug("Successfully connected to SQLite database");
-
-            // Write to SQLite database
-            JDBCMappingWriter sqliteWriter = new JDBCMappingWriter();
-            sqliteWriter.writeToDatabase(table, sqliteConfig);
-
-            logger.info("Successfully wrote data to SQLite database table: {}", sqliteConfig.getOption("tableName", "person_data"));
-        } finally {
-            // We don't disconnect here because the connection was passed in from outside
-            // The caller is responsible for managing the connection lifecycle
-        }
+        logger.debug("Created SQLite options with {} settings", options.size());
+        return options;
     }
 
 
     /**
      * Creates a demo CSV file if it doesn't exist.
+     * This method writes sample data to a CSV file for demonstration purposes.
      *
      * @param csvFilePath the path to the CSV file
-     * @throws IOException if there is an error creating the file
+     * @param csvContent  the content to write to the CSV file
+     * @throws IOException if there is an error writing to the file
      */
-    private static void createDemoCSVIfNotExists(String csvFilePath) throws IOException {
+    private void createDemoCSVIfNotExists(String csvFilePath, String csvContent) throws IOException {
+        logger.debug("Checking if demo CSV file exists: {}", csvFilePath);
         File csvFile = new File(csvFilePath);
+
         if (!csvFile.exists()) {
             logger.info("Creating demo CSV file: {}", csvFilePath);
-
-            // Create a simple CSV file with header and some data
-            StringBuilder csvContent = new StringBuilder();
-            csvContent.append("id,name,email,age\n");
-            csvContent.append("1,John Doe,john.doe@example.com,30\n");
-            csvContent.append("2,Jane Smith,jane.smith@example.com,25\n");
-            csvContent.append("3,Bob Johnson,bob.johnson@example.com,40\n");
+            logger.debug("CSV file path: {}", csvFile.getAbsolutePath());
+            logger.debug("CSV content length: {} bytes", csvContent.getBytes().length);
 
             // Write the content to the file
-            java.nio.file.Files.write(csvFile.toPath(), csvContent.toString().getBytes());
+            logger.debug("Writing content to CSV file");
+            Files.write(csvFile.toPath(), csvContent.getBytes());
+            logger.debug("File write operation completed");
 
             logger.info("Demo CSV file created successfully");
         } else {
             logger.info("Using existing CSV file: {}", csvFilePath);
+            logger.debug("Existing file size: {} bytes", csvFile.length());
+            logger.debug("Existing file last modified: {}", new java.util.Date(csvFile.lastModified()));
         }
     }
 
+
+    public static String getDemoCSVFilePath() {
+        logger.debug("Generating demo CSV content");
+        StringBuilder csvContent = new StringBuilder();
+        csvContent.append("id,name,email,age\n");
+        csvContent.append("1,John Doe,john.doe@example.com,30\n");
+        csvContent.append("2,Jane Smith,jane.smith@example.com,25\n");
+        csvContent.append("3,Bob Johnson,bob.johnson@example.com,40\n");
+        logger.debug("Generated CSV content with header and {} data rows", 3);
+        return csvContent.toString();
+    }
+
+
+    public static List<ColumnMapping> getDemoCSVColumnMappings() {
+        logger.debug("Creating demo CSV column mappings");
+        List<ColumnMapping> columnMappings = new ArrayList<>();
+
+        logger.debug("Adding CSV column mapping: id -> personId (type: int, default: 0)");
+        columnMappings.add(new ColumnMapping("id", "personId", "int").setDefaultValue("0"));
+
+        logger.debug("Adding CSV column mapping: name -> fullName (type: string, default: Unknown)");
+        columnMappings.add(new ColumnMapping("name", "fullName", "string").setDefaultValue("Unknown"));
+
+        logger.debug("Adding CSV column mapping: email -> emailAddress (type: string, default: no-email@example.com)");
+        columnMappings.add(new ColumnMapping("email", "emailAddress", "string").setDefaultValue("no-email@example.com"));
+
+        logger.debug("Adding CSV column mapping: age -> personAge (type: int, default: 0)");
+        columnMappings.add(new ColumnMapping("age", "personAge", "int").setDefaultValue("0"));
+
+        logger.debug("Adding CSV column mapping: department -> department (type: string, default: General)");
+        columnMappings.add(new ColumnMapping("department", "department", "string").setDefaultValue("General"));
+
+        logger.debug("Created {} CSV column mappings", columnMappings.size());
+        return columnMappings;
+    }
+
+    public static Map<String, Object> getDemoCSVOptions() {
+        logger.debug("Creating demo CSV options");
+        Map<String, Object> options = new HashMap<>();
+
+        logger.debug("Setting CSV option: hasHeaderRow = true");
+        options.put("hasHeaderRow", true);
+
+        logger.debug("Setting CSV option: allowEmptyValues = true");
+        options.put("allowEmptyValues", true);
+
+        logger.debug("Created CSV options with {} settings", options.size());
+        return options;
+    }
+
+    public static List<ColumnMapping> getDemoSQLiteColumnMappings() {
+        logger.debug("Creating demo SQLite column mappings");
+        List<ColumnMapping> columnMappings = new ArrayList<>();
+
+        logger.debug("Adding SQLite column mapping: personId -> person_id (type: int, default: 0)");
+        columnMappings.add(new ColumnMapping("personId", "person_id", "int").setDefaultValue("0"));
+
+        logger.debug("Adding SQLite column mapping: fullName -> full_name (type: string, default: Unknown)");
+        columnMappings.add(new ColumnMapping("fullName", "full_name", "string").setDefaultValue("Unknown"));
+
+        logger.debug("Adding SQLite column mapping: emailAddress -> email_address (type: string, default: no-email@example.com)");
+        columnMappings.add(new ColumnMapping("emailAddress", "email_address", "string").setDefaultValue("no-email@example.com"));
+
+        logger.debug("Adding SQLite column mapping: personAge -> age (type: int, default: 0)");
+        columnMappings.add(new ColumnMapping("personAge", "age", "int").setDefaultValue("0"));
+
+        logger.debug("Adding SQLite column mapping: department -> department (type: string, default: General)");
+        columnMappings.add(new ColumnMapping("department", "department", "string").setDefaultValue("General"));
+
+        logger.debug("Created {} SQLite column mappings", columnMappings.size());
+        return columnMappings;
+    }
+
+
+    public static List<ColumnMapping> getDemoSQLiteDateTimeColumnMappings() {
+        logger.debug("Creating demo SQLite datetime column mappings");
+        List<ColumnMapping> columnMappings = new ArrayList<>();
+
+        logger.debug("Adding SQLite datetime column mapping: ID -> id (type: int)");
+        columnMappings.add(new ColumnMapping("ID", "id", "int"));
+
+        logger.debug("Adding SQLite datetime column mapping: NAME -> name (type: string)");
+        columnMappings.add(new ColumnMapping("NAME", "name", "string"));
+
+        logger.debug("Adding SQLite datetime column mapping: BIRTH_DATE -> birth_date (type: date)");
+        columnMappings.add(new ColumnMapping("BIRTH_DATE", "birth_date", "date"));
+
+        logger.debug("Adding SQLite datetime column mapping: START_TIME -> start_time (type: time)");
+        columnMappings.add(new ColumnMapping("START_TIME", "start_time", "time"));
+
+        logger.debug("Adding SQLite datetime column mapping: CREATED_AT -> created_at (type: datetime)");
+        columnMappings.add(new ColumnMapping("CREATED_AT", "created_at", "datetime"));
+
+        logger.debug("Created {} SQLite datetime column mappings", columnMappings.size());
+        return columnMappings;
+    }
+
     /**
-     * Gets the path to a mapping configuration file in the resources/mappings directory.
+     * Reads data from the SQLite database using a SQL query.
+     * This method demonstrates how to use SQLiteQueryManager to query the database.
      *
-     * @param fileName the name of the mapping configuration file
-     * @return the path to the mapping configuration file
+     * @param dbConnection the database connection to use
+     * @param tableName the name of the table to query
+     * @return a table containing the query results
+     * @throws SQLException if there is an error executing the query
      */
-    private static String getMappingFilePath(String fileName) {
-        try {
-            // Get the path to the resources directory
-            URL resourceUrl = CSVToSQLiteDemo.class.getClassLoader().getResource("");
-            if (resourceUrl == null) {
-                // Fallback to the current directory if resources directory is not found
-                return new File(System.getProperty("user.dir"), "src\\main\\resources\\" + MAPPINGS_DIR + "\\" + fileName).getAbsolutePath();
+    private ITable readFromSQLiteDatabase(DbConnection dbConnection, String tableName) throws SQLException {
+        logger.info("Reading data from SQLite database table: {}", tableName);
+        logger.debug("Database connection details: isConnected={}, connectionString={}", 
+            dbConnection.isConnected(), dbConnection.getConnectionString());
+
+        // Create a SQL query to select all data from the table
+        String query = "SELECT * FROM " + tableName;
+        logger.debug("Executing SQL query: {}", query);
+
+        // Execute the query using SQLiteQueryManager
+        logger.debug("Using SQLiteQueryManager to execute query");
+        ITable result = sqliteQueryManager.executeQuery(query, dbConnection);
+        logger.debug("Query execution completed");
+
+        // Log result details
+        logger.debug("Query result: {} rows, {} columns", result.getRowCount(), result.getColumnCount());
+        if (result.getRowCount() > 0) {
+            StringBuilder columnTypes = new StringBuilder("Column types: ");
+            for (int i = 0; i < result.getColumnCount(); i++) {
+                if (i > 0) columnTypes.append(", ");
+                String columnName = result.getColumnName(i);
+                String value = result.getValueAt(0, columnName);
+                String type = value != null ? result.inferType(value) : "null";
+                columnTypes.append(columnName).append("=").append(type);
             }
-
-            // Construct the path to the mapping file using File to handle path separators correctly
-            File resourcesDir = new File(resourceUrl.toURI());
-            File mappingsDir = new File(resourcesDir, MAPPINGS_DIR);
-            File mappingFile = new File(mappingsDir, fileName);
-
-            return mappingFile.getAbsolutePath();
-        } catch (Exception e) {
-            // If there's any error, fallback to a simple path
-            logger.warn("Error getting mapping file path: {}", e.getMessage());
-            return new File(System.getProperty("user.dir"), "src\\main\\resources\\" + MAPPINGS_DIR + "\\" + fileName).getAbsolutePath();
-        }
-    }
-
-    /**
-     * Saves a mapping configuration to a JSON file in the resources/mappings directory.
-     *
-     * @param config the mapping configuration to save
-     * @param fileName the name of the file to save to
-     * @throws IOException if there is an error saving the configuration
-     */
-    private static void saveMappingConfiguration(MappingConfiguration config, String fileName) throws IOException {
-        // Create a JSON serializer
-        IMappingSerializer serializer = MappingSerializerFactory.createSerializer("json");
-
-        // Get the path to the mapping file
-        String filePath = getMappingFilePath(fileName);
-
-        // Ensure the directory exists
-        File file = new File(filePath);
-        file.getParentFile().mkdirs();
-
-        // Write the configuration to the file
-        serializer.writeToFile(config, filePath);
-
-        logger.info("Saved mapping configuration to file: {}", filePath);
-    }
-
-    /**
-     * Loads a mapping configuration from a JSON file in the resources/mappings directory.
-     *
-     * @param fileName the name of the file to load from
-     * @return the loaded mapping configuration, or null if the file doesn't exist
-     * @throws IOException if there is an error loading the configuration
-     */
-    private static MappingConfiguration loadMappingConfiguration(String fileName) throws IOException {
-        // Create a JSON serializer
-        IMappingSerializer serializer = MappingSerializerFactory.createSerializer("json");
-
-        // Get the path to the mapping file
-        String filePath = getMappingFilePath(fileName);
-
-        // Check if the file exists
-        File file = new File(filePath);
-        if (!file.exists()) {
-            logger.info("Mapping configuration file does not exist: {}", filePath);
-            return null;
+            logger.debug(columnTypes.toString());
         }
 
-        // Read the configuration from the file
-        MappingConfiguration config = serializer.readFromFile(filePath);
+        logger.info("Successfully read {} rows from SQLite database table: {}", result.getRowCount(), tableName);
 
-        logger.info("Loaded mapping configuration from file: {}", filePath);
+        // Log the data for demonstration purposes
+        logger.debug("Logging query result data");
+        logTableData(result);
+        logger.debug("Query result logging complete");
 
-        return config;
+        return result;
     }
 
     /**
-     * Creates a demo mapping configuration for writing to SQLite database.
-     * This method demonstrates advanced usage of MappingConfiguration:
-     * - Transforming column names to match the database schema
-     * - Setting default values for missing columns
-     * - Using advanced database options
+     * Reads data from the SQLite database using a mapping configuration.
+     * This method demonstrates how to use SQLiteQueryManager to generate a SQL SELECT statement
+     * from a mapping configuration and execute it.
      *
-     * @param connection the JDBCConnection to use
-     * @param username the username for the database
-     * @param password the password for the database
-     * @return the mapping configuration
+     * @param dbConnection the database connection to use
+     * @param config the mapping configuration to use
+     * @return a table containing the query results
+     * @throws SQLException if there is an error executing the query
      */
-    static MappingConfiguration createDemoSQLiteMappingConfiguration(DbConnection connection, String username, String password) {
-        // Create a mapping configuration for writing to SQLite database
-        MappingConfiguration sqliteConfig = new MappingConfiguration()
-                .setSourceLocation(connection.getConnectionString())
-                .setOption("tableName", "person_data")  // Changed table name to be more descriptive
-                .setOption("username", username)
-                .setOption("password", password)
-                .setOption("createTable", true);
+    private ITable readFromSQLiteDatabaseWithMapping(DbConnection dbConnection, MappingConfiguration config) throws SQLException {
+        logger.info("Reading data from SQLite database using mapping configuration");
+        logger.debug("Database connection details: isConnected={}, connectionString={}", 
+            dbConnection.isConnected(), dbConnection.getConnectionString());
 
-        // Add column mappings with transformations to match our transformed input columns
-        // Note: We're mapping from the transformed column names we used in readFromCSV
-        // SQLite preserves case sensitivity, so we'll use snake_case for column names
-        sqliteConfig.addColumnMapping(new ColumnMapping("personId", "person_id", "int")
-                        .setDefaultValue("0"))  // Map personId -> person_id with default value
-                .addColumnMapping(new ColumnMapping("fullName", "full_name", "string")
-                        .setDefaultValue("Unknown"))  // Map fullName -> full_name with default value
-                .addColumnMapping(new ColumnMapping("emailAddress", "email_address", "string")
-                        .setDefaultValue("no-email@example.com"))  // Map emailAddress -> email_address with default value
-                .addColumnMapping(new ColumnMapping("personAge", "age", "int")
-                        .setDefaultValue("0"))  // Map personAge -> age with default value
-                .addColumnMapping(new ColumnMapping("department", "department", "string")
-                        .setDefaultValue("General"));  // Map department -> department with default value
+        // Generate a SQL SELECT statement from the mapping configuration
+        String sqlQuery = sqliteQueryManager.generateSelectStatement(config);
+        logger.debug("Generated SQL query from mapping configuration: {}", sqlQuery);
 
-        logger.debug("Created SQLite mapping configuration with column transformations and default values");
-
-        return sqliteConfig;
+        // Execute the query using the readFromSQLiteDatabaseWithQuery method
+        return readFromSQLiteDatabaseWithQuery(dbConnection, sqlQuery);
     }
 
     /**
-     * Creates a mapping configuration for writing datetime data to SQLite database.
-     * This method is specifically for handling date, time, and datetime data types.
+     * Reads data from the SQLite database using a custom SQL query.
+     * This method demonstrates how to use SQLiteQueryManager to execute a custom SQL query.
      *
-     * @param connection the JDBCConnection to use
-     * @param username the username for the database
-     * @param password the password for the database
-     * @param tableName the name of the table to write to
-     * @return the mapping configuration
+     * @param dbConnection the database connection to use
+     * @param sqlQuery the SQL query to execute
+     * @return a table containing the query results
+     * @throws SQLException if there is an error executing the query
      */
-    static MappingConfiguration createDemoSQLiteDateTimeMappingConfiguration(DbConnection connection, String username, String password, String tableName) {
-        // Create a mapping configuration for writing to SQLite database
-        MappingConfiguration sqliteConfig = new MappingConfiguration()
-                .setSourceLocation(connection.getConnectionString())
-                .setOption("tableName", tableName)
-                .setOption("username", username)
-                .setOption("password", password)
-                .setOption("createTable", true);
+    private ITable readFromSQLiteDatabaseWithQuery(DbConnection dbConnection, String sqlQuery) throws SQLException {
+        logger.info("Reading data from SQLite database using custom SQL query");
+        logger.debug("Database connection details: isConnected={}, connectionString={}", 
+            dbConnection.isConnected(), dbConnection.getConnectionString());
+        logger.debug("Executing SQL query: {}", sqlQuery);
 
-        // Add column mappings for datetime types
-        sqliteConfig.addColumnMapping(new ColumnMapping("ID", "id", "int"))
-                .addColumnMapping(new ColumnMapping("NAME", "name", "string"))
-                .addColumnMapping(new ColumnMapping("BIRTH_DATE", "birth_date", "date"))
-                .addColumnMapping(new ColumnMapping("START_TIME", "start_time", "time"))
-                .addColumnMapping(new ColumnMapping("CREATED_AT", "created_at", "datetime"));
+        // Execute the query using SQLiteQueryManager
+        logger.debug("Using SQLiteQueryManager to execute query");
+        ITable result = sqliteQueryManager.executeQuery(sqlQuery, dbConnection);
+        logger.debug("Query execution completed");
 
-        logger.debug("Created SQLite mapping configuration for datetime types");
+        // Log result details
+        logger.debug("Query result: {} rows, {} columns", result.getRowCount(), result.getColumnCount());
+        if (result.getRowCount() > 0) {
+            StringBuilder columnTypes = new StringBuilder("Column types: ");
+            for (int i = 0; i < result.getColumnCount(); i++) {
+                if (i > 0) columnTypes.append(", ");
+                String columnName = result.getColumnName(i);
+                String value = result.getValueAt(0, columnName);
+                String type = value != null ? result.inferType(value) : "null";
+                columnTypes.append(columnName).append("=").append(type);
+            }
+            logger.debug(columnTypes.toString());
+        }
 
-        return sqliteConfig;
+        logger.info("Successfully read {} rows from SQLite database using custom SQL query", result.getRowCount());
+
+        // Log the data for demonstration purposes
+        logger.debug("Logging query result data");
+        logTableData(result);
+        logger.debug("Query result logging complete");
+
+        return result;
     }
 
+    /**
+     * Logs the data in a table for demonstration purposes.
+     *
+     * @param table the table to log
+     */
+    private void logTableData(ITable table) {
+        logger.debug("Starting to log table data");
+        logger.debug("Table structure: {} rows and {} columns", table.getRowCount(), table.getColumnCount());
+        logger.info("Table contains {} rows and {} columns", table.getRowCount(), table.getColumnCount());
+
+        // Log column names
+        StringBuilder header = new StringBuilder("Columns: ");
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            if (i > 0) header.append(", ");
+            header.append(table.getColumnName(i));
+        }
+        logger.debug("Column names: {}", header.toString());
+        logger.info(header.toString());
+
+        // Log column types if table has data
+        if (table.getRowCount() > 0) {
+            StringBuilder types = new StringBuilder("Column types: ");
+            for (int i = 0; i < table.getColumnCount(); i++) {
+                if (i > 0) types.append(", ");
+                String columnName = table.getColumnName(i);
+                String value = table.getValueAt(0, columnName);
+                String type = value != null ? table.inferType(value) : "null";
+                types.append(columnName).append("=").append(type);
+            }
+            logger.debug(types.toString());
+        }
+
+        // Log row data (limit to first 10 rows for large tables)
+        int rowsToLog = Math.min(table.getRowCount(), 10);
+        logger.debug("Logging first {} rows of data", rowsToLog);
+        for (int row = 0; row < rowsToLog; row++) {
+            StringBuilder rowData = new StringBuilder("Row ").append(row).append(": ");
+            for (int col = 0; col < table.getColumnCount(); col++) {
+                if (col > 0) rowData.append(", ");
+                String columnName = table.getColumnName(col);
+                String value = table.getValueAt(row, columnName);
+                rowData.append(columnName).append("=").append(value);
+            }
+            logger.debug("Row data: {}", rowData.toString());
+            logger.info(rowData.toString());
+        }
+
+        // Indicate if there are more rows not shown
+        if (table.getRowCount() > rowsToLog) {
+            logger.debug("Not showing {} additional rows", table.getRowCount() - rowsToLog);
+            logger.info("... and {} more rows", table.getRowCount() - rowsToLog);
+        }
+
+        logger.debug("Finished logging table data");
+    }
 }

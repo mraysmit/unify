@@ -80,8 +80,8 @@ public class CSVToH2DemoTest {
         logger.info("Starting CSV to H2 integration test");
 
         // Create a table to hold the data
-        ITable table = new TableCore();
-        logger.debug("Created empty table for testing");
+        ITable table = new TableCore("CSVToH2DemoTest-InputTable");
+        logger.debug("Created empty table with name '{}' for testing", table.getName());
 
         // Read from CSV
         logger.info("Reading data from CSV file: {}", TEST_CSV_FILE);
