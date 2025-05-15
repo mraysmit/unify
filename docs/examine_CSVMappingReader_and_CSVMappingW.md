@@ -15,8 +15,8 @@ I'll create two new classes:
 package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.io.mapping.ColumnMapping;
-import dev.mars.jtable.io.mapping.MappingConfiguration;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.MappingConfiguration;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -163,8 +163,8 @@ public class JDBCMappingReader {
 package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.io.mapping.ColumnMapping;
-import dev.mars.jtable.io.mapping.MappingConfiguration;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.MappingConfiguration;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -367,8 +367,8 @@ public class JDBCMappingWriter {
 package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.core.table.Table;
-import dev.mars.jtable.io.mapping.ColumnMapping;
-import dev.mars.jtable.io.mapping.MappingConfiguration;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.MappingConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -547,7 +547,7 @@ To integrate these new classes with the existing code, we should add methods to 
 package dev.mars.jtable.io.jdbc;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.io.mapping.MappingConfiguration;
+import dev.mars.jtable.io.dev.mars.jtable.io.common.mapping.MappingConfiguration;
 
 import java.sql.SQLException;
 

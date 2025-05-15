@@ -3,7 +3,7 @@ package dev.mars.jtable.io.files.jdbc;
 import dev.mars.jtable.io.common.datasource.IDataSource;
 import dev.mars.jtable.io.common.datasource.IDataSourceConnection;
 import dev.mars.jtable.io.common.datasource.IJDBCDataSource;
-import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
+import dev.mars.jtable.io.common.datasource.DbConnection;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -41,25 +41,25 @@ public class JDBCReader implements IJDBCReader {
     @Override
     public void readData(IJDBCDataSource dataSource, IDataSourceConnection connection, Map<String, Object> options) {
         // Ensure we have a JDBC connection
-        if (!(connection instanceof jTableJDBCConnection)) {
+        if (!(connection instanceof DbConnection)) {
             throw new IllegalArgumentException("Connection must be a JDBCConnection");
         }
-        jTableJDBCConnection JTableJdbcConnection = (jTableJDBCConnection) connection;
+        DbConnection DbConnection = (DbConnection) connection;
 
         // Extract options
         String tableName = options != null && options.containsKey("tableName") ? (String) options.get("tableName") : null;
         String query = options != null && options.containsKey("query") ? (String) options.get("query") : null;
 
         // Connect if not already connected
-        if (!JTableJdbcConnection.isConnected()) {
-            JTableJdbcConnection.connect();
+        if (!DbConnection.isConnected()) {
+            DbConnection.connect();
         }
 
         // Call the appropriate JDBC-specific method
         if (query != null) {
-            readFromQuery(dataSource, JTableJdbcConnection, query);
+            readFromQuery(dataSource, DbConnection, query);
         } else if (tableName != null) {
-            readFromDatabase(dataSource, JTableJdbcConnection, tableName);
+            readFromDatabase(dataSource, DbConnection, tableName);
         } else {
             throw new IllegalArgumentException("Either 'tableName' or 'query' must be specified in options");
         }
@@ -72,7 +72,7 @@ public class JDBCReader implements IJDBCReader {
      * @param connection the JDBC connection
      * @param tableName the name of the table to read from
      */
-    public void readFromDatabase(IJDBCDataSource dataSource, jTableJDBCConnection connection, String tableName) {
+    public void readFromDatabase(IJDBCDataSource dataSource, DbConnection connection, String tableName) {
         String query = "SELECT * FROM " + tableName;
         readFromQuery(dataSource, connection, query);
     }
@@ -84,7 +84,7 @@ public class JDBCReader implements IJDBCReader {
      * @param connection the JDBC connection
      * @param query the SQL query to execute
      */
-    public void readFromQuery(IJDBCDataSource dataSource, jTableJDBCConnection connection, String query) {
+    public void readFromQuery(IJDBCDataSource dataSource, DbConnection connection, String query) {
         try {
             // Get the raw JDBC connection
             Connection jdbcConnection = (Connection) connection.getRawConnection();

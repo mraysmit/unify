@@ -1,8 +1,8 @@
 package dev.mars.jtable.io.files.csv;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.io.files.mapping.ColumnMapping;
-import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

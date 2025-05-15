@@ -13,32 +13,54 @@ import java.util.Properties;
  */
 public class DatabaseProperties {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseProperties.class);
-    private static final String PROPERTIES_FILE = "db.properties";
+    private static final String DEFAULT_PROPERTIES_FILE = "db.properties";
     private static Properties properties = null;
 
     /**
-     * Loads the properties from the properties file.
+     * Loads the properties from the default properties file.
      * This method is called automatically when the class is first used.
      */
     private static void loadProperties() {
+        loadProperties(DEFAULT_PROPERTIES_FILE);
+    }
+
+    /**
+     * Loads the properties from the specified properties file.
+     * 
+     * @param propertiesFile the name of the properties file to load
+     */
+    private static void loadProperties(String propertiesFile) {
         if (properties == null) {
             properties = new Properties();
-            try (InputStream input = DatabaseProperties.class.getClassLoader().getResourceAsStream(PROPERTIES_FILE)) {
+            try (InputStream input = DatabaseProperties.class.getClassLoader().getResourceAsStream(propertiesFile)) {
                 if (input == null) {
-                    logger.error("Unable to find {}", PROPERTIES_FILE);
-                    throw new IOException("Unable to find " + PROPERTIES_FILE);
+                    logger.error("Unable to find {}", propertiesFile);
+                    throw new IOException("Unable to find " + propertiesFile);
                 }
                 properties.load(input);
-                logger.debug("Successfully loaded properties from {}", PROPERTIES_FILE);
+                logger.debug("Successfully loaded properties from {}", propertiesFile);
             } catch (IOException e) {
-                logger.error("Error loading properties from {}: {}", PROPERTIES_FILE, e.getMessage());
-                throw new RuntimeException("Error loading properties from " + PROPERTIES_FILE, e);
+                logger.error("Error loading properties from {}: {}", propertiesFile, e.getMessage());
+                throw new RuntimeException("Error loading properties from " + propertiesFile, e);
             }
         }
     }
 
     /**
-     * Gets the SQLite connection string.
+     * Loads the properties from the specified properties file.
+     * This method can be called to explicitly load properties from a specific file.
+     * 
+     * @param propertiesFile the name of the properties file to load
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static void loadPropertiesFromFile(String propertiesFile) throws IOException {
+        // Reset properties to force reload
+        properties = null;
+        loadProperties(propertiesFile);
+    }
+
+    /**
+     * Gets the SQLite connection string from the default properties file.
      *
      * @return the SQLite connection string
      */
@@ -48,7 +70,19 @@ public class DatabaseProperties {
     }
 
     /**
-     * Gets the SQLite username.
+     * Gets the SQLite connection string from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the SQLite connection string
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getSqliteConnectionString(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("sqlite.connectionString");
+    }
+
+    /**
+     * Gets the SQLite username from the default properties file.
      *
      * @return the SQLite username
      */
@@ -58,7 +92,19 @@ public class DatabaseProperties {
     }
 
     /**
-     * Gets the SQLite password.
+     * Gets the SQLite username from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the SQLite username
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getSqliteUsername(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("sqlite.username");
+    }
+
+    /**
+     * Gets the SQLite password from the default properties file.
      *
      * @return the SQLite password
      */
@@ -68,7 +114,19 @@ public class DatabaseProperties {
     }
 
     /**
-     * Gets the H2 connection string.
+     * Gets the SQLite password from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the SQLite password
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getSqlitePassword(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("sqlite.password");
+    }
+
+    /**
+     * Gets the H2 connection string from the default properties file.
      *
      * @return the H2 connection string
      */
@@ -78,7 +136,19 @@ public class DatabaseProperties {
     }
 
     /**
-     * Gets the H2 username.
+     * Gets the H2 connection string from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the H2 connection string
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getH2ConnectionString(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("h2.connectionString");
+    }
+
+    /**
+     * Gets the H2 username from the default properties file.
      *
      * @return the H2 username
      */
@@ -88,12 +158,36 @@ public class DatabaseProperties {
     }
 
     /**
-     * Gets the H2 password.
+     * Gets the H2 username from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the H2 username
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getH2Username(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("h2.username");
+    }
+
+    /**
+     * Gets the H2 password from the default properties file.
      *
      * @return the H2 password
      */
     public static String getH2Password() {
         loadProperties();
+        return properties.getProperty("h2.password");
+    }
+
+    /**
+     * Gets the H2 password from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the H2 password
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getH2Password(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
         return properties.getProperty("h2.password");
     }
 }

@@ -5,7 +5,7 @@ import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.io.common.adapter.CSVTableAdapter;
 import dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory;
 import dev.mars.jtable.io.common.datasource.FileConnection;
-import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

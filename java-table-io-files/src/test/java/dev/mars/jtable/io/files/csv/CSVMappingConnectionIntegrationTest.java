@@ -1,7 +1,7 @@
 package dev.mars.jtable.io.files.csv;
 
-import dev.mars.jtable.io.files.mapping.ColumnMapping;
-import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableBuilder;
 import dev.mars.jtable.core.table.TableCore;
@@ -18,8 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 

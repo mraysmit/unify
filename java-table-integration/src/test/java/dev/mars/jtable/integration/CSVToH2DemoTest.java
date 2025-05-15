@@ -2,8 +2,9 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableCore;
+import dev.mars.jtable.io.common.mapping.ColumnMapping;
 import dev.mars.jtable.io.files.jdbc.JDBCMappingWriter;
-import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -125,15 +126,41 @@ public class CSVToH2DemoTest {
     /**
      * Reads data from a CSV file into a table using MappingConfiguration.
      *
-     * @param table the table to read into
+     * @param table       the table to read into
+     * @param csvFilePath the path to the CSV file
+     * @param csvConfig   the mapping configuration to use
+     * @throws Exception if there is an error reading the file
+     */
+    void readFromCSV(ITable table, String csvFilePath, MappingConfiguration csvConfig) throws Exception {
+        logger.debug("Reading from CSV file: {}", csvFilePath);
+        // Directly call the method in CSVToH2Demo
+        CSVToH2Demo.readFromCSV(table, csvFilePath, csvConfig);
+        logger.debug("Successfully read data from CSV file");
+    }
+
+    /**
+     * Reads data from a CSV file into a table using a default MappingConfiguration.
+     *
+     * @param table       the table to read into
      * @param csvFilePath the path to the CSV file
      * @throws Exception if there is an error reading the file
      */
     void readFromCSV(ITable table, String csvFilePath) throws Exception {
-        logger.debug("Reading from CSV file: {}", csvFilePath);
-        // Directly call the method in CSVToH2Demo
-        CSVToH2Demo.readFromCSV(table, csvFilePath);
-        logger.debug("Successfully read data from CSV file");
+        logger.debug("Reading from CSV file with default configuration: {}", csvFilePath);
+
+        // Create a FileConnection to get the location
+        dev.mars.jtable.io.common.datasource.FileConnection connection = 
+            (dev.mars.jtable.io.common.datasource.FileConnection) dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory.createConnection(csvFilePath);
+        if (!connection.connect()) {
+            throw new Exception("Failed to connect to CSV file: " + csvFilePath);
+        }
+
+        // Create a default mapping configuration
+        MappingConfiguration csvConfig = CSVToH2Demo.createCSVMappingConfiguration(connection.getLocation());
+        connection.disconnect();
+
+        // Call the method with the configuration
+        readFromCSV(table, csvFilePath, csvConfig);
     }
 
     /**
@@ -158,11 +185,11 @@ public class CSVToH2DemoTest {
         logger.debug("Created H2 mapping configuration");
 
         // Add column mappings - using the transformed column names from CSVToH2Demo.readFromCSV
-        h2Config.addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("personId", "ID", "int"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("fullName", "NAME", "string"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("emailAddress", "EMAIL", "string"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("personAge", "AGE", "int"))
-                .addColumnMapping(new dev.mars.jtable.io.files.mapping.ColumnMapping("department", "DEPARTMENT", "string"));
+        h2Config.addColumnMapping(new ColumnMapping("personId", "ID", "int"))
+                .addColumnMapping(new ColumnMapping("fullName", "NAME", "string"))
+                .addColumnMapping(new ColumnMapping("emailAddress", "EMAIL", "string"))
+                .addColumnMapping(new ColumnMapping("personAge", "AGE", "int"))
+                .addColumnMapping(new ColumnMapping("department", "DEPARTMENT", "string"));
 
         logger.debug("Added column mappings to H2 configuration");
 

@@ -3,7 +3,7 @@ package dev.mars.jtable.io.files.jdbc;
 import dev.mars.jtable.core.table.Table;
 import dev.mars.jtable.io.common.datasource.IDataSource;
 import dev.mars.jtable.io.common.datasource.IJDBCDataSource;
-import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
+import dev.mars.jtable.io.common.datasource.DbConnection;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ class JDBCReaderTestSQLite {
     private static final String TEST_TABLE = "test_table";
     private JDBCTableAdapter adapter;
     private JDBCReader reader;
-    private jTableJDBCConnection connection;
+    private DbConnection connection;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -40,7 +40,7 @@ class JDBCReaderTestSQLite {
         reader = new JDBCReader();
 
         // Create the connection
-        connection = new jTableJDBCConnection(TEST_DB_URL, "", "");
+        connection = new DbConnection(TEST_DB_URL, "", "");
         assertTrue(connection.connect(), "Connection should be established");
 
         // Set up the test database

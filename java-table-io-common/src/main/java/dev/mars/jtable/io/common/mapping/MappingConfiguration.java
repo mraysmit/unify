@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.mapping;
+package dev.mars.jtable.io.common.mapping;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

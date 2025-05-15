@@ -2,19 +2,23 @@ package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.table.TableCore;
-import dev.mars.jtable.io.common.datasource.jTableJDBCConnection;
+import dev.mars.jtable.io.common.datasource.DbConnection;
+import dev.mars.jtable.io.common.datasource.FileConnection;
+import dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.ColumnMapping;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -137,35 +141,39 @@ public class CSVToSQLiteDemoTest {
      *
      * @param table       the table to read into
      * @param csvFilePath the path to the CSV file
+     * @param csvConfig   the mapping configuration to use
+     * @throws Exception if there is an error reading the file
+     */
+    void readFromCSV(ITable table, String csvFilePath, MappingConfiguration csvConfig) throws Exception {
+        logger.debug("Reading from CSV file: {}", csvFilePath);
+
+        // Call the method in CSVToSQLiteDemo
+        CSVToSQLiteDemo.readFromCSV(table, csvFilePath, csvConfig);
+        logger.debug("Successfully read data from CSV file");
+    }
+
+    /**
+     * Reads data from a CSV file into a table using a default MappingConfiguration.
+     *
+     * @param table       the table to read into
+     * @param csvFilePath the path to the CSV file
      * @throws Exception if there is an error reading the file
      */
     void readFromCSV(ITable table, String csvFilePath) throws Exception {
-        logger.debug("Reading from CSV file: {}", csvFilePath);
+        logger.debug("Reading from CSV file with default configuration: {}", csvFilePath);
 
-        // Create a FileConnection
-        dev.mars.jtable.io.common.datasource.FileConnection connection = null;
-        try {
-            connection = (dev.mars.jtable.io.common.datasource.FileConnection)
-                    dev.mars.jtable.io.common.datasource.DataSourceConnectionFactory.createConnection(csvFilePath);
-            if (!connection.connect()) {
-                throw new java.io.IOException("Failed to connect to CSV file: " + csvFilePath);
-            }
-            logger.debug("Successfully connected to CSV file");
-
-            // Create a mapping configuration
-            dev.mars.jtable.io.files.mapping.MappingConfiguration csvConfig =
-                    CSVToSQLiteDemo.createCSVMappingConfiguration(connection);
-
-            // Call the method in CSVToSQLiteDemo
-            CSVToSQLiteDemo.readFromCSV(table, csvFilePath, csvConfig);
-            logger.debug("Successfully read data from CSV file");
-        } finally {
-            // Ensure connection is closed
-            if (connection != null && connection.isConnected()) {
-                connection.disconnect();
-                logger.debug("Disconnected from CSV file");
-            }
+        // Create a FileConnection to get the location
+        FileConnection connection = (FileConnection) DataSourceConnectionFactory.createConnection(csvFilePath);
+        if (!connection.connect()) {
+            throw new Exception("Failed to connect to CSV file: " + csvFilePath);
         }
+
+        // Create a default mapping configuration
+        MappingConfiguration csvConfig = CSVToSQLiteDemo.createDemoCSVMappingConfiguration(connection.getLocation());
+        connection.disconnect();
+
+        // Call the method with the configuration
+        readFromCSV(table, csvFilePath, csvConfig);
     }
 
     /**
@@ -179,28 +187,42 @@ public class CSVToSQLiteDemoTest {
     void writeToSQLiteDatabase(ITable table, String dbUrl, String tableName) throws Exception {
         logger.debug("Writing to SQLite database: {} table: {}", dbUrl, tableName);
 
-        // Create a JDBCConnection
-        String username = "";  // SQLite doesn't use username/password
+        // Create a database connection
+        String username = "";  // SQLite typically doesn't use username/password
         String password = "";
-        jTableJDBCConnection connection = null;
+        DbConnection connection = new DbConnection(dbUrl, username, password);
+
         try {
-            connection = new jTableJDBCConnection(dbUrl, username, password);
             if (!connection.connect()) {
-                throw new java.sql.SQLException("Failed to connect to SQLite database: " + dbUrl);
+                throw new SQLException("Failed to connect to SQLite database: " + dbUrl);
             }
             logger.debug("Successfully connected to SQLite database");
 
             // Create a mapping configuration
-            dev.mars.jtable.io.files.mapping.MappingConfiguration sqliteConfig = CSVToSQLiteDemo.createSQLiteMappingConfiguration(connection, username, password);
+            MappingConfiguration sqliteConfig = new MappingConfiguration()
+                .setSourceLocation(dbUrl)
+                .setOption("tableName", tableName)
+                .setOption("username", username)
+                .setOption("password", password)
+                .setOption("createTable", true);
 
-            // Override the table name
-            sqliteConfig.setOption("tableName", tableName);
+            // Add column mappings to match our transformed input columns
+            sqliteConfig.addColumnMapping(new ColumnMapping("personId", "person_id", "int")
+                        .setDefaultValue("0"))
+                    .addColumnMapping(new ColumnMapping("fullName", "full_name", "string")
+                        .setDefaultValue("Unknown"))
+                    .addColumnMapping(new ColumnMapping("emailAddress", "email_address", "string")
+                        .setDefaultValue("no-email@example.com"))
+                    .addColumnMapping(new ColumnMapping("personAge", "age", "int")
+                        .setDefaultValue("0"))
+                    .addColumnMapping(new ColumnMapping("department", "department", "string")
+                        .setDefaultValue("General"));
 
-            // Call the method in CSVToSQLiteDemo
-            CSVToSQLiteDemo.writeToSQLiteDatabase(table, sqliteConfig);
+            // Call the method in CSVToSQLiteDemo with proper dependency injection
+            CSVToSQLiteDemo.writeToSQLiteDatabase(table, connection, sqliteConfig);
             logger.debug("Successfully wrote data to SQLite database");
         } finally {
-            // Ensure connection is closed
+            // Ensure connection is closed even if an exception occurs
             if (connection != null && connection.isConnected()) {
                 connection.disconnect();
                 logger.debug("Disconnected from SQLite database");

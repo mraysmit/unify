@@ -1,8 +1,8 @@
 package dev.mars.jtable.io.files.jdbc;
 
 import dev.mars.jtable.core.table.Table;
-import dev.mars.jtable.io.files.mapping.ColumnMapping;
-import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

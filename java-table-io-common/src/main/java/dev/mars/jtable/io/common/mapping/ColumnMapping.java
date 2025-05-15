@@ -1,4 +1,4 @@
-package dev.mars.jtable.io.files.mapping;
+package dev.mars.jtable.io.common.mapping;
 
 /**
  * Mapping between a source column and a target column.
@@ -10,6 +10,13 @@ public class ColumnMapping {
     private String targetColumnName;
     private String targetColumnType;
     private String defaultValue;
+
+    /**
+     * Default constructor for Jackson deserialization.
+     */
+    public ColumnMapping() {
+        this.sourceColumnIndex = -1;
+    }
 
     /**
      * Creates a new ColumnMapping with a source column name.

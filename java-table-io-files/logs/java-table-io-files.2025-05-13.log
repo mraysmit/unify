@@ -1,0 +1,133 @@
+2025-05-13 10:08:36 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:08:36 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:08:36 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:08:36 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Mapping configuration cannot be null
+2025-05-13 10:08:36 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Either 'tableName' or 'query' must be specified in options
+2025-05-13 10:08:36 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Table cannot be null
+2025-05-13 10:09:06 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Mapping configuration cannot be null
+2025-05-13 10:09:06 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - 'tableName' must be specified in options
+2025-05-13 10:09:06 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Table cannot be null
+2025-05-13 10:09:08 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:09:08 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:09:08 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 10:09:08 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Mapping configuration cannot be null
+2025-05-13 10:09:08 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Either 'tableName' or 'query' must be specified in options
+2025-05-13 10:09:08 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Table cannot be null
+2025-05-13 12:48:44 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - CSV file does not exist: non_existent_file.csv
+2025-05-13 12:48:44 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - File not found: CSV file does not exist: non_existent_file.csv
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 12:48:44 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:55 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - CSV file does not exist: non_existent_file.csv
+2025-05-13 13:17:55 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - File not found: CSV file does not exist: non_existent_file.csv
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in headers
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 13:17:55 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 13:17:56 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - CSV file does not exist: non_existent_file.csv
+2025-05-13 13:21:19 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - File not found: CSV file does not exist: non_existent_file.csv
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 13:21:19 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - CSV file does not exist: non_existent_file.csv
+2025-05-13 19:48:51 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - File not found: CSV file does not exist: non_existent_file.csv
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 19:48:51 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 22:58:23 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 22:58:23 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Mapping configuration cannot be null
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Either 'tableName' or 'query' must be specified in options
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Table cannot be null
+2025-05-13 22:58:23 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 22:58:23 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 22:58:23 [main] WARN  d.m.j.i.files.jdbc.JDBCMappingReader - Source column 'occupation' not found in result set
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Mapping configuration cannot be null
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Either 'tableName' or 'query' must be specified in options
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingReader - Table cannot be null
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Mapping configuration cannot be null
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - 'tableName' must be specified in options
+2025-05-13 22:58:23 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Table cannot be null
+2025-05-13 22:58:23 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - CSV file does not exist: non_existent_file.csv
+2025-05-13 22:58:23 [main] ERROR d.m.j.io.files.csv.CSVMappingReader - File not found: CSV file does not exist: non_existent_file.csv
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Name' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Occupation' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Age' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in headers
+2025-05-13 22:58:23 [main] WARN  d.m.j.io.files.csv.CSVMappingReader - Column 'Department' not found in CSV file or index out of bounds. Using default value if available.
+2025-05-13 22:58:24 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Mapping configuration cannot be null
+2025-05-13 22:58:24 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - 'tableName' must be specified in options
+2025-05-13 22:58:24 [main] ERROR d.m.j.i.files.jdbc.JDBCMappingWriter - Table cannot be null

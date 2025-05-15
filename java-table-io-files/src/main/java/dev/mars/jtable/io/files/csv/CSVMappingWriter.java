@@ -1,7 +1,7 @@
 package dev.mars.jtable.io.files.csv;
 
-import dev.mars.jtable.io.files.mapping.ColumnMapping;
-import dev.mars.jtable.io.files.mapping.MappingConfiguration;
+import dev.mars.jtable.io.common.mapping.ColumnMapping;
+import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 import dev.mars.jtable.core.model.ITable;
 
 import org.slf4j.Logger;
@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
