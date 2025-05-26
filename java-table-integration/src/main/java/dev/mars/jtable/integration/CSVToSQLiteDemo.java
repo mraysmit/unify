@@ -247,7 +247,9 @@ public class CSVToSQLiteDemo {
 
                 // Print out the content of the table
                 logger.debug("Logging table data for alias demonstration");
+                logger.debug("-----------------------------------------------------------------");
                 logTableData(queryResultWithAliases);
+                logger.debug("-----------------------------------------------------------------");
                 logger.debug("Table data logging complete for alias demonstration");
 
             } finally {
@@ -528,7 +530,6 @@ public class CSVToSQLiteDemo {
     private void logTableData(ITable table) {
         logger.debug("Starting to log table data");
         logger.debug("Table structure: {} rows and {} columns", table.getRowCount(), table.getColumnCount());
-        logger.info("Table contains {} rows and {} columns", table.getRowCount(), table.getColumnCount());
 
         // Log column names
         StringBuilder header = new StringBuilder("Columns: ");
@@ -537,7 +538,6 @@ public class CSVToSQLiteDemo {
             header.append(table.getColumnName(i));
         }
         logger.debug("Column names: {}", header.toString());
-        logger.info(header.toString());
 
         // Log column types if table has data
         if (table.getRowCount() > 0) {
@@ -564,7 +564,6 @@ public class CSVToSQLiteDemo {
                 rowData.append(columnName).append("=").append(value);
             }
             logger.debug("Row data: {}", rowData.toString());
-            logger.info(rowData.toString());
         }
 
         // Indicate if there are more rows not shown
