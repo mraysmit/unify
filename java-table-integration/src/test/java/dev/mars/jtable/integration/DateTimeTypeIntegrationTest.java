@@ -1,7 +1,7 @@
 package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.core.table.TableCore;
 import dev.mars.jtable.integration.csv.CSVProcessor;
 import dev.mars.jtable.integration.db.SQLiteProcessor;
 import dev.mars.jtable.io.common.datasource.DbConnection;
@@ -54,7 +54,7 @@ public class DateTimeTypeIntegrationTest {
     @Test
     void testCSVToH2WithDateTimeTypes() throws Exception {
         // Create a table to hold the data
-        ITable table = new Table("DateTimeTypeIntegrationTest-H2Table");
+        ITable table = new TableCore("DateTimeTypeIntegrationTest-H2Table");
 
         // Create a mapping configuration for reading from CSV
         MappingConfiguration csvConfig = new MappingConfiguration()
@@ -159,7 +159,7 @@ public class DateTimeTypeIntegrationTest {
     @Test
     void testCSVToSQLiteWithDateTimeTypes() throws Exception {
         // Create a table to hold the data
-        ITable table = new Table("DateTimeTypeIntegrationTest-SQLiteTable");
+        ITable table = new TableCore("DateTimeTypeIntegrationTest-SQLiteTable");
 
         // Create a mapping configuration for reading from CSV
         MappingConfiguration csvConfig = new MappingConfiguration()

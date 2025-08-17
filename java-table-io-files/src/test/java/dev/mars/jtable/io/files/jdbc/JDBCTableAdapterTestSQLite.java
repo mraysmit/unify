@@ -1,6 +1,6 @@
 package dev.mars.jtable.io.files.jdbc;
 
-import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.core.table.TableCore;
 import dev.mars.jtable.io.common.adapter.ITableAdapter;
 import dev.mars.jtable.io.common.datasource.IJDBCDataSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,13 +19,13 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class JDBCTableAdapterTestSQLite {
 
-    private Table table;
+    private TableCore table;
     private JDBCTableAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        // Create a new Table instance for each test
-        table = new Table();
+        // Create a new TableCore instance for each test
+        table = new TableCore();
         
         // Set up columns for the table
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();

@@ -1,7 +1,7 @@
 package dev.mars.jtable.io.common.adapter;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.core.table.TableCore;
 import dev.mars.jtable.io.common.mapping.ColumnMapping;
 import dev.mars.jtable.io.common.mapping.IMappingSerializer;
 import dev.mars.jtable.io.common.mapping.MappingConfiguration;
@@ -163,7 +163,7 @@ public class MappingConfigurationDemo {
      */
     private static void useWithDataSourceTableAdapter(MappingConfiguration config) {
         // Create a new Table
-        ITable table = new Table();
+        ITable table = new TableCore();
 
         // Set up columns for the table based on the mapping configuration
         LinkedHashMap<String, String> columns = config.createColumnDefinitions();

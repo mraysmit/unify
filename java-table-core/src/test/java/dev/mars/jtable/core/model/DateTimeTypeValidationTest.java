@@ -1,6 +1,6 @@
 package dev.mars.jtable.core.model;
 
-import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.core.table.TableCore;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -21,7 +21,7 @@ public class DateTimeTypeValidationTest {
     @Test
     public void testDateTimeTypesWithSampleData() {
         // Create a table with date, time, and datetime columns
-        Table table = new Table();
+        TableCore table = new TableCore();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("EventName", "string");
         columnNames.put("EventDate", "date");

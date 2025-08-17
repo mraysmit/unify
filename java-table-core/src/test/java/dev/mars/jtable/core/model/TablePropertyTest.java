@@ -2,7 +2,7 @@ package dev.mars.jtable.core.model;
 
 
 
-import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.core.table.TableCore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.quicktheories.core.Gen;
@@ -26,11 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 public class TablePropertyTest {
 
-    private Table table;
+    private TableCore table;
 
     @BeforeEach
     void setUp() {
-        table = new Table();
+        table = new TableCore();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name", "string");
         columnNames.put("Age", "int");

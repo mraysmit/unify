@@ -1,7 +1,7 @@
 package dev.mars.jtable.core.model;
 
 
-import dev.mars.jtable.core.table.Table;
+import dev.mars.jtable.core.table.TableCore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,13 +17,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class TableTest {
 
-    private Table table;
+    private TableCore table;
     private final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
     private final PrintStream originalOut = System.out;
 
     @BeforeEach
     void setUp() {
-        table = new Table();
+        table = new TableCore();
         var columnNames = new LinkedHashMap<String, String>();
         columnNames.put("Name","string" );
         columnNames.put("Age", "int");
@@ -294,13 +294,13 @@ class TableTest {
 
     @Test
     void testSetColumnsWithNullMap() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(null));
     }
 
     @Test
     void testSetColumnsWithNullColumnName() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put(null, "string");
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(columns));
@@ -308,7 +308,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithEmptyColumnName() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("", "string");
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(columns));
@@ -316,7 +316,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithBlankColumnName() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("   ", "string");
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(columns));
@@ -324,7 +324,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithNullColumnType() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("Name", null);
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(columns));
@@ -332,7 +332,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithEmptyColumnType() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("Name", "");
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(columns));
@@ -340,7 +340,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithBlankColumnType() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("Name", "   ");
         assertThrows(IllegalArgumentException.class, () -> newTable.setColumns(columns));
@@ -348,7 +348,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithDuplicateKeys() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("Name", "string");
         columns.put("Name", "int"); // Duplicate key overwrites the previous entry
@@ -365,7 +365,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithDuplicateKeysSimulation() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
 
         // Create a map where we'll manually simulate the duplicate check
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
@@ -396,7 +396,7 @@ class TableTest {
 
     @Test
     void testSetColumnsWithValidMap() {
-        Table newTable = new Table();
+        TableCore newTable = new TableCore();
         LinkedHashMap<String, String> columns = new LinkedHashMap<>();
         columns.put("Name", "string");
         columns.put("Age", "int");

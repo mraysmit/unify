@@ -36,3 +36,36 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+# --- Project specific & additional ignores ---
+
+# JetBrains IDE (ignore entire directory; specific files are already listed above)
+.idea/
+
+# Windows OS artifacts
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Java crash logs
+hs_err_pid*
+replay_pid*
+
+# Logs directories
+logs/
+**/logs/
+
+# Local data/output files used in this repo
+/output.csv
+/persondata.csv
+/test.db
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Env files
+.env
+*.env
