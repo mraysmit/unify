@@ -1,7 +1,5 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
 
 ### IntelliJ IDEA ###
 .idea/modules.xml
@@ -55,6 +53,8 @@ replay_pid*
 # Logs directories
 logs/
 **/logs/
+# Log files
+*.log
 
 # Local data/output files used in this repo
 /output.csv
@@ -63,6 +63,8 @@ logs/
 
 # Database files
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
 
