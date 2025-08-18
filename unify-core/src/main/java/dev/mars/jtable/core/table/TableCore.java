@@ -475,6 +475,20 @@ public class TableCore implements ITable {
         return value.toString();
     }
 
+    /**
+     * Prints the table to standard output.
+     *
+     * <p>This method is designed for extension. Subclasses can override this method
+     * to customize the table printing behavior. The default implementation prints
+     * column headers followed by all rows with tab-separated values.</p>
+     *
+     * <p>When overriding this method, ensure that:</p>
+     * <ul>
+     * <li>The table structure is properly displayed</li>
+     * <li>Column headers are included if needed</li>
+     * <li>Row data is formatted consistently</li>
+     * </ul>
+     */
     @Override
     public void printTable() {
         // Print column names
@@ -496,9 +510,10 @@ public class TableCore implements ITable {
     /**
      * Sets whether to create default values for missing columns.
      *
-     * @param createDefaultValue whether to create default values for missing columns
+     * @param createDefaultValue whether to create default values for missing
+     *                          columns
      */
-    public void setCreateDefaultValue(boolean createDefaultValue) {
+    public void setCreateDefaultValue(final boolean createDefaultValue) {
         this.createDefaultValue = createDefaultValue;
     }
 
@@ -511,13 +526,29 @@ public class TableCore implements ITable {
         return createDefaultValue;
     }
 
+    /**
+     * Gets the name of this table.
+     *
+     * <p>This method is designed for extension. Subclasses can override this method
+     * to customize how the table name is retrieved or computed.</p>
+     *
+     * @return the name of this table
+     */
     @Override
     public String getName() {
         return name;
     }
 
+    /**
+     * Sets the name of this table.
+     *
+     * <p>This method is designed for extension. Subclasses can override this method
+     * to customize how the table name is set or to add validation logic.</p>
+     *
+     * @param tableName the new name for this table
+     */
     @Override
-    public void setName(String name) {
-        this.name = name;
+    public void setName(final String tableName) {
+        this.name = tableName;
     }
 }
