@@ -1,4 +1,4 @@
-# Java Table Improvement Tasks
+# Unify Improvement Tasks
 
 ## Architecture and Design
 1. [x] Refactor Table class to use generics for type-safe operations instead of string-based type checking

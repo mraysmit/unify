@@ -1,21 +1,18 @@
-#!/bin/bash
+# Unify Git Hooks Setup Script (PowerShell)
+# This script sets up recommended Git hooks for the project on Windows
 
-# Unify Git Hooks Setup Script
-# This script sets up recommended Git hooks for the project
+$ErrorActionPreference = 'Stop'
 
-set -e
+$hooksDir = Join-Path -Path (Get-Location) -ChildPath ".git/hooks"
 
-HOOKS_DIR=".git/hooks"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+Write-Host "Setting up Git hooks for Unify..."
 
-echo "Setting up Git hooks for Unify..."
+if (-not (Test-Path $hooksDir)) {
+    New-Item -ItemType Directory -Path $hooksDir | Out-Null
+}
 
-# Create hooks directory if it doesn't exist
-mkdir -p "$HOOKS_DIR"
-
-# Pre-commit hook
-cat > "$HOOKS_DIR/pre-commit" << 'EOF'
+# Content for pre-commit (bash hook content so Git can run it via Git Bash)
+$preCommit = @'
 #!/bin/bash
 
 echo "Running pre-commit checks..."
@@ -27,7 +24,7 @@ if grep -r "<<<<<<< \|======= \|>>>>>>> " --include="*.java" --include="*.xml" -
 fi
 
 # Check for TODO/FIXME comments in staged files
-staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(java|ts|tsx|js|jsx)$' || true)
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E "\.(java|ts|tsx|js|jsx)$" || true)
 if [ -n "$staged_files" ]; then
     if echo "$staged_files" | xargs grep -l "TODO\|FIXME" 2>/dev/null; then
         echo "⚠️  Warning: TODO/FIXME comments found in staged files."
@@ -90,10 +87,9 @@ if command -v mvn >/dev/null 2>&1; then
 fi
 
 echo "✅ Pre-commit checks passed!"
-EOF
+'@
 
-# Pre-push hook
-cat > "$HOOKS_DIR/pre-push" << 'EOF'
+$prePush = @'
 #!/bin/bash
 
 echo "Running pre-push checks..."
@@ -105,7 +101,7 @@ url="$2"
 # Run full test suite before pushing to main branches
 current_branch=$(git rev-parse --abbrev-ref HEAD)
 if [[ "$current_branch" == "master" || "$current_branch" == "main" || "$current_branch" == "develop" ]]; then
-    echo "Pushing to protected branch '$current_branch'. Running full test suite..."
+    echo "Pushing to protected branch \"$current_branch\". Running full test suite..."
     
     if command -v mvn >/dev/null 2>&1; then
         if ! mvn test -q; then
@@ -122,7 +118,7 @@ fi
 
 # Check that we're not pushing directly to master from a feature branch
 if [[ "$current_branch" =~ ^(feature|bugfix|hotfix)/ ]]; then
-    echo "⚠️  Pushing feature branch '$current_branch' directly."
+    echo "⚠️  Pushing feature branch \"$current_branch\" directly."
     echo "Consider creating a Pull Request instead."
     read -p "Continue anyway? (y/N): " -n 1 -r
     echo
@@ -132,10 +128,9 @@ if [[ "$current_branch" =~ ^(feature|bugfix|hotfix)/ ]]; then
 fi
 
 echo "✅ Pre-push checks passed!"
-EOF
+'@
 
-# Commit message hook
-cat > "$HOOKS_DIR/commit-msg" << 'EOF'
+$commitMsg = @'
 #!/bin/bash
 
 # Check commit message format (Conventional Commits)
@@ -161,19 +156,25 @@ if [ $(head -n1 "$1" | wc -c) -gt 72 ]; then
     echo "❌ Commit message too long (max 72 characters for first line)"
     exit 1
 fi
-EOF
+'@
 
-# Make hooks executable
-chmod +x "$HOOKS_DIR/pre-commit"
-chmod +x "$HOOKS_DIR/pre-push"
-chmod +x "$HOOKS_DIR/commit-msg"
+Set-Content -LiteralPath (Join-Path $hooksDir 'pre-commit') -Value $preCommit -NoNewline
+Set-Content -LiteralPath (Join-Path $hooksDir 'pre-push') -Value $prePush -NoNewline
+Set-Content -LiteralPath (Join-Path $hooksDir 'commit-msg') -Value $commitMsg -NoNewline
 
-echo "✅ Git hooks installed successfully!"
-echo ""
-echo "Installed hooks:"
-echo "  - pre-commit: Runs code style checks and quick tests"
-echo "  - pre-push: Runs full test suite for protected branches"
-echo "  - commit-msg: Validates commit message format"
-echo ""
-echo "To disable hooks temporarily, use: git commit --no-verify"
-echo "To remove hooks, delete files in .git/hooks/"
+# Try to set executable bit where supported (on Windows, Git honors hooks without +x if core.filemode=false)
+try {
+    & git update-index --chmod=+x .git/hooks/pre-commit | Out-Null
+    & git update-index --chmod=+x .git/hooks/pre-push | Out-Null
+    & git update-index --chmod=+x .git/hooks/commit-msg | Out-Null
+} catch {}
+
+Write-Host "✅ Git hooks installed successfully!" 
+Write-Host "" 
+Write-Host "Installed hooks:" 
+Write-Host "  - pre-commit: Runs code style checks and quick tests" 
+Write-Host "  - pre-push: Runs full test suite for protected branches" 
+Write-Host "  - commit-msg: Validates commit message format" 
+Write-Host "" 
+Write-Host "To disable hooks temporarily, use: git commit --no-verify" 
+Write-Host "To remove hooks, delete files in .git/hooks/" 

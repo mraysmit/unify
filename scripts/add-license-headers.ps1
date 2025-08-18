@@ -1,41 +1,20 @@
-#!/usr/bin/env pwsh
-
-<#
-.SYNOPSIS
-    Adds Apache License 2.0 headers to Java files in the P2P Java project.
-
-.DESCRIPTION
-    This script adds proper Apache License 2.0 headers to all Java files in the
-    P2P Java distributed system, preserving existing JavaDoc comments and author information.
-
-.PARAMETER DryRun
-    If specified, shows what changes would be made without actually modifying files.
-
-.PARAMETER Force
-    If specified, updates files even if they already have license headers.
-
-.EXAMPLE
-    .\add-license-headers.ps1 -DryRun
-    Shows what changes would be made without modifying files.
-
-.EXAMPLE
-    .\add-license-headers.ps1 -Force
-    Updates all files, even those with existing license headers.
-#>
+# Adds Apache License 2.0 headers to Java files in the Unify project (PowerShell)
+# Usage: ./add-license-headers.ps1 [-DryRun] [-Force] [-CleanHeaders]
 
 param(
     [switch]$DryRun,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$CleanHeaders
 )
 
-# Configuration
-$AUTHOR_NAME = "Mark Andrew Ray-Smith Cityline Ltd"
-$COPYRIGHT_YEAR = "2025"
+$ErrorActionPreference = 'Stop'
 
-# Apache License 2.0 header template
-$LICENSE_HEADER = @"
+$AuthorName = 'Mark Andrew Ray-Smith Cityline Ltd'
+$CopyrightYear = (Get-Date).Year
+
+$licenseHeader = @"
 /*
- * Copyright $COPYRIGHT_YEAR $AUTHOR_NAME
+ * Copyright $CopyrightYear $AuthorName
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,156 +30,115 @@ $LICENSE_HEADER = @"
  */
 "@
 
-# Function to check if file already has license header
-function Test-HasLicenseHeader {
-    param([string]$Content)
-    
-    return $Content -match "Licensed under the Apache License"
+function Has-LicenseHeader([string]$content) {
+    return $content -match 'Licensed under the Apache License'
 }
 
-# Function to process a single Java file
-function Add-LicenseHeader {
-    param(
-        [string]$FilePath,
-        [switch]$DryRun,
-        [switch]$Force
-    )
-    
-    Write-Host "Processing: $FilePath" -ForegroundColor Cyan
-    
-    try {
-        $content = Get-Content -Path $FilePath -Raw -Encoding UTF8
-        
-        # Check if file already has license header
-        if ((Test-HasLicenseHeader -Content $content) -and -not $Force) {
-            Write-Host "  Skipping - already has license header (use -Force to override)" -ForegroundColor Yellow
-            return $false
+function Has-MalformedHeader([string]$content) {
+    # Check for the problematic "class: ClassName" pattern
+    return $content -match '/\*\*\s*\*\s*class:\s*\w+' -or
+           $content -match '/\*\*\s*\*\s*(interface|enum|annotation):\s*\w+'
+}
+
+function Remove-MalformedHeaders([string]$content) {
+    # Remove malformed JavaDoc headers like "/** *class: ClassName"
+    $content = $content -replace '(?s)/\*\*\s*\*\s*(class|interface|enum|annotation):\s*\w+.*?\*/', ''
+
+    # Remove orphaned single-line comments with old file paths
+    $content = $content -replace '^\s*//\s*src/main/java/.*\.java\s*$', ''
+
+    # Remove duplicate Apache license headers (keep only the first one)
+    $licensePattern = '(?s)/\*\s*\*\s*Copyright.*?Licensed under the Apache License.*?\*/'
+    $matches = [regex]::Matches($content, $licensePattern)
+    if ($matches.Count -gt 1) {
+        # Remove all but the first license header
+        for ($i = $matches.Count - 1; $i -gt 0; $i--) {
+            $match = $matches[$i]
+            $content = $content.Remove($match.Index, $match.Length)
         }
-        
-        # Split content into lines
-        $lines = $content -split "`r?`n"
-        
-        # Find insertion point (after package declaration)
-        $insertIndex = 0
-        for ($i = 0; $i -lt $lines.Length; $i++) {
-            $line = $lines[$i].Trim()
-            if ($line -match '^package\s+') {
-                $insertIndex = $i + 1
-                break
-            }
-        }
-        
-        # Build new content
-        $newLines = @()
-        
-        # Add lines up to insertion point
-        if ($insertIndex -gt 0) {
-            $newLines += $lines[0..($insertIndex-1)]
-        }
-        
-        # Add empty line after package if needed
-        if ($insertIndex -gt 0 -and $lines[$insertIndex-1].Trim() -ne "") {
-            $newLines += ""
-        }
-        
-        # Add license header
-        $newLines += $LICENSE_HEADER -split "`r?`n"
-        $newLines += ""
-        
-        # Add remaining lines (skip existing license header if present)
-        $skipLicense = $false
-        $licenseEndFound = $false
-        
-        for ($i = $insertIndex; $i -lt $lines.Length; $i++) {
-            $line = $lines[$i]
-            
-            # Skip existing license header
-            if ($line.Trim() -eq "/*" -and $lines[$i+1] -match "Copyright.*$AUTHOR_NAME") {
-                $skipLicense = $true
-                continue
-            }
-            
-            if ($skipLicense) {
-                if ($line.Trim() -eq "*/") {
-                    $skipLicense = $false
-                    $licenseEndFound = $true
-                }
-                continue
-            }
-            
-            # Skip empty lines immediately after removed license
-            if ($licenseEndFound -and $line.Trim() -eq "") {
-                $licenseEndFound = $false
-                continue
-            }
-            
-            $newLines += $line
-        }
-        
-        # Write the updated content
-        if ($DryRun) {
-            Write-Host "  Would add license header to: $FilePath" -ForegroundColor Green
+    }
+
+    # Clean up excessive whitespace
+    $content = $content -replace '\n\s*\n\s*\n', "`n`n"
+    $content = $content.TrimStart()
+
+    return $content
+}
+
+function Process-File([string]$filePath) {
+    Write-Host "Processing: $filePath" -ForegroundColor Cyan
+    if (-not (Test-Path $filePath)) {
+        Write-Warning "File not found: $filePath"
+        return
+    }
+
+    $content = Get-Content -LiteralPath $filePath -Raw
+    if ($null -eq $content) { $content = "" }
+
+    $needsCleaning = Has-MalformedHeader $content
+    $hasLicense = Has-LicenseHeader $content
+
+    if ($CleanHeaders -and $needsCleaning) {
+        Write-Host "  Cleaning malformed headers..." -ForegroundColor Yellow
+        $content = Remove-MalformedHeaders $content
+        $hasLicense = Has-LicenseHeader $content  # Re-check after cleaning
+    }
+
+    if ($hasLicense -and -not $Force) {
+        if ($needsCleaning -and -not $CleanHeaders) {
+            Write-Host "  Has license but needs cleaning - use -CleanHeaders" -ForegroundColor Yellow
         } else {
-            $newContent = $newLines -join "`n"
-            Set-Content -Path $FilePath -Value $newContent -Encoding UTF8 -NoNewline
-            Write-Host "  Added license header to: $FilePath" -ForegroundColor Green
+            Write-Host "  Skipping - already has license header (use -Force to override)" -ForegroundColor Green
         }
-        
-        return $true
-        
-    } catch {
-        Write-Error "Error processing $FilePath`: $_"
-        return $false
+        return
     }
-}
 
-# Main execution
-Write-Host "License Header Addition Script" -ForegroundColor Magenta
-Write-Host "Apache License 2.0" -ForegroundColor Magenta
-Write-Host "=============================" -ForegroundColor Magenta
-Write-Host ""
+    # Find the insertion point (before package declaration)
+    $packageIdx = $content.IndexOf('package ')
+    if ($packageIdx -ge 0) {
+        $pre = $content.Substring(0, $packageIdx).TrimEnd()
+        $post = $content.Substring($packageIdx)
 
-if ($DryRun) {
-    Write-Host "DRY RUN MODE - No files will be modified" -ForegroundColor Yellow
-    Write-Host ""
-}
-
-if ($Force) {
-    Write-Host "FORCE MODE - Will update files with existing license headers" -ForegroundColor Yellow
-    Write-Host ""
-}
-
-# Find all Java files in P2P modules
-Write-Host "Scanning for Java files in P2P modules..." -ForegroundColor Blue
-$javaFiles = Get-ChildItem -Recurse -Filter "*.java" | Where-Object {
-    $_.FullName -notmatch "\\target\\" -and
-    $_.FullName -match "\\p2p-"
-}
-
-Write-Host "Found $($javaFiles.Count) Java files" -ForegroundColor Blue
-Write-Host ""
-
-# Process each file
-$updatedCount = 0
-$skippedCount = 0
-
-foreach ($file in $javaFiles) {
-    $result = Add-LicenseHeader -FilePath $file.FullName -DryRun:$DryRun -Force:$Force
-    if ($result) {
-        $updatedCount++
+        if (-not [string]::IsNullOrWhiteSpace($pre)) {
+            $newContent = $pre + "`n`n" + $licenseHeader + "`n" + $post
+        } else {
+            $newContent = $licenseHeader + "`n" + $post
+        }
     } else {
-        $skippedCount++
+        $newContent = $licenseHeader + "`n" + $content
+    }
+
+    if ($DryRun) {
+        Write-Host "  [DryRun] Would update header" -ForegroundColor DarkYellow
+        if ($needsCleaning) {
+            Write-Host "    - Would clean malformed headers" -ForegroundColor DarkYellow
+        }
+    } else {
+        # Ensure Windows line endings (CRLF) and write without BOM
+        $newContent = $newContent -replace "`r`n", "`n" -replace "`n", "`r`n"
+        [System.IO.File]::WriteAllText($filePath, $newContent, [System.Text.UTF8Encoding]::new($false))
+        Write-Host "  Updated" -ForegroundColor Green
+        if ($needsCleaning) {
+            Write-Host "    - Cleaned malformed headers" -ForegroundColor Green
+        }
     }
 }
 
-# Summary
-Write-Host ""
-Write-Host "Summary:" -ForegroundColor Magenta
-Write-Host "  Files processed: $($javaFiles.Count)" -ForegroundColor White
-Write-Host "  Files updated: $updatedCount" -ForegroundColor Green
-Write-Host "  Files skipped: $skippedCount" -ForegroundColor Yellow
+# Find all Java files in repo modules
+$javaFiles = Get-ChildItem -Recurse -Include *.java -File | Where-Object { $_.FullName -notmatch "\\target\\" }
 
-if ($DryRun) {
-    Write-Host ""
-    Write-Host "Run without -DryRun to apply changes" -ForegroundColor Cyan
+Write-Host "Found $($javaFiles.Count) Java files to process" -ForegroundColor Cyan
+if ($CleanHeaders) {
+    Write-Host "Clean headers mode enabled - will remove malformed headers" -ForegroundColor Yellow
 }
+if ($DryRun) {
+    Write-Host "Dry run mode - no files will be modified" -ForegroundColor Yellow
+}
+Write-Host ""
+
+foreach ($f in $javaFiles) {
+    Process-File -filePath $f.FullName
+}
+
+Write-Host ""
+Write-Host "Done." -ForegroundColor Green

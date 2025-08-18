@@ -1,3 +1,50 @@
+/*
+ * Copyright 2025 Mark Andrew Ray-Smith Cityline Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mark Andrew Ray-Smith Cityline Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+ * Copyright 2025 Mark Andrew Ray-Smith Cityline Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dev.mars.jtable.integration;
 
 import dev.mars.jtable.core.model.ITable;
@@ -268,7 +315,6 @@ public class CSVToSQLiteDemo {
         }
     }
 
-
     public static Map<String, Object> getDemoSQLiteOptions() {
         logger.debug("Creating demo SQLite options");
         Map<String, Object> options = new HashMap<>();
@@ -279,7 +325,6 @@ public class CSVToSQLiteDemo {
         logger.debug("Created SQLite options with {} settings", options.size());
         return options;
     }
-
 
     /**
      * Creates a demo CSV file if it doesn't exist.
@@ -311,7 +356,6 @@ public class CSVToSQLiteDemo {
         }
     }
 
-
     public static String getDemoCSVFilePath() {
         logger.debug("Generating demo CSV content");
         StringBuilder csvContent = new StringBuilder();
@@ -322,7 +366,6 @@ public class CSVToSQLiteDemo {
         logger.debug("Generated CSV content with header and {} data rows", 3);
         return csvContent.toString();
     }
-
 
     public static List<ColumnMapping> getDemoCSVColumnMappings() {
         logger.debug("Creating demo CSV column mappings");
@@ -383,7 +426,6 @@ public class CSVToSQLiteDemo {
         logger.debug("Created {} SQLite column mappings", columnMappings.size());
         return columnMappings;
     }
-
 
     public static List<ColumnMapping> getDemoSQLiteDateTimeColumnMappings() {
         logger.debug("Creating demo SQLite datetime column mappings");
