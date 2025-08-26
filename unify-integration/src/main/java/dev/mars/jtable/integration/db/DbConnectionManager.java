@@ -45,6 +45,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/*
+ * Copyright 2025 Mark Andrew Ray-Smith Cityline Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package dev.mars.jtable.integration.db;
 
 import dev.mars.jtable.integration.utils.DatabaseProperties;
@@ -114,6 +130,38 @@ public class DbConnectionManager {
         String username = dbProperties.getH2Username();
         String password = dbProperties.getH2Password();
         logger.info("Creating H2 connection: {}", connectionString);
+
+        return createConnection(connectionString, username, password);
+    }
+
+    /**
+     * Creates a PostgreSQL database connection using the provided database properties.
+     *
+     * @param dbProperties the database properties to use
+     * @return a new DbConnection configured for PostgreSQL
+     * @throws SQLException if there is an error connecting to the database
+     */
+    public DbConnection createPostgreSQLConnection(DatabaseProperties dbProperties) throws SQLException {
+        String connectionString = dbProperties.getPostgreSQLConnectionString();
+        String username = dbProperties.getPostgreSQLUsername();
+        String password = dbProperties.getPostgreSQLPassword();
+        logger.info("Creating PostgreSQL connection: {}", connectionString);
+
+        return createConnection(connectionString, username, password);
+    }
+
+    /**
+     * Creates a MySQL database connection using the provided database properties.
+     *
+     * @param dbProperties the database properties to use
+     * @return a new DbConnection configured for MySQL
+     * @throws SQLException if there is an error connecting to the database
+     */
+    public DbConnection createMySQLConnection(DatabaseProperties dbProperties) throws SQLException {
+        String connectionString = dbProperties.getMySQLConnectionString();
+        String username = dbProperties.getMySQLUsername();
+        String password = dbProperties.getMySQLPassword();
+        logger.info("Creating MySQL connection: {}", connectionString);
 
         return createConnection(connectionString, username, password);
     }

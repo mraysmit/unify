@@ -13,38 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-/*
- * Copyright 2025 Mark Andrew Ray-Smith Cityline Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-/*
- * Copyright 2025 Mark Andrew Ray-Smith Cityline Ltd
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package dev.mars.jtable.integration.utils;
 
 import org.slf4j.Logger;
@@ -236,5 +204,141 @@ public class DatabaseProperties {
     public static String getH2Password(String propertiesFile) throws IOException {
         loadPropertiesFromFile(propertiesFile);
         return properties.getProperty("h2.password");
+    }
+
+    // PostgreSQL properties methods
+
+    /**
+     * Gets the PostgreSQL connection string from the default properties file.
+     *
+     * @return the PostgreSQL connection string
+     */
+    public String getPostgreSQLConnectionString() {
+        loadProperties();
+        return properties.getProperty("postgresql.connectionString");
+    }
+
+    /**
+     * Gets the PostgreSQL connection string from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the PostgreSQL connection string
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getPostgreSQLConnectionString(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("postgresql.connectionString");
+    }
+
+    /**
+     * Gets the PostgreSQL username from the default properties file.
+     *
+     * @return the PostgreSQL username
+     */
+    public String getPostgreSQLUsername() {
+        loadProperties();
+        return properties.getProperty("postgresql.username");
+    }
+
+    /**
+     * Gets the PostgreSQL username from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the PostgreSQL username
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getPostgreSQLUsername(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("postgresql.username");
+    }
+
+    /**
+     * Gets the PostgreSQL password from the default properties file.
+     *
+     * @return the PostgreSQL password
+     */
+    public String getPostgreSQLPassword() {
+        loadProperties();
+        return properties.getProperty("postgresql.password");
+    }
+
+    /**
+     * Gets the PostgreSQL password from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the PostgreSQL password
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getPostgreSQLPassword(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("postgresql.password");
+    }
+
+    // MySQL properties methods
+
+    /**
+     * Gets the MySQL connection string from the default properties file.
+     *
+     * @return the MySQL connection string
+     */
+    public String getMySQLConnectionString() {
+        loadProperties();
+        return properties.getProperty("mysql.connectionString");
+    }
+
+    /**
+     * Gets the MySQL connection string from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the MySQL connection string
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getMySQLConnectionString(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("mysql.connectionString");
+    }
+
+    /**
+     * Gets the MySQL username from the default properties file.
+     *
+     * @return the MySQL username
+     */
+    public String getMySQLUsername() {
+        loadProperties();
+        return properties.getProperty("mysql.username");
+    }
+
+    /**
+     * Gets the MySQL username from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the MySQL username
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getMySQLUsername(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("mysql.username");
+    }
+
+    /**
+     * Gets the MySQL password from the default properties file.
+     *
+     * @return the MySQL password
+     */
+    public String getMySQLPassword() {
+        loadProperties();
+        return properties.getProperty("mysql.password");
+    }
+
+    /**
+     * Gets the MySQL password from the specified properties file.
+     *
+     * @param propertiesFile the name of the properties file to load
+     * @return the MySQL password
+     * @throws IOException if the properties file cannot be loaded
+     */
+    public static String getMySQLPassword(String propertiesFile) throws IOException {
+        loadPropertiesFromFile(propertiesFile);
+        return properties.getProperty("mysql.password");
     }
 }
