@@ -1,4 +1,9 @@
-# Table Adapter Pattern
+# Unify
+
+
+[![Java](https://img.shields.io/badge/Java-23-orange.svg)](https://openjdk.java.net/projects/jdk/23/)
+[![Maven](https://img.shields.io/badge/Maven-3.8+-blue.svg)](https://maven.apache.org/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 This package contains adapter classes that connect data sources to Table instances. The adapter pattern is used to decouple the Table class from the data source interfaces, allowing the Table class to focus on its core functionality without being concerned with how data is read from or written to various data sources.
 
