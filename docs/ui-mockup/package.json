@@ -1,0 +1,15 @@
+{
+  "name": "unify-ui-mockup",
+  "private": true,
+  "description": "Local HTML/JavaScript UX prototype; no runtime packages required",
+  "scripts": {
+    "start": "node serve.mjs",
+    "test": "node --test prototype.test.cjs interface.test.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "jsdom": "26.1.0"
+  }
+}
