@@ -1,3 +1,6 @@
+© Mark Andrew Ray-Smith Cityline Ltd 2025\
+Version 1.1.0
+
 # Unify Framework Design Considerations 
 
 
