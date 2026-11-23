@@ -206,7 +206,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## 🔗 Related Documentation
 
 - [Functional Design](docs/FUNCTIONAL_DESIGN.md) — draft product scope, workflows, requirements, and acceptance scenarios
-- [UI/UX Mockup](docs/ui-mockup/README.md) — local interactive HTML/JavaScript design for the main workflows
+- [UI/UX Mockup](docs/UI_MOCKUP.md) — local interactive HTML/JavaScript design for the main workflows
 - [Technical Design](docs/TECHNICAL_DESIGN.md) — draft implementation design derived from the functional requirements
 - [Unify Concepts Guide](docs/UNIFY_CONCEPTS_README.md)
 - [Performance Considerations](docs/Are_there_any_performance_considerations.md)

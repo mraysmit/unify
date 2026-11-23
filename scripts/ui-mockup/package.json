@@ -1,10 +1,10 @@
 {
   "name": "unify-ui-mockup",
   "private": true,
-  "description": "Local HTML/JavaScript UX prototype; no runtime packages required",
+  "description": "Development tooling for the standalone Unify mockup and its single test companion",
   "scripts": {
     "start": "node serve.mjs",
-    "test": "node --test prototype.test.cjs interface.test.cjs"
+    "test": "node --test ../../docs/ui-mockup/mockup.test.cjs"
   },
   "engines": {
     "node": ">=20"

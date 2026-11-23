@@ -3,15 +3,15 @@ import { readFile, realpath } from "node:fs/promises";
 import { dirname, extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = await realpath(dirname(fileURLToPath(import.meta.url)));
+const root = await realpath(
+  resolve(dirname(fileURLToPath(import.meta.url)), "../../docs/ui-mockup"),
+);
 const port = Number(process.env.UNIFY_PREVIEW_PORT || 4321);
 const types = {
   ".html": "text/html; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
-  ".md": "text/plain; charset=utf-8",
 };
-const publicFiles = new Set(["index.html", "data.js", "README.md"]);
+const publicFiles = new Set(["index.html", "data.js"]);
 
 export function createPreviewServer() {
   return http.createServer(async (request, response) => {

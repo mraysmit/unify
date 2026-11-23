@@ -1,8 +1,12 @@
+/*
+© Mark Andrew Ray-Smith Cityline Ltd 2025
+Version 1.4.0
+*/
 (function (root) {
   "use strict";
   const sql = `SELECT h.portfolio, h.isin, i.name AS instrument,
-       i.assetClass, h.currency, h.units,
-       h.units * h.price * fx.rate AS marketValue
+ i.assetClass, h.currency, h.units,
+ h.units * h.price * fx.rate AS marketValue
 FROM NormalizedHoldings AS h
 LEFT JOIN Instruments AS i ON h.isin = i.isin
 LEFT JOIN FxRates AS fx ON h.currency = fx.currency
@@ -53,7 +57,11 @@ ORDER BY h.portfolio, h.isin;`;
     ["CHF", 1.12],
     ["JPY", 0.0067],
     ["SEK", 0.094],
-  ].map(([currency, rate], index) => ({ currency, rate, _ordinal: index + 1 }));
+  ].map(([currency, rate], index) => ({
+    currency,
+    rate,
+    _ordinal: index + 1,
+  }));
   const field = (name, type, nullable, description) => ({
     name,
     type,
@@ -567,6 +575,45 @@ ORDER BY h.portfolio, h.isin;`;
   providers.find((p) => p.id === "exposure-view").preparationStages =
     JSON.parse(JSON.stringify(stages.slice(0, 3)));
   const data = {
+    structureDefaults: {
+      organisations: [{id:'organisation-default',name:'Default organisation',description:'Initial organisation for the local mockup.'}],
+      namespaces: [{id:'namespace-default',organisationId:'organisation-default',name:'default',description:'Initial resource namespace.',isDefault:true}],
+      workspaces: [{id:'workspace-default',organisationId:'organisation-default',name:'Demo workspace',description:'Configuration editing session.'}],
+    },
+    configurationSamples: {
+      JSON: {
+        fileName: "instruments.json",
+        text: JSON.stringify(
+          instruments.map(({ _ordinal, ...row }) => row),
+          null,
+          2,
+        ),
+      },
+      XML: {
+        fileName: "positions.xml",
+        text: "<records><record><portfolio>Growth Fund</portfolio><isin>US0001000001</isin><units>12</units><price>18.75</price></record><record><portfolio>Income Fund</portfolio><isin>GB0001000002</isin><units>8</units><price>42.50</price></record></records>",
+      },
+      JDBC: {
+        fileName: "positions-result.json",
+        text: JSON.stringify(
+          holdings.map(({ _ordinal, ...row }) => row),
+          null,
+          2,
+        ),
+      },
+      "HTTP JSON": {
+        fileName: "response.json",
+        text: JSON.stringify(
+          { data: rates.map(({ _ordinal, ...row }) => row) },
+          null,
+          2,
+        ),
+      },
+    },
+    csvExample: {
+      fileName: "holdings.csv",
+      text: 'Account,ISIN,Quantity,Price,Currency,Comment\n" Growth Fund ",US0001000001,1250,187.42,USD,"Keep the comma, here"\nIncome Fund,GB0001000002,840,42.75,GBP,Second record\nBalanced Fund,DE0001000003,360,128.60,EUR,Third record\n',
+    },
     sql,
     sources,
     holdings,
