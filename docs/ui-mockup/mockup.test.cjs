@@ -1,6 +1,6 @@
 /*
 © Mark Andrew Ray-Smith Cityline Ltd 2025
-Version 1.3.3
+Version 1.4.0
 
 Single automated-test companion. From the repository root:
   npm --prefix scripts/ui-mockup ci --ignore-scripts
@@ -3114,6 +3114,8 @@ const testToolingRequire = createRequire(
     assert.match(ui.get("#result-content").textContent, /unitTextSTRING/);
     savePipeline(ui);
     const reload = workspace(t, ui.stored());
+    assert.match(reload.get("#result-content").textContent, /unitTextSTRING/);
+    reload.click('[data-action="result-tab"][data-tab="results"]');
     assert.equal(reload.rows(), 12);
     reload.click('[data-action="result-tab"][data-tab="schema"]');
     assert.match(reload.get("#result-content").textContent, /unitTextSTRING/);
@@ -3303,287 +3305,689 @@ const testToolingRequire = createRequire(
       current,
     );
   });
-  function structure(ui) { return ui.saved().structure; }
-  function manage(ui, kind) { ui.click('[data-action="manage-structure"][data-kind="'+kind+'"]'); }
+  function structure(ui) {
+    return ui.saved().structure;
+  }
+  function manage(ui, kind) {
+    if (!ui.d.querySelector(".management-nav"))
+      ui.click('[data-action="manage-structure"][data-kind="organisations"]');
+    ui.click('[data-action="manage-structure"][data-kind="' + kind + '"]');
+  }
   function addStructure(ui, kind, name, namespaceId) {
-    manage(ui,kind);
-    ui.click('[data-action="structure-new"][data-kind="'+kind+'"]');
-    ui.field('#structure-name',name,'input');
-    ui.field('#structure-description','Configuration for '+name,'input');
-    if(namespaceId)ui.field('#structure-namespace',namespaceId);
+    manage(ui, kind);
+    ui.click('[data-action="structure-new"][data-kind="' + kind + '"]');
+    ui.field("#structure-name", name, "input");
+    ui.field("#structure-description", "Configuration for " + name, "input");
+    if (namespaceId) ui.field("#structure-namespace", namespaceId);
     ui.click('[data-action="structure-save"]');
-    assert.equal(ui.d.querySelector('.config-error'),null);
-    return structure(ui)[kind].find(item=>item.name===name);
+    assert.equal(ui.d.querySelector(".config-error"), null);
+    return structure(ui)[kind].find((item) => item.name === name);
   }
-  function chooseNamespace(ui, namespaceId) { ui.field('#scope-namespace',namespaceId); }
-  function chooseWorkspace(ui, workspaceId) { ui.field('#scope-workspace',workspaceId); }
-  function openStructure(ui,kind,id) { manage(ui,kind);ui.click('[data-action="structure-open"][data-kind="'+kind+'"][data-id="'+id+'"]'); }
-  function removeStructure(ui,kind,id) {
-    manage(ui,kind);ui.click('[data-action="structure-delete"][data-kind="'+kind+'"][data-id="'+id+'"]');
+  function chooseNamespace(ui, namespaceId) {
+    ui.field("#scope-namespace", namespaceId);
+  }
+  function chooseWorkspace(ui, workspaceId) {
+    ui.field("#scope-workspace", workspaceId);
+  }
+  function openStructure(ui, kind, id) {
+    manage(ui, kind);
+    ui.click(
+      '[data-action="structure-open"][data-kind="' +
+        kind +
+        '"][data-id="' +
+        id +
+        '"]',
+    );
+  }
+  function removeStructure(ui, kind, id) {
+    manage(ui, kind);
+    ui.click(
+      '[data-action="structure-delete"][data-kind="' +
+        kind +
+        '"][data-id="' +
+        id +
+        '"]',
+    );
     ui.click('[data-action="structure-confirm-delete"]');
-    assert.equal(ui.d.querySelector('.config-error'),null);
+    assert.equal(ui.d.querySelector(".config-error"), null);
   }
 
-  test('legacy configuration migrates to organisation and default namespace without losing saved resources',t=>{
-    const legacy={name:'Existing pipeline',version:7,pipelineId:'existing-pipeline',sql:D.sql,stages:D.stages,bindings:D.initialBindings,providers:D.providers,connections:D.connections};
-    const ui=workspace(t,JSON.stringify(legacy)),model=structure(ui);
-    assert.equal(model.formatVersion,2);
-    assert.equal(model.organisations.length,1);
-    assert.equal(model.namespaces[0].name,'default');
-    assert.equal(model.namespaces[0].organisationId,model.organisations[0].id);
-    assert.equal(Object.hasOwn(model.namespaces[0],'workspaceId'),false);
-    assert.equal(model.workspaces[0].organisationId,model.organisations[0].id);
-    assert.equal(model.namespaceData[model.activeNamespaceId].providers.length,D.providers.length);
-    assert.equal(ui.saved().name,legacy.name);
-    assert.equal(ui.saved().version,7);
-    assert.equal(ui.saved().namespaceId,model.activeNamespaceId);
-    const reload=workspace(t,ui.stored());
-    assert.equal(structure(reload).activeWorkspaceId,model.activeWorkspaceId);
-    assert.equal(reload.saved().pipelineId,'existing-pipeline');
+  test("legacy configuration migrates to organisation and default namespace without losing saved resources", (t) => {
+    const legacy = {
+      name: "Existing pipeline",
+      version: 7,
+      pipelineId: "existing-pipeline",
+      sql: D.sql,
+      stages: D.stages,
+      bindings: D.initialBindings,
+      providers: D.providers,
+      connections: D.connections,
+    };
+    const ui = workspace(t, JSON.stringify(legacy)),
+      model = structure(ui);
+    assert.equal(model.formatVersion, 2);
+    assert.equal(model.organisations.length, 1);
+    assert.equal(model.namespaces[0].name, "default");
+    assert.equal(model.namespaces[0].organisationId, model.organisations[0].id);
+    assert.equal(Object.hasOwn(model.namespaces[0], "workspaceId"), false);
+    assert.equal(model.workspaces[0].organisationId, model.organisations[0].id);
+    assert.equal(
+      model.namespaceData[model.activeNamespaceId].providers.length,
+      D.providers.length,
+    );
+    assert.equal(ui.saved().name, legacy.name);
+    assert.equal(ui.saved().version, 7);
+    assert.equal(ui.saved().namespaceId, model.activeNamespaceId);
+    const reload = workspace(t, ui.stored());
+    assert.equal(structure(reload).activeWorkspaceId, model.activeWorkspaceId);
+    assert.equal(reload.saved().pipelineId, "existing-pipeline");
   });
 
-  test('organisation and namespace management creates empty resources, validates names, and protects default',t=>{
-    const ui=workspace(t),org=addStructure(ui,'organisations','Research organisation');
-    ui.field('#scope-organisation',org.id);
-    const model=structure(ui),ns=model.namespaces.find(item=>item.organisationId===org.id);
-    assert.equal(ns.name,'default');
-    assert.deepEqual(Object.values(model.namespaceData[ns.id]).filter(Array.isArray).map(items=>items.length),[0,0,0,0,0,0]);
+  test("organisation and namespace management creates empty resources, validates names, and protects default", (t) => {
+    const ui = workspace(t),
+      org = addStructure(ui, "organisations", "Research organisation");
+    ui.field("#scope-organisation", org.id);
+    const model = structure(ui),
+      ns = model.namespaces.find((item) => item.organisationId === org.id);
+    assert.equal(ns.name, "default");
+    assert.deepEqual(
+      Object.values(model.namespaceData[ns.id])
+        .filter(Array.isArray)
+        .map((items) => items.length),
+      [0, 0, 0, 0, 0, 0],
+    );
     ui.click('[data-action="navigate"][data-view="workspace"]');
-    assert.match(ui.get('h1').textContent,/Design workspace/);
-    assert.match(ui.get('.scope-empty').textContent,/Start configuring/);
-    const research=addStructure(ui,'namespaces','Research');
-    chooseNamespace(ui,research.id);
-    assert.equal(structure(ui).activeNamespaceId,research.id);
-    manage(ui,'namespaces');
+    assert.match(ui.get("h1").textContent, /Design workspace/);
+    assert.match(ui.get(".scope-empty").textContent, /Start configuring/);
+    const research = addStructure(ui, "namespaces", "Research");
+    chooseNamespace(ui, research.id);
+    assert.equal(structure(ui).activeNamespaceId, research.id);
+    manage(ui, "namespaces");
     ui.click('[data-action="structure-new"][data-kind="namespaces"]');
-    ui.field('#structure-name','research','input');
+    ui.field("#structure-name", "research", "input");
     ui.click('[data-action="structure-save"]');
-    assert.match(ui.get('.config-error').textContent,/already used/);
-    assert.equal(ui.get('#structure-name').value,'research');
-    ui.field('#structure-name','x'.repeat(101),'input');
+    assert.match(ui.get(".config-error").textContent, /already used/);
+    assert.equal(ui.get("#structure-name").value, "research");
+    ui.field("#structure-name", "x".repeat(101), "input");
     ui.click('[data-action="structure-save"]');
-    assert.match(ui.get('.config-error').textContent,/1–100/);
+    assert.match(ui.get(".config-error").textContent, /1–100/);
     ui.click('[data-action="structure-cancel"]');
-    ui.click('[data-action="structure-edit"][data-id="'+research.id+'"]');
-    ui.field('#structure-name','Analytics','input');ui.click('[data-action="structure-save"]');
-    assert.equal(structure(ui).namespaces.find(item=>item.id===research.id).name,'Analytics');
-    assert.equal(ui.get('[data-action="structure-delete"][data-id="'+ns.id+'"]').disabled,true);
-    ui.click('[data-action="structure-edit"][data-id="'+ns.id+'"]');
-    assert.equal(ui.get('#structure-name').readOnly,true);
+    ui.click('[data-action="structure-edit"][data-id="' + research.id + '"]');
+    ui.field("#structure-name", "Analytics", "input");
+    ui.click('[data-action="structure-save"]');
+    assert.equal(
+      structure(ui).namespaces.find((item) => item.id === research.id).name,
+      "Analytics",
+    );
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + ns.id + '"]')
+        .disabled,
+      true,
+    );
+    ui.click('[data-action="structure-edit"][data-id="' + ns.id + '"]');
+    assert.equal(ui.get("#structure-name").readOnly, true);
   });
 
-  test('namespace selection scopes catalogue, connections, definitions, runs, and runtime settings',t=>{
-    const ui=workspace(t),original=structure(ui).activeNamespaceId,ns=addStructure(ui,'namespaces','Empty');
-    chooseNamespace(ui,ns.id);
-    for(const view of ['providers','sources','catalog','pipelines','runs']){
-      ui.click('[data-action="navigate"][data-view="'+view+'"]');
-      assert.doesNotMatch(ui.get('#app').textContent,/Files\.Holdings|Daily holdings enrichment|Reference files/);
+  test("namespace selection scopes catalogue, connections, definitions, runs, and runtime settings", (t) => {
+    const ui = workspace(t),
+      original = structure(ui).activeNamespaceId,
+      ns = addStructure(ui, "namespaces", "Empty");
+    chooseNamespace(ui, ns.id);
+    for (const view of [
+      "providers",
+      "sources",
+      "catalog",
+      "pipelines",
+      "runs",
+    ]) {
+      ui.click('[data-action="navigate"][data-view="' + view + '"]');
+      assert.doesNotMatch(
+        ui.get("#app").textContent,
+        /Files\.Holdings|Daily holdings enrichment|Reference files/,
+      );
     }
-    newReader(ui,'JDBC','Readers.Prices');
+    newReader(ui, "JDBC", "Readers.Prices");
     createJdbcConnection(ui);
-    ui.click('[data-action="config-example"]');ui.click('[data-action="config-analyze"]');
-    ui.click('[data-action="config-save"]');
-    let resources=structure(ui).namespaceData[ns.id];
-    assert.equal(resources.providers.length,1);assert.equal(resources.connections.length,1);
-    assert.equal(resources.providers[0].name,'Readers.Prices');
-    chooseNamespace(ui,original);
-    assert.equal(structure(ui).namespaceData[original].providers.some(item=>item.name==='Readers.Prices'),false);
-    newReader(ui,'JDBC','Readers.Prices');createJdbcConnection(ui);
-    ui.click('[data-action="config-example"]');ui.click('[data-action="config-analyze"]');ui.click('[data-action="config-save"]');
-    assert.equal(ui.d.querySelector('.config-error'),null);
-    chooseNamespace(ui,ns.id);
-    const reload=workspace(t,ui.stored());
-    assert.equal(structure(reload).activeNamespaceId,ns.id);
-    assert.equal(reload.saved().providers.length,1);
-    assert.equal(reload.saved().connections[0].name,'Local JDBC');
-    assert.equal(reload.saved().definitions.length,0);assert.equal(reload.saved().runs.length,0);
-  });
-
-  test('design workspaces share namespace resources and retain separate pipeline drafts across switching and reload',t=>{
-    const ui=workspace(t),model=structure(ui),first=model.activeWorkspaceId,ns=model.activeNamespaceId;
-    const second=addStructure(ui,'workspaces','Second editing session',ns);
-    openStructure(ui,'workspaces',first);
-    const query='SELECT isin FROM EnrichedHoldings LIMIT 2';
-    ui.field('#sql-editor',query,'input');
-    chooseWorkspace(ui,second.id);
-    assert.notEqual(ui.get('#sql-editor').value,query);
-    assert.equal(ui.saved().providers.length,D.providers.length);
-    ui.field('#sql-editor','SELECT isin FROM EnrichedHoldings LIMIT 3','input');
-    chooseWorkspace(ui,first);
-    assert.equal(ui.get('#sql-editor').value,query);
-    const reload=workspace(t,ui.stored());
-    assert.equal(reload.get('#sql-editor').value,query);
-    assert.equal(structure(reload).sessions[first].contexts[ns].dirty,true);
-    assert.notEqual(reload.saved().sql,query,'Draft recovery must not publish the pipeline');
-    assert.equal(Object.keys(structure(ui).namespaceData).length,1);
-    assert.equal(Object.hasOwn(second,'namespaces'),false);
-  });
-
-  test('pending full-page reader configuration resumes per design workspace, without persisting business records',t=>{
-    const ui=workspace(t),first=structure(ui).activeWorkspaceId,ns=structure(ui).activeNamespaceId;
-    const second=addStructure(ui,'workspaces','Other editor',ns);
-    newReader(ui,'JSON','Readers.CustomerDraft');
-    ui.field('[data-config-field="raw"]','[{"customer":"private-record-713"}]','input');
+    ui.click('[data-action="config-example"]');
     ui.click('[data-action="config-analyze"]');
-    chooseWorkspace(ui,second.id);
-    assert.equal(ui.d.querySelector('#provider-name'),null);
-    chooseWorkspace(ui,first);
-    assert.equal(ui.get('#provider-name').value,'Readers.CustomerDraft');
-    assert.equal(ui.get('[data-config-field="raw"]').value,'[{"customer":"private-record-713"}]');
-    assert.equal(ui.stored().includes('private-record-713'),false);
-    const reload=workspace(t,ui.stored());
-    assert.equal(reload.get('#provider-name').value,'Readers.CustomerDraft');
-    assert.equal(reload.get('[data-config-field="raw"]').value,'');
-    assert.match(reload.get('#app').textContent,/Reload the sample/);
-    assert.equal(reload.saved().providers.some(item=>item.name==='Readers.CustomerDraft'),false);
+    ui.click('[data-action="config-save"]');
+    let resources = structure(ui).namespaceData[ns.id];
+    assert.equal(resources.providers.length, 1);
+    assert.equal(resources.connections.length, 1);
+    assert.equal(resources.providers[0].name, "Readers.Prices");
+    chooseNamespace(ui, original);
+    assert.equal(
+      structure(ui).namespaceData[original].providers.some(
+        (item) => item.name === "Readers.Prices",
+      ),
+      false,
+    );
+    newReader(ui, "JDBC", "Readers.Prices");
+    createJdbcConnection(ui);
+    ui.click('[data-action="config-example"]');
+    ui.click('[data-action="config-analyze"]');
+    ui.click('[data-action="config-save"]');
+    assert.equal(ui.d.querySelector(".config-error"), null);
+    chooseNamespace(ui, ns.id);
+    const reload = workspace(t, ui.stored());
+    assert.equal(structure(reload).activeNamespaceId, ns.id);
+    assert.equal(reload.saved().providers.length, 1);
+    assert.equal(reload.saved().connections[0].name, "Local JDBC");
+    assert.equal(reload.saved().definitions.length, 0);
+    assert.equal(reload.saved().runs.length, 0);
   });
 
-  test('CSV row and column configuration survives scope changes and reload with sample reload required',t=>{
-    const ui=workspace(t),first=structure(ui).activeWorkspaceId,ns=structure(ui).activeNamespaceId;
-    const second=addStructure(ui,'workspaces','CSV comparison',ns);
-    ui.click('[data-action="navigate"][data-view="providers"]');ui.click('[data-action="register-provider"]');
-    ui.click('[data-action="csv-example"]');ui.field('#csv-provider-name','Files.DraftCsv','input');
-    ui.click('[data-action="csv-read"]');ui.field('#csv-last-record','3');ui.click('[data-action="csv-map"]');
-    ui.field('[data-csv-map="outputName"][data-index="0"]','renamedPortfolio','input');
-    chooseWorkspace(ui,second.id);chooseWorkspace(ui,first);
-    assert.equal(ui.get('[data-csv-map="outputName"][data-index="0"]').value,'renamedPortfolio');
-    const context=structure(ui).sessions[first].contexts[ns];
-    assert.equal(context.csvDraft.options.lastRecord,3);
-    assert.equal(Object.hasOwn(context.csvDraft,'text'),false);
-    assert.equal(Object.hasOwn(context.csvDraft,'selection'),false);
-    const reload=workspace(t,ui.stored());
-    assert.equal(reload.get('#csv-provider-name').value,'Files.DraftCsv');
-    assert.equal(reload.get('#csv-text').value,'');
-    assert.equal(structure(reload).sessions[first].contexts[ns].csvDraft.mappings[0].outputName,'renamedPortfolio');
+  test("design workspaces share namespace resources and retain separate pipeline drafts across switching and reload", (t) => {
+    const ui = workspace(t),
+      model = structure(ui),
+      first = model.activeWorkspaceId,
+      ns = model.activeNamespaceId;
+    const second = addStructure(ui, "workspaces", "Second editing session", ns);
+    openStructure(ui, "workspaces", first);
+    const query = "SELECT isin FROM EnrichedHoldings LIMIT 2";
+    ui.field("#sql-editor", query, "input");
+    chooseWorkspace(ui, second.id);
+    assert.notEqual(ui.get("#sql-editor").value, query);
+    assert.equal(ui.saved().providers.length, D.providers.length);
+    ui.field(
+      "#sql-editor",
+      "SELECT isin FROM EnrichedHoldings LIMIT 3",
+      "input",
+    );
+    chooseWorkspace(ui, first);
+    assert.equal(ui.get("#sql-editor").value, query);
+    const reload = workspace(t, ui.stored());
+    assert.equal(reload.get("#sql-editor").value, query);
+    assert.equal(structure(reload).sessions[first].contexts[ns].dirty, true);
+    assert.notEqual(
+      reload.saved().sql,
+      query,
+      "Draft recovery must not publish the pipeline",
+    );
+    assert.equal(Object.keys(structure(ui).namespaceData).length, 1);
+    assert.equal(Object.hasOwn(second, "namespaces"), false);
   });
 
-  test('organisation context restricts namespaces and design workspaces and rejects cross-organisation selection',t=>{
-    const ui=workspace(t),first=structure(ui),org=addStructure(ui,'organisations','Separate owner');
-    ui.field('#scope-organisation',org.id);
-    const model=structure(ui);
-    assert.equal(ui.get('#scope-namespace').options.length,1);
-    assert.equal(ui.get('#scope-workspace').options.length,1);
-    assert.notEqual(model.activeNamespaceId,first.activeNamespaceId);
-    const select=ui.get('#scope-namespace'),foreign=ui.d.createElement('option');
-    foreign.value=first.activeNamespaceId;foreign.textContent='Foreign';select.append(foreign);
-    ui.field('#scope-namespace',first.activeNamespaceId);
-    assert.equal(structure(ui).activeOrganisationId,org.id);
-    assert.equal(structure(ui).activeNamespaceId,model.activeNamespaceId);
-    assert.match(ui.get('.toast').textContent,/same organisation/);
-    const workspaceSelect=ui.get('#scope-workspace'),foreignWorkspace=ui.d.createElement('option');
-    foreignWorkspace.value=first.activeWorkspaceId;workspaceSelect.append(foreignWorkspace);
-    ui.field('#scope-workspace',first.activeWorkspaceId);
-    assert.equal(structure(ui).activeWorkspaceId,model.activeWorkspaceId);
+  test("pending full-page reader configuration resumes per design workspace, without persisting business records", (t) => {
+    const ui = workspace(t),
+      first = structure(ui).activeWorkspaceId,
+      ns = structure(ui).activeNamespaceId;
+    const second = addStructure(ui, "workspaces", "Other editor", ns);
+    newReader(ui, "JSON", "Readers.CustomerDraft");
+    ui.field(
+      '[data-config-field="raw"]',
+      '[{"customer":"private-record-713"}]',
+      "input",
+    );
+    ui.click('[data-action="config-analyze"]');
+    chooseWorkspace(ui, second.id);
+    assert.equal(ui.d.querySelector("#provider-name"), null);
+    chooseWorkspace(ui, first);
+    ui.click('[data-action="config-section"][data-section="settings"]');
+    assert.equal(ui.get("#provider-name").value, "Readers.CustomerDraft");
+    assert.equal(
+      ui.get('[data-config-field="raw"]').value,
+      '[{"customer":"private-record-713"}]',
+    );
+    assert.equal(ui.stored().includes("private-record-713"), false);
+    const reload = workspace(t, ui.stored());
+    assert.equal(reload.get("#provider-name").value, "Readers.CustomerDraft");
+    assert.equal(reload.get('[data-config-field="raw"]').value, "");
+    assert.match(reload.get("#app").textContent, /Reload the sample/);
+    assert.equal(
+      reload
+        .saved()
+        .providers.some((item) => item.name === "Readers.CustomerDraft"),
+      false,
+    );
   });
 
-  test('deleting a design workspace preserves all resources in the referenced namespace',t=>{
-    const ui=workspace(t),before=structure(ui),second=addStructure(ui,'workspaces','Disposable session',before.activeNamespaceId);
-    openStructure(ui,'workspaces',second.id);
-    removeStructure(ui,'workspaces',second.id);
-    const after=structure(ui);
-    assert.equal(after.workspaces.some(item=>item.id===second.id),false);
-    assert.deepEqual(after.namespaceData,before.namespaceData);
-    assert.deepEqual(after.namespaces,before.namespaces);
-    assert.equal(after.activeWorkspaceId,before.activeWorkspaceId);
+  test("CSV row and column configuration survives scope changes and reload with sample reload required", (t) => {
+    const ui = workspace(t),
+      first = structure(ui).activeWorkspaceId,
+      ns = structure(ui).activeNamespaceId;
+    const second = addStructure(ui, "workspaces", "CSV comparison", ns);
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    ui.click('[data-action="register-provider"]');
+    ui.click('[data-action="csv-example"]');
+    ui.field("#csv-provider-name", "Files.DraftCsv", "input");
+    ui.click('[data-action="csv-read"]');
+    ui.field("#csv-last-record", "3");
+    ui.click('[data-action="csv-map"]');
+    ui.field(
+      '[data-csv-map="outputName"][data-index="0"]',
+      "renamedPortfolio",
+      "input",
+    );
+    chooseWorkspace(ui, second.id);
+    chooseWorkspace(ui, first);
+    assert.equal(
+      ui.get('[data-csv-map="outputName"][data-index="0"]').value,
+      "renamedPortfolio",
+    );
+    const context = structure(ui).sessions[first].contexts[ns];
+    assert.equal(Number(context.csvDraft.options.lastRecord), 3);
+    assert.equal(Object.hasOwn(context.csvDraft, "text"), false);
+    assert.equal(Object.hasOwn(context.csvDraft, "selection"), false);
+    const reload = workspace(t, ui.stored());
+    assert.equal(reload.get("#csv-provider-name").value, "Files.DraftCsv");
+    assert.equal(reload.get("#csv-source-text").value, "");
+    assert.equal(
+      structure(reload).sessions[first].contexts[ns].csvDraft.mappings[0]
+        .outputName,
+      "renamedPortfolio",
+    );
   });
 
-  test('pending drafts block deletion until explicitly discarded, and discarding retains saved resources',t=>{
-    const ui=workspace(t),first=structure(ui),second=addStructure(ui,'workspaces','Draft session',first.activeNamespaceId);
-    openStructure(ui,'workspaces',second.id);ui.field('#sql-editor','SELECT isin FROM EnrichedHoldings LIMIT 1','input');
-    manage(ui,'workspaces');
-    assert.equal(ui.get('[data-action="structure-delete"][data-id="'+second.id+'"]').disabled,true);
-    ui.click('[data-action="structure-discard"][data-id="'+second.id+'"]');
-    assert.match(ui.get('.structure-main').textContent,/Saved namespace resources remain/);
+  test("organisation context restricts namespaces and design workspaces and rejects cross-organisation selection", (t) => {
+    const ui = workspace(t),
+      first = structure(ui),
+      org = addStructure(ui, "organisations", "Separate owner");
+    ui.field("#scope-organisation", org.id);
+    const model = structure(ui);
+    assert.equal(ui.get("#scope-namespace").options.length, 1);
+    assert.equal(ui.get("#scope-workspace").options.length, 1);
+    assert.notEqual(model.activeNamespaceId, first.activeNamespaceId);
+    const select = ui.get("#scope-namespace"),
+      foreign = ui.d.createElement("option");
+    foreign.value = first.activeNamespaceId;
+    foreign.textContent = "Foreign";
+    select.append(foreign);
+    ui.field("#scope-namespace", first.activeNamespaceId);
+    assert.equal(structure(ui).activeOrganisationId, org.id);
+    assert.equal(structure(ui).activeNamespaceId, model.activeNamespaceId);
+    assert.match(ui.get(".toast").textContent, /same organisation/);
+    const workspaceSelect = ui.get("#scope-workspace"),
+      foreignWorkspace = ui.d.createElement("option");
+    foreignWorkspace.value = first.activeWorkspaceId;
+    workspaceSelect.append(foreignWorkspace);
+    ui.field("#scope-workspace", first.activeWorkspaceId);
+    assert.equal(structure(ui).activeWorkspaceId, model.activeWorkspaceId);
+  });
+
+  test("deleting a design workspace preserves all resources in the referenced namespace", (t) => {
+    const ui = workspace(t),
+      before = structure(ui),
+      second = addStructure(
+        ui,
+        "workspaces",
+        "Disposable session",
+        before.activeNamespaceId,
+      );
+    openStructure(ui, "workspaces", second.id);
+    removeStructure(ui, "workspaces", second.id);
+    const after = structure(ui);
+    assert.equal(
+      after.workspaces.some((item) => item.id === second.id),
+      false,
+    );
+    assert.deepEqual(after.namespaceData, before.namespaceData);
+    assert.deepEqual(after.namespaces, before.namespaces);
+    assert.equal(after.activeWorkspaceId, before.activeWorkspaceId);
+  });
+
+  test("pending drafts block deletion until explicitly discarded, and discarding retains saved resources", (t) => {
+    const ui = workspace(t),
+      first = structure(ui),
+      second = addStructure(
+        ui,
+        "workspaces",
+        "Draft session",
+        first.activeNamespaceId,
+      );
+    openStructure(ui, "workspaces", second.id);
+    ui.field(
+      "#sql-editor",
+      "SELECT isin FROM EnrichedHoldings LIMIT 1",
+      "input",
+    );
+    manage(ui, "workspaces");
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + second.id + '"]')
+        .disabled,
+      true,
+    );
+    ui.click('[data-action="structure-discard"][data-id="' + second.id + '"]');
+    assert.match(
+      ui.get(".structure-main").textContent,
+      /Saved namespace resources remain/,
+    );
     ui.click('[data-action="structure-confirm-delete"]');
-    assert.equal(structure(ui).sessions[second.id].contexts[first.activeNamespaceId].dirty,false);
-    assert.equal(ui.get('[data-action="structure-delete"][data-id="'+second.id+'"]').disabled,false);
-    removeStructure(ui,'workspaces',second.id);
-    assert.deepEqual(structure(ui).namespaceData,first.namespaceData);
+    assert.equal(
+      structure(ui).sessions[second.id].contexts[first.activeNamespaceId].dirty,
+      false,
+    );
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + second.id + '"]')
+        .disabled,
+      false,
+    );
+    removeStructure(ui, "workspaces", second.id);
+    assert.deepEqual(structure(ui).namespaceData, first.namespaceData);
   });
 
-  test('deleting an empty namespace reassigns editing sessions without deleting them, and empty organisations can be removed',t=>{
-    const ui=workspace(t),original=structure(ui),ns=addStructure(ui,'namespaces','Temporary');
-    const second=addStructure(ui,'workspaces','Temporary editor',ns.id);
-    openStructure(ui,'workspaces',second.id);
-    removeStructure(ui,'namespaces',ns.id);
-    assert.equal(structure(ui).workspaces.length,2);
-    assert.equal(structure(ui).sessions[second.id].namespaceId,original.activeNamespaceId);
-    assert.equal(structure(ui).activeNamespaceId,original.activeNamespaceId);
-    const org=addStructure(ui,'organisations','Empty organisation');
-    ui.field('#scope-organisation',org.id);
-    removeStructure(ui,'organisations',org.id);
-    assert.equal(structure(ui).organisations.length,1);
-    assert.equal(structure(ui).namespaces.some(item=>item.organisationId===org.id),false);
-    assert.equal(structure(ui).workspaces.some(item=>item.organisationId===org.id),false);
-    assert.equal(structure(ui).activeOrganisationId,original.activeOrganisationId);
+  test("deleting an empty namespace reassigns editing sessions without deleting them, and empty organisations can be removed", (t) => {
+    const ui = workspace(t),
+      original = structure(ui),
+      ns = addStructure(ui, "namespaces", "Temporary");
+    const second = addStructure(ui, "workspaces", "Temporary editor", ns.id);
+    openStructure(ui, "workspaces", second.id);
+    removeStructure(ui, "namespaces", ns.id);
+    assert.equal(structure(ui).workspaces.length, 2);
+    assert.equal(
+      structure(ui).sessions[second.id].namespaceId,
+      original.activeNamespaceId,
+    );
+    assert.equal(structure(ui).activeNamespaceId, original.activeNamespaceId);
+    const org = addStructure(ui, "organisations", "Empty organisation");
+    ui.field("#scope-organisation", org.id);
+    removeStructure(ui, "organisations", org.id);
+    assert.equal(structure(ui).organisations.length, 1);
+    assert.equal(
+      structure(ui).namespaces.some((item) => item.organisationId === org.id),
+      false,
+    );
+    assert.equal(
+      structure(ui).workspaces.some((item) => item.organisationId === org.id),
+      false,
+    );
+    assert.equal(
+      structure(ui).activeOrganisationId,
+      original.activeOrganisationId,
+    );
   });
 
-  test('saved namespace resources and pending provider drafts prevent namespace and organisation deletion',t=>{
-    const ui=workspace(t),org=addStructure(ui,'organisations','Guarded owner');
-    ui.field('#scope-organisation',org.id);
-    const ns=addStructure(ui,'namespaces','Pending');chooseNamespace(ui,ns.id);
-    newReader(ui,'JSON','Readers.Unsaved');
-    manage(ui,'namespaces');assert.equal(ui.get('[data-action="structure-delete"][data-id="'+ns.id+'"]').disabled,true);
-    manage(ui,'organisations');assert.equal(ui.get('[data-action="structure-delete"][data-id="'+org.id+'"]').disabled,true);
-    manage(ui,'workspaces');ui.click('[data-action="structure-discard"][data-id="'+structure(ui).activeWorkspaceId+'"]');ui.click('[data-action="structure-confirm-delete"]');
-    manage(ui,'namespaces');assert.equal(ui.get('[data-action="structure-delete"][data-id="'+ns.id+'"]').disabled,false);
-    ui.click('[data-action="navigate"][data-view="sources"]');ui.click('[data-action="new-source"]');
-    ui.field('#new-source-name','Saved files');ui.field('#new-source-location','./saved');ui.click('[data-action="confirm-source"]');
-    manage(ui,'namespaces');assert.equal(ui.get('[data-action="structure-delete"][data-id="'+ns.id+'"]').disabled,true);
+  test("saved namespace resources and pending provider drafts prevent namespace and organisation deletion", (t) => {
+    const ui = workspace(t),
+      org = addStructure(ui, "organisations", "Guarded owner");
+    ui.field("#scope-organisation", org.id);
+    const ns = addStructure(ui, "namespaces", "Pending");
+    chooseNamespace(ui, ns.id);
+    newReader(ui, "JSON", "Readers.Unsaved");
+    manage(ui, "namespaces");
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + ns.id + '"]')
+        .disabled,
+      true,
+    );
+    manage(ui, "organisations");
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + org.id + '"]')
+        .disabled,
+      true,
+    );
+    manage(ui, "workspaces");
+    ui.click(
+      '[data-action="structure-discard"][data-id="' +
+        structure(ui).activeWorkspaceId +
+        '"]',
+    );
+    ui.click('[data-action="structure-confirm-delete"]');
+    manage(ui, "namespaces");
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + ns.id + '"]')
+        .disabled,
+      false,
+    );
+    ui.click('[data-action="navigate"][data-view="sources"]');
+    ui.click('[data-action="new-source"]');
+    ui.field("#new-source-name", "Saved files");
+    ui.field("#new-source-location", "./saved");
+    ui.click('[data-action="confirm-source"]');
+    manage(ui, "namespaces");
+    assert.equal(
+      ui.get('[data-action="structure-delete"][data-id="' + ns.id + '"]')
+        .disabled,
+      true,
+    );
   });
 
-  test('a stale design workspace cannot overwrite a newer saved pipeline in the namespace',t=>{
-    const ui=workspace(t),first=structure(ui),second=addStructure(ui,'workspaces','Revision comparison',first.activeNamespaceId);
-    openStructure(ui,'workspaces',second.id);
-    ui.field('#sql-editor','SELECT isin FROM EnrichedHoldings LIMIT 1','input');
-    chooseWorkspace(ui,first.activeWorkspaceId);savePipeline(ui);
-    const version=ui.saved().version;
-    chooseWorkspace(ui,second.id);ui.click('[data-action="save-version"]');ui.click('[data-action="confirm-save"]');
-    assert.match(ui.get('[role="dialog"]').textContent,/Another design workspace saved a newer revision/);
-    assert.equal(ui.saved().definitions.find(item=>item.id===first.sessions[first.activeWorkspaceId].contexts[first.activeNamespaceId].draft.pipelineId).version,version);
+  test("a stale design workspace cannot overwrite a newer saved pipeline in the namespace", (t) => {
+    const ui = workspace(t),
+      first = structure(ui),
+      second = addStructure(
+        ui,
+        "workspaces",
+        "Revision comparison",
+        first.activeNamespaceId,
+      );
+    openStructure(ui, "workspaces", second.id);
+    ui.field(
+      "#sql-editor",
+      "SELECT isin FROM EnrichedHoldings LIMIT 1",
+      "input",
+    );
+    chooseWorkspace(ui, first.activeWorkspaceId);
+    savePipeline(ui);
+    const version = ui.saved().version;
+    chooseWorkspace(ui, second.id);
+    ui.click('[data-action="save-version"]');
+    ui.click('[data-action="confirm-save"]');
+    assert.match(
+      ui.get('[role="dialog"]').textContent,
+      /Another design workspace saved a newer revision/,
+    );
+    assert.equal(
+      ui
+        .saved()
+        .definitions.find(
+          (item) =>
+            item.id ===
+            first.sessions[first.activeWorkspaceId].contexts[
+              first.activeNamespaceId
+            ].draft.pipelineId,
+        ).version,
+      version,
+    );
   });
 
-  test('catalogue retains cards and adds list view, collapsible categories, global search, and persistent preferences',async t=>{
-    const ui=workspace(t);ui.click('[data-action="navigate"][data-view="providers"]');
-    assert.ok(ui.d.querySelector('.provider-card'));
+  test("catalogue retains cards and adds list view, collapsible categories, global search, and persistent preferences", async (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    assert.ok(ui.d.querySelector(".provider-card"));
     assert.ok(ui.d.querySelector('details[data-catalogue-group="Files"]'));
-    let panel=ui.get('details[data-catalogue-group="Files"]');panel.open=false;panel.dispatchEvent(new ui.w.Event('toggle'));
-    assert.equal(ui.d.querySelector('details[data-catalogue-group="Files"] .provider-card'),null);
+    let panel = ui.get('details[data-catalogue-group="Files"]');
+    panel.open = false;
+    panel.dispatchEvent(new ui.w.Event("toggle"));
+    assert.equal(
+      ui.d.querySelector(
+        'details[data-catalogue-group="Files"] .provider-card',
+      ),
+      null,
+    );
     ui.click('[data-action="catalogue-mode"][data-mode="list"]');
-    assert.equal(ui.get('details[data-catalogue-group="Files"]').open,false);
-    assert.equal(ui.d.querySelector('.provider-card'),null);
-    ui.field('#provider-search','Files','input');
-    assert.equal(ui.get('details[data-catalogue-group="Files"]').open,true);
-    assert.ok(ui.d.querySelector('table[aria-label="Catalogue Files"] tbody tr'));
-    ui.field('#provider-search','','input');
-    panel=ui.get('details[data-catalogue-group="Files"]');panel.open=true;panel.dispatchEvent(new ui.w.Event('toggle'));
-    ui.field('#catalogue-connector','CSV');
-    assert.doesNotMatch(ui.get('#provider-directory').textContent,/Reference\.Instruments/);
-    const reload=workspace(t,ui.stored());reload.click('[data-action="navigate"][data-view="providers"]');
-    assert.equal(reload.get('[data-action="catalogue-mode"][data-mode="list"]').getAttribute('aria-pressed'),'true');
-    assert.equal(reload.get('#catalogue-connector').value,'CSV');
-    assert.equal(reload.get('details[data-catalogue-group="Files"]').open,true);
+    assert.equal(ui.get('details[data-catalogue-group="Files"]').open, false);
+    assert.equal(ui.d.querySelector(".provider-card"), null);
+    ui.field("#provider-search", "Files", "input");
+    assert.equal(ui.get('details[data-catalogue-group="Files"]').open, true);
+    assert.ok(
+      ui.d.querySelector('table[aria-label="Catalogue Files"] tbody tr'),
+    );
+    ui.field("#provider-search", "", "input");
+    panel = ui.get('details[data-catalogue-group="Files"]');
+    panel.open = true;
+    panel.dispatchEvent(new ui.w.Event("toggle"));
+    ui.field("#catalogue-connector", "CSV");
+    assert.doesNotMatch(
+      ui.get("#provider-directory").textContent,
+      /Reference\.Instruments/,
+    );
+    const reload = workspace(t, ui.stored());
+    reload.click('[data-action="navigate"][data-view="providers"]');
+    assert.equal(
+      reload
+        .get('[data-action="catalogue-mode"][data-mode="list"]')
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(reload.get("#catalogue-connector").value, "CSV");
+    assert.equal(
+      reload.get('details[data-catalogue-group="Files"]').open,
+      true,
+    );
     await wait(10);
   });
 
-  test('catalogue renders bounded category pages and searches beyond the current page for thousands of entries',t=>{
-    const providers=Array.from({length:1200},(_,index)=>({...D.providers.find(item=>item.kind==='Reader'),id:'bulk-'+index,name:'Files.Entry'+String(index).padStart(4,'0'),description:'Directory entry '+index}));
-    const ui=workspace(t,JSON.stringify({providers}));ui.click('[data-action="navigate"][data-view="providers"]');
-    assert.equal(ui.d.querySelectorAll('.provider-card').length,50);
-    assert.match(ui.get('#catalogue-match-count').textContent,/1200/);
+  test("catalogue renders bounded category pages and searches beyond the current page for thousands of entries", (t) => {
+    const providers = Array.from({ length: 1200 }, (_, index) => ({
+      ...D.providers.find(
+        (item) => item.kind === "Reader" && item.format === "JSON",
+      ),
+      id: "bulk-" + index,
+      name: "Files.Entry" + String(index).padStart(4, "0"),
+      description: "Directory entry " + index,
+    }));
+    const ui = workspace(t, JSON.stringify({ providers }));
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    assert.equal(ui.d.querySelectorAll(".provider-card").length, 50);
+    assert.match(ui.get("#catalogue-match-count").textContent, /1200/);
     ui.click('[data-action="catalogue-mode"][data-mode="list"]');
-    assert.equal(ui.d.querySelectorAll('table[aria-label="Catalogue Files"] tbody tr').length,50);
+    assert.equal(
+      ui.d.querySelectorAll('table[aria-label="Catalogue Files"] tbody tr')
+        .length,
+      50,
+    );
     ui.click('[data-action="catalogue-page"][data-page="2"]');
-    assert.match(ui.get('.catalogue-pagination').textContent,/Showing 51–100 of 1200/);
-    assert.match(ui.get('table[aria-label="Catalogue Files"]').textContent,/Files\.Entry0050/);
-    ui.field('#provider-search','Entry1199','input');
-    assert.equal(ui.d.querySelectorAll('table[aria-label="Catalogue Files"] tbody tr').length,1);
-    assert.match(ui.get('table[aria-label="Catalogue Files"]').textContent,/Files\.Entry1199/);
+    assert.match(
+      ui.get(".catalogue-pagination").textContent,
+      /Showing 51–100 of 1200/,
+    );
+    assert.match(
+      ui.get('table[aria-label="Catalogue Files"]').textContent,
+      /Files\.Entry0050/,
+    );
+    ui.field("#provider-search", "Entry1199", "input");
+    assert.equal(
+      ui.d.querySelectorAll('table[aria-label="Catalogue Files"] tbody tr')
+        .length,
+      1,
+    );
+    assert.match(
+      ui.get('table[aria-label="Catalogue Files"]').textContent,
+      /Files\.Entry1199/,
+    );
     ui.click('[data-action="config-provider"][data-id="bulk-1199"]');
-    assert.equal(ui.get('#provider-name').value,'Files.Entry1199');
-    const reload=workspace(t,ui.stored());assert.equal(reload.get('#provider-name').value,'Files.Entry1199');
+    assert.equal(ui.get("#provider-name").value, "Files.Entry1199");
+    const reload = workspace(t, ui.stored());
+    assert.equal(reload.get("#provider-name").value, "Files.Entry1199");
   });
 
+  test("empty namespace has no phantom pipeline and can build a first saved pipeline from a configured reader", async (t) => {
+    const ui = workspace(t),
+      ns = addStructure(ui, "namespaces", "First pipeline");
+    chooseNamespace(ui, ns.id);
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.match(
+      ui.get("#app").textContent,
+      /No saved pipelines in this namespace/,
+    );
+    assert.equal(ui.get('[data-action="new-pipeline"]').disabled, true);
+    ui.w.document.dispatchEvent(
+      new ui.w.KeyboardEvent("keydown", {
+        key: "s",
+        ctrlKey: true,
+        bubbles: true,
+      }),
+    );
+    assert.equal(ui.d.querySelector('[role="dialog"]'), null);
+    newReader(ui, "JDBC", "Readers.First");
+    createJdbcConnection(ui);
+    ui.click('[data-action="config-example"]');
+    ui.field(
+      '[data-config-field="raw"]',
+      '[{"code":"private-772","price":22}]',
+      "input",
+    );
+    ui.click('[data-action="config-analyze"]');
+    ui.click('[data-action="config-save"]');
+    const provider = ui.saved().providers[0];
+    ui.click('[data-action="provider-detail"][data-id="' + provider.id + '"]');
+    ui.click('[data-action="bind-provider"]');
+    ui.field("#binding-name", "FirstInput");
+    ui.click('[data-action="confirm-binding"]');
+    assert.equal(ui.d.querySelector(".config-error"), null);
+    ui.click('[data-action="new-pipeline"]');
+    ui.field("#new-pipeline-name", "First saved pipeline", "input");
+    ui.click('[data-action="config-save"]');
+    assert.equal(ui.d.querySelector(".config-error"), null);
+    assert.equal(ui.saved().stages.length, 2);
+    assert.equal(
+      ui.saved().definitions.filter((item) => item.kind === "Pipeline").length,
+      1,
+    );
+    assert.equal(ui.saved().namespaceId, ns.id);
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.match(
+      ui.get('table[aria-label="Saved pipelines"]').textContent,
+      /First saved pipeline/,
+    );
+    const second = addStructure(ui, "workspaces", "Another session", ns.id);
+    openStructure(ui, "workspaces", second.id);
+    ui.click('[data-action="preview-stage"]');
+    await finishPreview(ui);
+    assert.match(
+      ui.get("#app").textContent,
+      /Reload.*sample|source sample|Supply.*sample/i,
+    );
+  });
+
+  test("engine and catalogue preferences recover per editing session while runtime settings remain namespace owned", (t) => {
+    const ui = workspace(t),
+      model = structure(ui),
+      first = model.activeWorkspaceId,
+      ns = model.activeNamespaceId;
+    ui.field("#engine-select", "SQLite");
+    ui.click('[data-action="config-runtime"]');
+    ui.field('[data-config-setting="maxGeneratedRows"]', "321");
+    ui.click('[data-action="config-save"]');
+    const second = addStructure(ui, "workspaces", "DuckDB session", ns);
+    openStructure(ui, "workspaces", second.id);
+    assert.equal(ui.get("#engine-select").value, "DuckDB");
+    assert.equal(Number(ui.saved().operationSettings.maxGeneratedRows), 321);
+    chooseWorkspace(ui, first);
+    const reload = workspace(t, ui.stored());
+    assert.equal(reload.get("#engine-select").value, "SQLite");
+    assert.equal(
+      Number(reload.saved().operationSettings.maxGeneratedRows),
+      321,
+    );
+    const other = addStructure(reload, "namespaces", "Other settings");
+    chooseNamespace(reload, other.id);
+    assert.equal(reload.saved().operationSettings.maxGeneratedRows, 10000);
+    chooseNamespace(reload, ns);
+    assert.equal(
+      Number(reload.saved().operationSettings.maxGeneratedRows),
+      321,
+    );
+  });
+
+  test("an open pipeline configuration cannot overwrite a revision saved by another design workspace", (t) => {
+    const ui = workspace(t),
+      model = structure(ui),
+      first = model.activeWorkspaceId,
+      ns = model.activeNamespaceId,
+      pipelineId = ui.saved().pipelineId;
+    const second = addStructure(ui, "workspaces", "Pipeline editor", ns);
+    openStructure(ui, "workspaces", second.id);
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    ui.click('[data-action="revise-definition"][data-id="' + pipelineId + '"]');
+    ui.field("#new-pipeline-name", "Pending rename", "input");
+    chooseWorkspace(ui, first);
+    savePipeline(ui);
+    const published = ui
+      .saved()
+      .definitions.find((item) => item.id === pipelineId);
+    chooseWorkspace(ui, second.id);
+    ui.click('[data-action="config-save"]');
+    assert.match(
+      ui.get(".config-error").textContent,
+      /changed in another design workspace/,
+    );
+    assert.deepEqual(
+      ui.saved().definitions.find((item) => item.id === pipelineId),
+      published,
+    );
+  });
 })();
 
 require("node:test").test(

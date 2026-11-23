@@ -576,9 +576,30 @@ ORDER BY h.portfolio, h.isin;`;
     JSON.parse(JSON.stringify(stages.slice(0, 3)));
   const data = {
     structureDefaults: {
-      organisations: [{id:'organisation-default',name:'Default organisation',description:'Initial organisation for the local mockup.'}],
-      namespaces: [{id:'namespace-default',organisationId:'organisation-default',name:'default',description:'Initial resource namespace.',isDefault:true}],
-      workspaces: [{id:'workspace-default',organisationId:'organisation-default',name:'Demo workspace',description:'Configuration editing session.'}],
+      organisations: [
+        {
+          id: "organisation-default",
+          name: "Default organisation",
+          description: "Initial organisation for the local mockup.",
+        },
+      ],
+      namespaces: [
+        {
+          id: "namespace-default",
+          organisationId: "organisation-default",
+          name: "default",
+          description: "Initial resource namespace.",
+          isDefault: true,
+        },
+      ],
+      workspaces: [
+        {
+          id: "workspace-default",
+          organisationId: "organisation-default",
+          name: "Demo workspace",
+          description: "Configuration editing session.",
+        },
+      ],
     },
     configurationSamples: {
       JSON: {

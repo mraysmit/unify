@@ -1,5 +1,5 @@
 © Mark Andrew Ray-Smith Cityline Ltd 2025\
-Version 1.3.3
+Version 1.4.0
 
 # Unify UI/UX prototype
 
@@ -14,6 +14,36 @@ node scripts/ui-mockup/serve.mjs
 ```
 
 Open **http://127.0.0.1:4321**; stop the server with Ctrl+C. Nothing is remotely hosted.
+
+## Ownership and design sessions
+
+The ownership hierarchy is **Organisation → Namespace → resources**. A **design workspace** is an organisation-owned configuration session that references namespaces and holds working drafts. It is separate from resource ownership:
+
+```text
+Organisation
+├── Namespaces
+│   ├── default
+│   │   └── Catalogue, connections, definitions, pipelines, settings, runs
+│   └── Other namespaces, each with its own resources
+└── Design workspaces
+    └── Editing sessions referencing the organisation's namespace resources
+```
+
+The context bar selects Organisation and Namespace separately from Design workspace. **Manage structure** opens full-page management for organisations, namespaces, and design workspaces, including create, rename, descriptions, selection, and guarded deletion. Names must be unique within their parent organisation; organisation names are unique in this local prototype.
+
+Each organisation starts with a protected **default** namespace and an empty design workspace. Existing mockup configuration migrates into the initial organisation's default namespace and Demo workspace session. Additional organisations and namespaces start empty. Catalogue, connections, definitions, saved pipelines, execution settings, and run history follow the selected namespace. Design workspaces in the same organisation can reference the same namespace resources and keep separate drafts, including a separate context for each namespace they edit. Switching namespace does not transfer ownership or copy resources.
+
+Draft configuration is retained when switching context and recovered after reload. Saving a reader, connection, or reusable definition writes that resource to the selected namespace; applying pipeline binding, stage, and output settings changes the session draft. **Save version** publishes that pipeline draft to the namespace. A stale session cannot overwrite a resource revised in another session without reopening its latest configuration. Uploaded samples stay in the current tab and editing session; after reload they must be supplied again. Built-in examples remain available from data.js.
+
+Deleting a design workspace removes its session, leaving namespace resources intact. Pending drafts must first be saved or explicitly discarded. Namespaces containing resources or pending configuration cannot be deleted, and default cannot be deleted or renamed. Removing an empty namespace returns sessions referencing it to default. Organisations can be removed only when their namespaces contain no resources or pending drafts; their empty namespaces and sessions are then removed. At least one organisation and one design workspace per organisation remain.
+
+These are local configuration boundaries in a mockup. They do not implement authentication or tenant authorization.
+
+## Catalogue at scale
+
+**Cards** retains the existing entry view; **List** adds compact rows with kind, connector, schema, availability, Configure, and Inspect. **Files**, **Outputs**, **Reference**, and **Views** are collapsible categories within the selected namespace's catalogue. The prefix in `Files.Holdings` is a category, separate from the owning namespace `default`.
+
+Each expanded category displays up to 50 entries per page, with stable name ordering, counts, Previous, and Next. Search covers all matching entries across every category and page, including collapsed categories; matching categories expand during search. Capability and connector filters narrow the results. View mode, filters, page selection, and collapsed panels are retained per design workspace and namespace. This bounds rendered entries per category; production-scale server search and pagination are outside this local mockup.
 
 ## Configuration review
 
@@ -43,7 +73,7 @@ The workbench initially contains 12 holdings, 10 instruments and six currency ra
 
 Catalogue describes reusable reader/writer operations and read-only views. **Pipeline data** contains the operation's explicit bindings and earlier stage results. **Connections** holds endpoints and credential references; creating a connection neither registers a provider nor adds a binding. The **Definition library** stores reusable configuration. Use each object's Configure/Edit action to maintain it; the contract inspector is read-only.
 
-Provider, connection and definition configurations are saved in this browser. Pipeline binding/stage/output edits require **Save version** to retain them after reload; creating a new pipeline saves its initial configuration. Uploaded/pasted business records remain in the current tab and are excluded from saved/exported configuration. The built-in examples are in data.js. CSV configurations retain the earlier save-under-a-new-name behavior; other configured readers can be reopened and updated under their catalogue name. Existing bindings keep their captured provider contract.
+Provider, connection and definition configurations are saved in this browser under their owning namespace. Pipeline binding/stage/output edits recover as unpublished session drafts after reload; **Save version** updates the reusable saved pipeline. Creating a new pipeline saves its initial configuration. Uploaded/pasted business records remain in the current tab and are excluded from saved/exported configuration. The built-in examples are in data.js. CSV configurations retain the earlier save-under-a-new-name behavior; other configured readers can be reopened and updated under their catalogue name. Existing bindings keep their captured provider contract.
 
 After a page reload, open **Pipeline data → input → Reload sample**, load the matching file or paste its records, preview, and choose **Use sample**. The full-page workflow uses that binding's captured reader settings and parameter values, including an older reader contract. It keeps samples separate for different connections and parameters. Failed validation or leaving without Use sample retains the last accepted records. Reload sample does not create a provider or alter saved configuration. The reader contract inspector also offers Reload sample. Required invocation values can be entered there before validation; incomplete values display form errors. An existing sample is prefilled only when its connection and parameter values match.
 
@@ -89,4 +119,6 @@ npm --prefix scripts/ui-mockup test
 
 The suite exercises parsing, conversion, mapping, schema constraints, ordered rules, composite joins, SQL, serialization, budgets and full-page DOM workflows. It also checks direct file opening with only index.html and data.js, save/reopen, parameter binding, missing-source failures, recorded JDBC/HTTP samples, JDBC APPEND requirements and the 100-record preview regression. Regression coverage also checks sample reloads for all five reader formats, retained mappings, stage-specific SQL editing, reusable pipeline snapshots, grouped expressions, custom CSV null tokens, pipeline identity isolation, per-stage parameters, captured view schemas, required sample parameters, and cumulative join generation.
 
-All automated checks are consolidated in **docs/ui-mockup/mockup.test.cjs**. The test-only jsdom dependency is installed under scripts/ui-mockup/node_modules. The mockup itself needs only its HTML and data file. These checks do not verify visual layout, real transport, Calcite plans, database execution or destination writes.
+Structure checks cover legacy migration, empty namespaces, resource isolation, organisation ownership validation, shared namespace resources with separate session drafts, draft recovery without persisted business records, deletion and discard behavior, stale revision conflicts, first-pipeline creation, scoped settings, and catalogue paging/search over 1,200 entries.
+
+All automated checks are consolidated in **docs/ui-mockup/mockup.test.cjs**. The test-only jsdom dependency is installed under scripts/ui-mockup/node_modules. The mockup itself needs only its HTML and data file. These checks do not verify visual layout, real transport, Calcite plans, database execution or destination writes. Browser visual review remains pending.

@@ -1,10 +1,11 @@
 © Mark Andrew Ray-Smith Cityline Ltd 2025\
-Version 0.10
+Version 0.11
 
 # Unify Functional Design
 
 Status: Draft for review  
-Date: 2026-11-22  
+Date: 2026-11-23
+
 Companion: [Unify Technical Design](TECHNICAL_DESIGN.md)
 
 The technical draft remains based on version 0.1. Its revision is deferred until the functional review is complete.
@@ -27,12 +28,12 @@ Success means that a CSV-to-database transfer and a JSON-to-XML transfer use the
 
 ## Users and responsibilities
 
-| User | Needs | Responsibility outside Unify |
-| --- | --- | --- |
-| Application developer | Construct tables, configure transfers, inspect results, and handle failures | Application orchestration and presentation |
-| Integration maintainer | Store, find, version, and reuse input/output schemas, mappings, transformations, and format options | Review data contracts and coordinate source changes |
-| Operator through the host application | Diagnose rejected records and failed transfers | Schedule jobs, manage credentials, and decide whether to rerun |
-| Connector implementer | Add a source or destination with the same behavioral contract | Establish compatibility with the external product |
+| User                                  | Needs                                                                                               | Responsibility outside Unify                                   |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Application developer                 | Construct tables, configure transfers, inspect results, and handle failures                         | Application orchestration and presentation                     |
+| Integration maintainer                | Store, find, version, and reuse input/output schemas, mappings, transformations, and format options | Review data contracts and coordinate source changes            |
+| Operator through the host application | Diagnose rejected records and failed transfers                                                      | Schedule jobs, manage credentials, and decide whether to rerun |
+| Connector implementer                 | Add a source or destination with the same behavioral contract                                       | Establish compatibility with the external product              |
 
 These are usage roles, not accounts or permissions managed by Unify. The host application controls access to files, databases, network endpoints, and diagnostic data.
 
@@ -54,6 +55,7 @@ These are usage roles, not accounts or permissions managed by Unify. The host ap
 - Discovery and registration of versioned provider contracts, with parameters, declared or binding-time schemas, capabilities, and host-supplied availability.
 - Publication and reuse of read-only views with pinned query, schema, preparation, and provider dependencies.
 - Separate provider discovery, operation-scoped data bindings, reusable-definition storage, and connection settings.
+- Organisation and namespace ownership of configuration resources, with separate organisation-owned design workspaces for configuration sessions.
 - PostgreSQL 19 as the required backing database for the reusable definition store.
 - SQLite and DuckDB as selectable execution backends behind common pipeline and data contracts, qualified against the same functional baseline.
 - Reusable configuration, validation before execution, and a preview that does not write to a destination.
@@ -67,50 +69,53 @@ MongoDB and other NoSQL integrations are deferred. HTTP writes, pagination, auto
 
 ### Connector capability matrix
 
-| Connector | Read | Write | Baseline shape and limits |
-| --- | --- | --- | --- |
-| Local CSV | Required | Required | Delimited records with configurable header, delimiter, quote, and encoding |
-| Local JSON | Required | Required | Array of flat objects, optionally beneath a selected object member |
-| Local XML | Required | Required | One root containing repeated row elements with scalar child elements |
-| JDBC H2 and SQLite | Required | Required | Query or table read; transactional append to an existing compatible table |
-| HTTP JSON | Required | Deferred | One GET response using the same record shape as local JSON |
-| Other JDBC products | Extension | Extension | Advertised only after product-specific compatibility verification |
-| NoSQL | Deferred | Deferred | No production support claim in the first baseline |
+| Connector           | Read      | Write     | Baseline shape and limits                                                  |
+| ------------------- | --------- | --------- | -------------------------------------------------------------------------- |
+| Local CSV           | Required  | Required  | Delimited records with configurable header, delimiter, quote, and encoding |
+| Local JSON          | Required  | Required  | Array of flat objects, optionally beneath a selected object member         |
+| Local XML           | Required  | Required  | One root containing repeated row elements with scalar child elements       |
+| JDBC H2 and SQLite  | Required  | Required  | Query or table read; transactional append to an existing compatible table  |
+| HTTP JSON           | Required  | Deferred  | One GET response using the same record shape as local JSON                 |
+| Other JDBC products | Extension | Extension | Advertised only after product-specific compatibility verification          |
+| NoSQL               | Deferred  | Deferred  | No production support claim in the first baseline                          |
 
 Join eligibility depends on a connector's read capability, independently of its write capability. Sources in one join can use different formats, locations, and credentials; they need not share a database or connector. Supplied in-memory tables can also participate. Joining a source does not enable an otherwise unsupported connector.
 
 ## Functional information model
 
-| Concept | Meaning |
-| --- | --- |
-| Table | An ordered schema and an ordered collection of records |
-| Column | A unique name, logical type, nullability, optional default, and optional validation rules |
-| Record | One value for each column after mapping and validation |
-| Missing value | A source field is absent; this is resolved before a record enters a table |
-| Null value | A field explicitly has no value |
-| Empty string | A present text value containing zero characters |
-| Mapping | Ordered rules selecting source fields and defining their destination names and types |
-| Input schema | Source field names, types, and value rules used by an input mapping |
-| Output schema | Destination field names, types, and value rules that mapped and transformed output must satisfy |
-| Transformation | A named declarative rule or ordered sequence of supported operations that changes field values |
-| SQL query definition | Reusable query text with its dialect-profile version, logical dataset bindings, typed parameter declarations, and result schema |
-| Provider | A named, versioned contract exposing an approved read or write connector operation, or a published read-only view |
-| Provider catalogue | The discoverable namespace of registered providers and published views available through the host's access policy |
-| Published view | A registered read-only provider exposing a saved query, typed parameters, result contract, and pinned dependencies for reuse |
-| Transformation stage | A named processing unit with declared input bindings, transformation rules, and a named result with a schema |
-| Pipeline | A reusable, versioned composition of any number of stages and their declared dependencies |
-| Intermediate schema | The contract for a stage result consumed by later stages |
-| Source binding | A uniquely named input identifying a pinned readable provider, an inline endpoint, or a supplied table, with parameter values and schema/mapping/transformation references |
-| Join plan | An ordered set of join steps naming their inputs, keys, join types, projected fields, and stage |
-| Joined record | A generated record with fields and lineage from its contributing source records |
-| Stored definition | An independently reusable schema, mapping, transformation, SQL query, join plan, stage, pipeline, provider registration, or published view with a stable identifier, name, and version |
-| Definition store | PostgreSQL 19-backed durable storage through which the host can save, find, load, and revise reusable definitions |
-| Execution backend | SQLite or DuckDB processing of operation data behind a common pipeline contract |
-| Endpoint | A source or destination plus its connector settings and credential reference |
-| Connection definition | Host-managed endpoint settings and credential references selected independently of a provider's logical contract |
-| Operation | One read, write, preview, or source-to-destination transfer |
-| Rejection | A complete record excluded by an explicitly selected validation policy |
-| Result | Completion status, record counts, diagnostics, and destination outcome |
+| Concept               | Meaning                                                                                                                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Table                 | An ordered schema and an ordered collection of records                                                                                                                                 |
+| Column                | A unique name, logical type, nullability, optional default, and optional validation rules                                                                                              |
+| Record                | One value for each column after mapping and validation                                                                                                                                 |
+| Missing value         | A source field is absent; this is resolved before a record enters a table                                                                                                              |
+| Null value            | A field explicitly has no value                                                                                                                                                        |
+| Empty string          | A present text value containing zero characters                                                                                                                                        |
+| Mapping               | Ordered rules selecting source fields and defining their destination names and types                                                                                                   |
+| Input schema          | Source field names, types, and value rules used by an input mapping                                                                                                                    |
+| Output schema         | Destination field names, types, and value rules that mapped and transformed output must satisfy                                                                                        |
+| Transformation        | A named declarative rule or ordered sequence of supported operations that changes field values                                                                                         |
+| SQL query definition  | Reusable query text with its dialect-profile version, logical dataset bindings, typed parameter declarations, and result schema                                                        |
+| Provider              | A named, versioned contract exposing an approved read or write connector operation, or a published read-only view                                                                      |
+| Organisation          | Parent owner of namespaces and design workspaces                                                                                                                                       |
+| Namespace             | Organisation-owned scope containing catalogue entries, connections, definitions, pipelines, execution settings, and run history                                                        |
+| Design workspace      | Organisation-owned configuration session that references namespace resources and holds drafts without owning them                                                                      |
+| Provider catalogue    | Registered providers and published views in a namespace, discoverable through the host's access policy                                                                                 |
+| Published view        | A registered read-only provider exposing a saved query, typed parameters, result contract, and pinned dependencies for reuse                                                           |
+| Transformation stage  | A named processing unit with declared input bindings, transformation rules, and a named result with a schema                                                                           |
+| Pipeline              | A reusable, versioned composition of any number of stages and their declared dependencies                                                                                              |
+| Intermediate schema   | The contract for a stage result consumed by later stages                                                                                                                               |
+| Source binding        | A uniquely named input identifying a pinned readable provider, an inline endpoint, or a supplied table, with parameter values and schema/mapping/transformation references             |
+| Join plan             | An ordered set of join steps naming their inputs, keys, join types, projected fields, and stage                                                                                        |
+| Joined record         | A generated record with fields and lineage from its contributing source records                                                                                                        |
+| Stored definition     | An independently reusable schema, mapping, transformation, SQL query, join plan, stage, pipeline, provider registration, or published view with a stable identifier, name, and version |
+| Definition store      | PostgreSQL 19-backed durable storage through which the host can save, find, load, and revise reusable definitions                                                                      |
+| Execution backend     | SQLite or DuckDB processing of operation data behind a common pipeline contract                                                                                                        |
+| Endpoint              | A source or destination plus its connector settings and credential reference                                                                                                           |
+| Connection definition | Host-managed endpoint settings and credential references selected independently of a provider's logical contract                                                                       |
+| Operation             | One read, write, preview, or source-to-destination transfer                                                                                                                            |
+| Rejection             | A complete record excluded by an explicitly selected validation policy                                                                                                                 |
+| Result                | Completion status, record counts, diagnostics, and destination outcome                                                                                                                 |
 
 A table contains scalar values. Nested objects, collections, and binary values are outside the baseline. Null, empty, and missing values have distinct meanings even when a source format needs explicit settings to distinguish them.
 
@@ -118,14 +123,16 @@ A table contains scalar values. Nested objects, collections, and binary values a
 
 The host-facing model distinguishes the following areas. The HTML mockup illustrates these interactions; an independently delivered production UI remains outside the embedded-library baseline.
 
-| Area | Contents and purpose |
-| --- | --- |
-| Catalogue | Discover registered provider capabilities, exposed datasets, and published views; inspect metadata before creating a binding |
-| Pipeline data | The selected operation's declared input bindings, parameter values, and named earlier-stage results |
-| Definition library | Independently reusable, versioned schemas, mappings, transformations, queries, joins, stages, and pipelines |
-| Connections | Physical endpoint settings and credential references supplied or selected by the host |
+| Area               | Contents and purpose                                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Catalogue          | Discover registered provider capabilities, exposed datasets, and published views; inspect metadata before creating a binding |
+| Pipeline data      | The selected operation's declared input bindings, parameter values, and named earlier-stage results                          |
+| Definition library | Independently reusable, versioned schemas, mappings, transformations, queries, joins, stages, and pipelines                  |
+| Connections        | Physical endpoint settings and credential references supplied or selected by the host                                        |
 
-A provider is an operation contract rather than a file, a sample of records, a runtime SQL alias, or an execution backend. Provider namespaces organise discoverable entries, for example `Files.Holdings`, `Reference.Instruments`, and `Views.PortfolioExposure`. Namespace notation in discovery does not prescribe additional SQL syntax: FR032 continues to resolve explicitly bound logical datasets.
+A provider is an operation contract rather than a file, a sample of records, a runtime SQL alias, or an execution backend. Categories organise discoverable entries within a namespace, for example `Files.Holdings`, `Reference.Instruments`, and `Views.PortfolioExposure`. `Files`, `Reference`, and `Views` are catalogue categories; the owning namespace starts as `default`. Category notation in discovery does not prescribe additional SQL syntax: FR032 continues to resolve explicitly bound logical datasets.
+
+The owning structure is **Organisation → Namespace → resources**. Design workspaces are separate organisation-owned configuration sessions. They reference namespace resources and retain drafts; they do not own namespaces, catalogues, or saved definitions. Multiple design workspaces can edit resources in the same namespace without sharing mutable drafts. The host application supplies the selected organisation, namespace, session, and access policy under FR037. These configuration sessions are also distinct from temporary engine execution workspaces under FR021.
 
 The principal discovery flow is inspect a provider version, review its parameters and result contract, select compatible connection settings, supply values, and add an explicit input or output binding. This creates operation configuration without reading business records. A separate bounded preview reads sample data. Provider registration, connection creation, and input binding are distinct actions.
 
@@ -145,14 +152,14 @@ The supported definition-store server major version is 19. Compatibility must be
 
 SQLite and DuckDB are supported execution backends behind a common Unify contract. PostgreSQL 19 remains the durable definition store. Users define schemas, mappings, transformations, joins, and stages without depending on an execution engine's SQL dialect or native data representation.
 
-| Component | Required role |
-| --- | --- |
-| PostgreSQL 19 | Persist and version schemas, mappings, transformations, joins, stages, pipelines, provider contracts, published views, and their dependencies |
-| Common Unify contracts | Describe logical data and pipelines; define validation, execution results, diagnostics, cancellation, and resource ownership |
-| Apache Calcite | Parse and validate the public SQL profile and build a backend-independent relational plan |
-| SQLite execution backend | Execute portable pipelines for use cases prioritizing lightweight local processing |
-| DuckDB execution backend | Execute portable pipelines for analytical and join-heavy processing, including supported disk-backed intermediate work |
-| Source and destination connectors | Read and write business data independently of the chosen execution backend |
+| Component                         | Required role                                                                                                                                 |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| PostgreSQL 19                     | Persist and version schemas, mappings, transformations, joins, stages, pipelines, provider contracts, published views, and their dependencies |
+| Common Unify contracts            | Describe logical data and pipelines; define validation, execution results, diagnostics, cancellation, and resource ownership                  |
+| Apache Calcite                    | Parse and validate the public SQL profile and build a backend-independent relational plan                                                     |
+| SQLite execution backend          | Execute portable pipelines for use cases prioritizing lightweight local processing                                                            |
+| DuckDB execution backend          | Execute portable pipelines for analytical and join-heavy processing, including supported disk-backed intermediate work                        |
+| Source and destination connectors | Read and write business data independently of the chosen execution backend                                                                    |
 
 The host selects SQLite or DuckDB per operation, directly or through an explicitly configured default. Selection is resolved before source reads and recorded with the actual engine version in the result. A portable saved pipeline can run on either backend without rewriting its business rules. Selection is not inferred from an unmeasured record-count threshold, and execution must not silently switch engines.
 
@@ -220,7 +227,7 @@ A connector declares its supported operations, types, shapes, limits, and public
 
 ### UC08 Save and reuse definitions
 
-Through the host application, a user saves a schema, mapping, transformation, join plan, stage, or complete pipeline under a name. The user can find and load that definition in a later session and bind it to another compatible operation without recreating its rules. Connection locations and credentials can change without copying the reusable definition. Editing a saved definition creates a new version; existing saved operations continue to use their selected versions until explicitly changed. The host supplies the user or workspace scope and access policy; Unify does not introduce its own user accounts.
+Through the host application, a user saves a schema, mapping, transformation, join plan, stage, or complete pipeline under a name. The user can find and load that definition in a later session and bind it to another compatible operation without recreating its rules. Connection locations and credentials can change without copying the reusable definition. Editing a saved definition creates a new version; existing saved operations continue to use their selected versions until explicitly changed. The host supplies the owning organisation and namespace, the editing session, and access policy; Unify does not introduce its own user accounts.
 
 ### UC09 Join sources at any processing stage
 
@@ -236,7 +243,7 @@ The user selects named datasets, writes or loads a saved SQL query, supplies typ
 
 ### UC12 Discover and bind a provider
 
-The user browses the available provider catalogue, filters by namespace or capability, and inspects an exact version's parameters, columns or schema-resolution mode, documentation, and dependencies. The user selects connection settings, supplies typed values, and adds a uniquely named input binding to a pipeline. The host shows this binding separately from catalogue entries and from earlier-stage results. A separate preview reads bounded samples. Selecting a writer instead configures the output operation and its explicit publication behavior.
+The user browses the available provider catalogue, selects a namespace, filters by category or capability, and inspects an exact version's parameters, columns or schema-resolution mode, documentation, and dependencies. The user selects connection settings, supplies typed values, and adds a uniquely named input binding to a pipeline. The host shows this binding separately from catalogue entries and from earlier-stage results. A separate preview reads bounded samples. Selecting a writer instead configures the output operation and its explicit publication behavior.
 
 ### UC13 Publish and reuse a view
 
@@ -396,7 +403,7 @@ Engine working memory and temporary disk also have explicit budgets. Disk spilli
 
 Users must be able to save, find, list, load, and revise input, intermediate, and output schemas, mappings, transformation definitions, SQL queries, join plans, individual stages, and complete pipelines independently of an execution. These definitions must be persisted in PostgreSQL 19 and survive the end of a session and a restart of the host application. Saving an entire job without independently reusable definitions, or keeping configuration only in memory, does not satisfy this requirement.
 
-Each stored definition has a stable identifier, human-readable name, definition kind, version, and optional description within the scope supplied by the host. Users can locate definitions by name, kind, or identifier and select a particular version. The host determines user/workspace ownership and access. PostgreSQL 19 is a fixed platform requirement for the definition store, while its database structure is a technical design decision. Provider registrations and published views under FR034 and FR035 follow these same durability and versioning rules.
+Each stored definition has a stable identifier, human-readable name, definition kind, version, and optional description within its owning organisation and namespace under FR037. Users can locate definitions by name, kind, or identifier and select a particular version. The host supplies ownership context and access policy; design workspace identifiers identify editing sessions, not resource owners. PostgreSQL 19 is a fixed platform requirement for the definition store, while its database structure is a technical design decision. Provider registrations and published views under FR034 and FR035 follow these same durability and versioning rules.
 
 A saved version is immutable. Revising it creates a new version while retaining prior versions needed by saved operations. Updating a schema, mapping, transformation, join plan, stage, or pipeline must not silently update dependent definitions or jobs. A conflicting concurrent revision is reported rather than overwriting another user's changes. Failed saves leave previously saved versions intact.
 
@@ -434,12 +441,12 @@ Join plans must be storable and reusable under FR025. A saved plan names logical
 
 The proposed baseline supports inner, left outer, right outer, and full outer equality joins, including composite keys. Each key pair must have the same logical type after any explicit conversions before matching. String keys are case-sensitive and preserve whitespace unless a configured transformation changes them. Null never matches a key, including another null; a composite key with any null component does not match. Empty string is a present value and can match another empty string.
 
-| Join type | Matched records | Unmatched records retained |
-| --- | --- | --- |
-| Inner | Every matching left/right combination | None |
-| Left outer | Every matching left/right combination | All unmatched left records |
-| Right outer | Every matching left/right combination | All unmatched right records |
-| Full outer | Every matching left/right combination | All unmatched records from both sides |
+| Join type   | Matched records                       | Unmatched records retained            |
+| ----------- | ------------------------------------- | ------------------------------------- |
+| Inner       | Every matching left/right combination | None                                  |
+| Left outer  | Every matching left/right combination | All unmatched left records            |
+| Right outer | Every matching left/right combination | All unmatched right records           |
+| Full outer  | Every matching left/right combination | All unmatched records from both sides |
 
 Duplicate keys produce all matching combinations. If a key has two left records and three right records, the result contains six matched records for that key. Unify must not silently select the first match, deduplicate, or aggregate. A user can declare an expected one-to-one, one-to-many, or many-to-one relationship; violation fails the operation before publication. Without such an assertion, many-to-many matches are allowed within the expansion limits.
 
@@ -497,17 +504,17 @@ Applications can query named source datasets, supplied tables, and earlier stage
 
 The proposed baseline is a versioned Unify SQL profile using SQLite-style SELECT syntax. It supports the following constructs, subject to the common type and resource contracts:
 
-| Area | Initial portable profile |
-| --- | --- |
-| Selection | SELECT, explicit columns, qualified names, aliases, and star expansion when the resulting names are unique |
-| Filtering | WHERE; typed comparisons; AND, OR, NOT; IN, BETWEEN, IS NULL, and IS NOT NULL |
-| Joins | Explicit INNER, LEFT, RIGHT, and FULL joins with ON equality key pairs, including composite keys, under FR028 |
-| Expressions | Numeric arithmetic, supported CAST targets, CASE, and string concatenation using the double-pipe operator |
-| Scalar functions | COALESCE, NULLIF, ABS, LENGTH, TRIM, LOWER, and UPPER with profile-defined semantics |
-| Aggregation | GROUP BY, HAVING, COUNT, SUM, AVG, MIN, and MAX |
-| Result shaping | DISTINCT, ORDER BY, LIMIT, and OFFSET |
+| Area              | Initial portable profile                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Selection         | SELECT, explicit columns, qualified names, aliases, and star expansion when the resulting names are unique                                             |
+| Filtering         | WHERE; typed comparisons; AND, OR, NOT; IN, BETWEEN, IS NULL, and IS NOT NULL                                                                          |
+| Joins             | Explicit INNER, LEFT, RIGHT, and FULL joins with ON equality key pairs, including composite keys, under FR028                                          |
+| Expressions       | Numeric arithmetic, supported CAST targets, CASE, and string concatenation using the double-pipe operator                                              |
+| Scalar functions  | COALESCE, NULLIF, ABS, LENGTH, TRIM, LOWER, and UPPER with profile-defined semantics                                                                   |
+| Aggregation       | GROUP BY, HAVING, COUNT, SUM, AVG, MIN, and MAX                                                                                                        |
+| Result shaping    | DISTINCT, ORDER BY, LIMIT, and OFFSET                                                                                                                  |
 | Query composition | Read-only subqueries, non-recursive WITH clauses, and UNION ALL with matching column counts and logical types, using explicit conversions where needed |
-| Parameters | Positional question-mark placeholders with declared types and separately bound runtime values |
+| Parameters        | Positional question-mark placeholders with declared types and separately bound runtime values                                                          |
 
 The profile is deliberately explicit about semantic differences. Unify logical types and strict conversions apply: invalid casts, overflow, non-finite results, and division by zero are query errors rather than permissive conversion to zero, infinity, or an implicit default. Numeric strings require explicit conversion for numeric expressions. Integer arithmetic returns an integer unless an explicit conversion or mixed numeric expression requires a double; integer division truncates toward zero. Arithmetic overflow does not silently change the result type. Supported CAST names map to the seven logical types in FR003 rather than exposing arbitrary engine-native types.
 
@@ -541,7 +548,7 @@ Public interfaces and persisted definitions remain Unify contracts. Callers need
 
 ### FR034 Discoverable provider contracts
 
-The host can register, find, list, inspect, and revise providers independently of operation execution. A registration exposes a stable identifier, namespaced logical name, immutable version, description, documentation, supported operation, connector or view kind, parameter declarations, result-contract mode, and exact dependency references. Discovery can filter by name, kind, and read/write capability. Host-provided access and availability determine which entries may be discovered or used; the library introduces no separate user-account system.
+The host can register, find, list, inspect, and revise providers independently of operation execution. A registration exposes a stable identifier, category-qualified logical name, immutable version, description, documentation, supported operation, connector or view kind, parameter declarations, result-contract mode, and exact dependency references. Discovery can filter by name, kind, and read/write capability. Host-provided access and availability determine which entries may be discovered or used; the library introduces no separate user-account system.
 
 Registrations expose only connector capabilities already supported by this functional design or read-only views under FR035. Registration cannot enable unsupported products, unsupported write modes, arbitrary executable scripts, or unapproved native SQL functions. A write-capable registration is selectable only through an explicit output operation; selecting it from the catalogue cannot make it a readable SQL dataset or execute it as a side effect of SELECT.
 
@@ -571,17 +578,33 @@ A stage can refer only to its declared readable bindings and valid earlier-stage
 
 Read-only views cannot conceal writer operations. Output-provider bindings consume the validated final result and selected output schema/mapping, with explicit destination and publication behavior under FR009. Discovery, binding, query preview, and view publication leave business destinations unchanged. Host access is checked when resolving and using a binding; a previously visible or saved registration does not bypass a later denial.
 
+### FR037 Organisation, namespace, and design workspace separation
+
+The configuration ownership hierarchy is Organisation → Namespace → resources. Each namespace has exactly one owning organisation. Catalogue registrations, published views, connections, reusable definitions, saved pipelines, execution settings, and run history belong to a namespace. Each organisation starts with a namespace named `default`. Resource names are unique within their applicable kind and namespace; the same name may exist in another namespace or organisation. Catalogue categories such as Files and Outputs group entries inside a namespace and do not create additional owning scopes.
+
+A design workspace is a configuration session owned by one organisation. It selects and references that organisation's namespace resources and holds working configuration drafts. It owns no namespace or saved resource. Different design workspaces can reference the same namespace and maintain separate drafts. A session may switch between namespaces within its organisation while retaining a separate draft context for each. Creating a new organisation or namespace creates no copied catalogue entries, saved definitions, sample business data, or run history. Existing unscoped configuration migrates into an initial organisation's default namespace with its saved references preserved.
+
+The host must make the selected organisation and namespace explicit throughout configuration, discovery, binding, preview, save, and history. Changing context must not silently move, copy, or resolve resources from another namespace. Definition and provider references resolve within their owning namespace, with no fallback to a same-named global object or another organisation's resource. An operation or saved pipeline carries its ownership context. Selecting a design workspace or namespace owned by a different organisation is rejected. SQL continues to use explicitly declared logical dataset bindings under FR032 and FR036.
+
+Applying stage, binding, and output changes updates the session's pipeline draft. Saving a reusable resource writes to its owning namespace, and saving a pipeline publishes the session draft as a saved pipeline revision there. Unsaved configuration must be recoverable when switching sessions or namespaces and after reopening a session, separately from published configuration. Runtime sample records and credentials remain outside persisted drafts. A revision saved by another session must cause an explicit conflict if a stale editor attempts to overwrite it; it must not be replaced silently.
+
+Host management must support creating, listing, selecting, renaming, and describing organisations, namespaces, and design workspaces. An owning organisation cannot be changed by a rename or context switch. Deleting a design workspace removes only its session and drafts after an explicit discard or save decision; all saved namespace resources remain. Deletion of a non-default namespace requires it to contain no resources or pending drafts; referencing sessions then select default. The default namespace cannot be renamed or deleted independently. An organisation can be removed only when its namespaces contain no resources or pending drafts; its empty child structures and sessions are then removed. Keep at least one organisation and one design workspace per organisation.
+
+The host UI should preserve both card and list catalogue views, with collapsible categories, entry counts, filters, and bounded pages. Searching must cover all matching entries, including collapsed categories and entries outside the current page. Metadata discovery must not read business records. Pagination size and storage representation are implementation decisions.
+
+These are functional requirements for the host configuration model and library-facing ownership context. They do not add a standalone UI, user-account system, or authentication service to the embedded-library baseline. The host remains responsible for authorization; logical namespace filtering alone is not a tenant security boundary.
+
 ## Quality requirements
 
-| ID | Requirement | Verification |
-| --- | --- | --- |
-| NFR001 | Identical accepted logical data follows the same conversion, default, validation, and pipeline-result rules across connectors and execution backends | Shared connector and cross-backend contract scenarios |
-| NFR002 | Work and diagnostics are bounded by explicit limits across all stages, including intermediate materialization, engine memory, temporary disk, and join expansion | Long-pipeline, spill, duplicate-key expansion, and over-limit executions |
-| NFR003 | Untrusted input cannot execute configuration code, resolve XML external resources, or turn data values into generated query syntax | Malformed input and protocol tests |
-| NFR004 | A result distinguishes completed publication from failure and uncertain publication | Failure injection at publication boundaries |
-| NFR005 | Configuration and reusable-definition changes are versioned; breaking behavioral changes have migration guidance | Compatibility fixtures, pinned-version scenarios, and migration examples |
-| NFR006 | Independent operations may run concurrently without shared mutable execution state; sharing a mutable table requires caller coordination | Concurrent independent-operation tests |
-| NFR007 | Supported connectors and execution backends are verified at their real serialization, transport, and execution boundaries | Files, local HTTP fixtures, actual SQLite/DuckDB execution, real databases, and necessary live product tests |
+| ID     | Requirement                                                                                                                                                      | Verification                                                                                                 |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| NFR001 | Identical accepted logical data follows the same conversion, default, validation, and pipeline-result rules across connectors and execution backends             | Shared connector and cross-backend contract scenarios                                                        |
+| NFR002 | Work and diagnostics are bounded by explicit limits across all stages, including intermediate materialization, engine memory, temporary disk, and join expansion | Long-pipeline, spill, duplicate-key expansion, and over-limit executions                                     |
+| NFR003 | Untrusted input cannot execute configuration code, resolve XML external resources, or turn data values into generated query syntax                               | Malformed input and protocol tests                                                                           |
+| NFR004 | A result distinguishes completed publication from failure and uncertain publication                                                                              | Failure injection at publication boundaries                                                                  |
+| NFR005 | Configuration and reusable-definition changes are versioned; breaking behavioral changes have migration guidance                                                 | Compatibility fixtures, pinned-version scenarios, and migration examples                                     |
+| NFR006 | Independent operations may run concurrently without shared mutable execution state; sharing a mutable table requires caller coordination                         | Concurrent independent-operation tests                                                                       |
+| NFR007 | Supported connectors and execution backends are verified at their real serialization, transport, and execution boundaries                                        | Files, local HTTP fixtures, actual SQLite/DuckDB execution, real databases, and necessary live product tests |
 
 Proposed initial defaults are 64 MiB of encoded input across all sources, 64 MiB of materialized scalar payload measured by its UTF-8 representation, 100,000 total source records, 100,000 generated records across all join steps, 128 columns per table, 1 MiB of UTF-8 text per scalar value, 100 retained issues, and a five-minute overall deadline. Source, intermediate, and final tables share the logical materialized-value budget regardless of memory or temporary-disk placement. HTTP defaults are ten seconds to connect and thirty seconds without read progress. Callers can lower or explicitly raise limits. The host must also supply engine working-memory and temporary-disk budgets, with initial sizing and tuning established during technical qualification. These are protective limits, not measured capacity or throughput claims. A deployment must size memory for Java object overhead and native engine allocations. Deadlines request cooperative termination; a blocking external driver can delay return and its cancellation behavior must be documented. Performance targets require a workload and environment decision before release.
 
@@ -589,14 +612,14 @@ Proposed initial defaults are 64 MiB of encoded input across all sources, 64 MiB
 
 A personnel import maps `id` to `personId` as integer, `name` to `fullName` as non-null string, `age` to nullable integer, and `department` to string with the missing-field default `General`. Other source fields are excluded.
 
-| Source condition | Expected result |
-| --- | --- |
-| Name is `Alice, Smith` in a quoted CSV field | One string value containing the comma |
-| Age is `thirty` | Record validation failure; no substitution with zero |
-| Department is absent from a JSON object | `General` |
-| Department is an empty JSON string | Empty string |
-| Department is explicit JSON null and the column is nullable | Null |
-| Identifier is `00123` and schema inference is used | String identifier preserving leading zeros |
+| Source condition                                            | Expected result                                      |
+| ----------------------------------------------------------- | ---------------------------------------------------- |
+| Name is `Alice, Smith` in a quoted CSV field                | One string value containing the comma                |
+| Age is `thirty`                                             | Record validation failure; no substitution with zero |
+| Department is absent from a JSON object                     | `General`                                            |
+| Department is an empty JSON string                          | Empty string                                         |
+| Department is explicit JSON null and the column is nullable | Null                                                 |
+| Identifier is `00123` and schema inference is used          | String identifier preserving leading zeros           |
 
 In fail-fast mode, any invalid personnel record prevents the transfer from writing to the destination. In skip-record mode with a rejection limit of ten, valid records can be published if at most ten records are rejected and no fatal failure occurs. A successful result with rejections must disclose the reduced record count.
 
@@ -606,14 +629,14 @@ The user can also join a personnel CSV with a department JSON file on a normaliz
 
 One pipeline could have the following stages. The number of rows in this example is not a limit on the number of stages.
 
-| Stage | Inputs | Processing and named result |
-| --- | --- | --- |
-| Normalize personnel | Personnel source | Trim selected text and convert key types, producing `cleanPersonnel` |
-| Join departments | `cleanPersonnel` and department source | Apply a left join, producing `personnelWithDepartments` |
-| Normalize joined values | `personnelWithDepartments` | Apply selected field rules, producing `normalizedDepartments` |
-| Join roles | `normalizedDepartments` and role source | Apply the declared join, producing `personnelWithRoles` |
-| Prepare export values | `personnelWithRoles` | Apply temporal and value conversions, producing `formattedPersonnel` |
-| Select export fields | `formattedPersonnel` | Map and validate the selected output schema, producing `exportPersonnel` |
+| Stage                   | Inputs                                  | Processing and named result                                              |
+| ----------------------- | --------------------------------------- | ------------------------------------------------------------------------ |
+| Normalize personnel     | Personnel source                        | Trim selected text and convert key types, producing `cleanPersonnel`     |
+| Join departments        | `cleanPersonnel` and department source  | Apply a left join, producing `personnelWithDepartments`                  |
+| Normalize joined values | `personnelWithDepartments`              | Apply selected field rules, producing `normalizedDepartments`            |
+| Join roles              | `normalizedDepartments` and role source | Apply the declared join, producing `personnelWithRoles`                  |
+| Prepare export values   | `personnelWithRoles`                    | Apply temporal and value conversions, producing `formattedPersonnel`     |
+| Select export fields    | `formattedPersonnel`                    | Map and validate the selected output schema, producing `exportPersonnel` |
 
 The operation selects `exportPersonnel` for publication. Additional compatible stages can be inserted between these stages or before the final destination mapping. The user can save the individual stages and the complete pipeline with their pinned dependencies.
 
@@ -632,62 +655,66 @@ The datasets are declared source or earlier-result bindings. The parameter value
 
 ## Acceptance scenarios
 
-| ID | Scenario and expected outcome | Requirements |
-| --- | --- | --- |
-| AC01 | Create a table, append a valid record, then attempt an invalid update; the original value and record count remain unchanged | FR001, FR003, FR006 |
-| AC02 | Read quoted CSV delimiters, escaped quotes, multiline values, trailing empties, and non-ASCII text; all field boundaries and values are correct | FR014, FR023 |
-| AC03 | Map missing, null, empty, and invalid values across supported formats; each follows its distinct default and validation rule | FR003, FR004, FR005, FR006, NFR001 |
-| AC04 | Infer from a bounded sample containing mixed numerics, leading-zero identifiers, null-only columns, and later fields; freeze the schema and reject a later incompatible value | FR002, FR010 |
-| AC05 | Preview a capped sample; return sample data, schema, and cap indicator without creating or changing a destination | FR012, FR013 |
-| AC06 | Fail an import after several valid records; the caller's prior table is unchanged and no partial table is presented as successful | FR007, FR011 |
-| AC07 | Transfer to a file that already exists; default mode fails, explicit replacement succeeds, and an interrupted replacement preserves the old file | FR008, FR009 |
-| AC08 | Skip two invalid complete records with a limit of two; report success with rejections and exact counts. A third rejection fails before writing | FR010, FR011 |
-| AC09 | Append to a real H2 or SQLite table and trigger a later constraint failure; verify that none of that operation's inserts remain | FR017, FR018, NFR004, NFR007 |
-| AC10 | Lose the commit acknowledgement or fail rollback; return unknown destination outcome and do not retry | FR011, FR018 |
-| AC11 | Read and write JSON and XML with nulls, empty strings, dates, namespaces, and zero records; preserve logical values with the same schema | FR015, FR016, FR023 |
-| AC12 | Request nested selected JSON data, duplicate JSON members, XML external resolution, an unsupported connector operation, or an unknown option; fail explicitly | FR012, FR015, FR016, FR020, NFR003 |
-| AC13 | Read HTTP JSON from a protocol fixture; verify success, authentication headers, error status, invalid content, redirect rejection, timeout, cancellation, and response closure | FR019, FR021, FR024, NFR007 |
-| AC14 | Save and reload JSON and YAML configuration; preserve order and behavior, reject incompatible versions, and omit secrets | FR012, FR022, NFR005 |
-| AC15 | Exceed each configured limit or cancel before publication; report the correct failure and confirmed destination outcome without leaking resources | FR009, FR021, FR024, NFR002 |
-| AC16 | Run independent transfers concurrently; their tables, results, cancellation signals, and credentials remain independent | NFR006 |
-| AC17 | Trigger parsing and transport failures; diagnostics contain the phase and available location but no credentials or default record values | FR011, FR022 |
-| AC18 | Attempt unsupported output types, null without a CSV null token, and incompatible destination precision; fail before destination mutation | FR008, FR018, FR023 |
-| AC19 | Save separate input/output schemas, input/output mappings, and transformations; restart the host, find and load them, and reuse them with another compatible source and destination without re-entering the rules | FR012, FR025, FR026 |
-| AC20 | Revise a saved definition and one of its dependencies; existing jobs keep using their pinned versions, while an explicitly updated job uses the new versions and records them in its result | FR011, FR012, FR025, NFR005 |
-| AC21 | Save and reload an ordered transformation using trimming and conversion; applying it on input or output matches the equivalent inline rules and preserves null/default behavior | FR003, FR004, FR009, FR026 |
-| AC22 | Attempt execution with a missing definition, incompatible dependency, or unsupported transformation; fail before reading source data or writing output. A failed or conflicting definition-store save preserves previous versions | FR012, FR025, FR026 |
-| AC23 | Join CSV personnel, JSON departments, and JDBC locations through ordered input steps; verify the projected canonical table without requiring a shared connector or database | FR005, FR027, FR028 |
-| AC24 | Join a supplied table with an additional HTTP JSON or file source at output, including after an input join; verify final values and that the original supplied table is unchanged | FR007, FR009, FR027, FR028 |
-| AC25 | Exercise inner, left, right, and full joins with empty inputs, composite keys, duplicate keys, nulls, and empty strings; verify all combinations, null padding, column selection, cardinality assertions, and result order | FR004, FR006, FR028 |
-| AC26 | Save and reload a join plan and pinned dependencies after a host restart; bind its aliases to new compatible endpoints while existing jobs retain their chosen versions | FR012, FR025, FR027 |
-| AC27 | Use an unknown alias, cycle, ambiguous column, incompatible key type, or failed additional source; fail explicitly before publication and retain the original destination | FR009, FR010, FR027, FR028 |
-| AC28 | Cap a join preview, exceed a duplicate-key expansion limit, and cancel join processing; verify provisional sample matches, bounded generation, per-source and result counts, lineage diagnostics, and no destination changes | FR011, FR013, FR024, FR027, FR028, NFR002 |
-| AC29 | Execute pipelines with zero, one, and increasing numbers of stages, including more than two transformations with joins between them; verify that every declared stage runs in order and the selected final result is correct | FR009, FR026, FR027, FR029 |
-| AC30 | Save and reload stages and a complete pipeline after restart; revise its stage order or add a stage, and verify that existing jobs retain the old pipeline version while an explicitly updated job uses the revision | FR012, FR025, FR029, NFR005 |
-| AC31 | Supply an invalid stage dependency or incompatible intermediate schema, then trigger a data failure and cancellation in a middle stage; verify the stage identifier, counts, unchanged earlier results, and no destination publication | FR007, FR009, FR010, FR011, FR024, FR029 |
-| AC32 | Preview a named intermediate stage and the final stage of the same pipeline; verify the applicable schemas, bounded samples, inherited cap qualifications, and absence of destination changes | FR013, FR029, NFR002 |
-| AC33 | Save every reusable definition kind and its versioned dependencies in real PostgreSQL 19; restart the host, load and execute the saved pipeline, and verify pinned versions, revision conflicts, and preservation of prior versions after a failed save | FR012, FR025, FR029, NFR005, NFR007 |
-| AC34 | Attempt definition-store access with an unavailable database or unsupported server major version; report the failure without silently selecting another store, overwriting saved definitions, or publishing destination data for an operation whose definitions could not be resolved | FR009, FR025 |
+| ID   | Scenario and expected outcome                                                                                                                                                                                                                                                                                                     | Requirements                                                           |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| AC01 | Create a table, append a valid record, then attempt an invalid update; the original value and record count remain unchanged                                                                                                                                                                                                       | FR001, FR003, FR006                                                    |
+| AC02 | Read quoted CSV delimiters, escaped quotes, multiline values, trailing empties, and non-ASCII text; all field boundaries and values are correct                                                                                                                                                                                   | FR014, FR023                                                           |
+| AC03 | Map missing, null, empty, and invalid values across supported formats; each follows its distinct default and validation rule                                                                                                                                                                                                      | FR003, FR004, FR005, FR006, NFR001                                     |
+| AC04 | Infer from a bounded sample containing mixed numerics, leading-zero identifiers, null-only columns, and later fields; freeze the schema and reject a later incompatible value                                                                                                                                                     | FR002, FR010                                                           |
+| AC05 | Preview a capped sample; return sample data, schema, and cap indicator without creating or changing a destination                                                                                                                                                                                                                 | FR012, FR013                                                           |
+| AC06 | Fail an import after several valid records; the caller's prior table is unchanged and no partial table is presented as successful                                                                                                                                                                                                 | FR007, FR011                                                           |
+| AC07 | Transfer to a file that already exists; default mode fails, explicit replacement succeeds, and an interrupted replacement preserves the old file                                                                                                                                                                                  | FR008, FR009                                                           |
+| AC08 | Skip two invalid complete records with a limit of two; report success with rejections and exact counts. A third rejection fails before writing                                                                                                                                                                                    | FR010, FR011                                                           |
+| AC09 | Append to a real H2 or SQLite table and trigger a later constraint failure; verify that none of that operation's inserts remain                                                                                                                                                                                                   | FR017, FR018, NFR004, NFR007                                           |
+| AC10 | Lose the commit acknowledgement or fail rollback; return unknown destination outcome and do not retry                                                                                                                                                                                                                             | FR011, FR018                                                           |
+| AC11 | Read and write JSON and XML with nulls, empty strings, dates, namespaces, and zero records; preserve logical values with the same schema                                                                                                                                                                                          | FR015, FR016, FR023                                                    |
+| AC12 | Request nested selected JSON data, duplicate JSON members, XML external resolution, an unsupported connector operation, or an unknown option; fail explicitly                                                                                                                                                                     | FR012, FR015, FR016, FR020, NFR003                                     |
+| AC13 | Read HTTP JSON from a protocol fixture; verify success, authentication headers, error status, invalid content, redirect rejection, timeout, cancellation, and response closure                                                                                                                                                    | FR019, FR021, FR024, NFR007                                            |
+| AC14 | Save and reload JSON and YAML configuration; preserve order and behavior, reject incompatible versions, and omit secrets                                                                                                                                                                                                          | FR012, FR022, NFR005                                                   |
+| AC15 | Exceed each configured limit or cancel before publication; report the correct failure and confirmed destination outcome without leaking resources                                                                                                                                                                                 | FR009, FR021, FR024, NFR002                                            |
+| AC16 | Run independent transfers concurrently; their tables, results, cancellation signals, and credentials remain independent                                                                                                                                                                                                           | NFR006                                                                 |
+| AC17 | Trigger parsing and transport failures; diagnostics contain the phase and available location but no credentials or default record values                                                                                                                                                                                          | FR011, FR022                                                           |
+| AC18 | Attempt unsupported output types, null without a CSV null token, and incompatible destination precision; fail before destination mutation                                                                                                                                                                                         | FR008, FR018, FR023                                                    |
+| AC19 | Save separate input/output schemas, input/output mappings, and transformations; restart the host, find and load them, and reuse them with another compatible source and destination without re-entering the rules                                                                                                                 | FR012, FR025, FR026                                                    |
+| AC20 | Revise a saved definition and one of its dependencies; existing jobs keep using their pinned versions, while an explicitly updated job uses the new versions and records them in its result                                                                                                                                       | FR011, FR012, FR025, NFR005                                            |
+| AC21 | Save and reload an ordered transformation using trimming and conversion; applying it on input or output matches the equivalent inline rules and preserves null/default behavior                                                                                                                                                   | FR003, FR004, FR009, FR026                                             |
+| AC22 | Attempt execution with a missing definition, incompatible dependency, or unsupported transformation; fail before reading source data or writing output. A failed or conflicting definition-store save preserves previous versions                                                                                                 | FR012, FR025, FR026                                                    |
+| AC23 | Join CSV personnel, JSON departments, and JDBC locations through ordered input steps; verify the projected canonical table without requiring a shared connector or database                                                                                                                                                       | FR005, FR027, FR028                                                    |
+| AC24 | Join a supplied table with an additional HTTP JSON or file source at output, including after an input join; verify final values and that the original supplied table is unchanged                                                                                                                                                 | FR007, FR009, FR027, FR028                                             |
+| AC25 | Exercise inner, left, right, and full joins with empty inputs, composite keys, duplicate keys, nulls, and empty strings; verify all combinations, null padding, column selection, cardinality assertions, and result order                                                                                                        | FR004, FR006, FR028                                                    |
+| AC26 | Save and reload a join plan and pinned dependencies after a host restart; bind its aliases to new compatible endpoints while existing jobs retain their chosen versions                                                                                                                                                           | FR012, FR025, FR027                                                    |
+| AC27 | Use an unknown alias, cycle, ambiguous column, incompatible key type, or failed additional source; fail explicitly before publication and retain the original destination                                                                                                                                                         | FR009, FR010, FR027, FR028                                             |
+| AC28 | Cap a join preview, exceed a duplicate-key expansion limit, and cancel join processing; verify provisional sample matches, bounded generation, per-source and result counts, lineage diagnostics, and no destination changes                                                                                                      | FR011, FR013, FR024, FR027, FR028, NFR002                              |
+| AC29 | Execute pipelines with zero, one, and increasing numbers of stages, including more than two transformations with joins between them; verify that every declared stage runs in order and the selected final result is correct                                                                                                      | FR009, FR026, FR027, FR029                                             |
+| AC30 | Save and reload stages and a complete pipeline after restart; revise its stage order or add a stage, and verify that existing jobs retain the old pipeline version while an explicitly updated job uses the revision                                                                                                              | FR012, FR025, FR029, NFR005                                            |
+| AC31 | Supply an invalid stage dependency or incompatible intermediate schema, then trigger a data failure and cancellation in a middle stage; verify the stage identifier, counts, unchanged earlier results, and no destination publication                                                                                            | FR007, FR009, FR010, FR011, FR024, FR029                               |
+| AC32 | Preview a named intermediate stage and the final stage of the same pipeline; verify the applicable schemas, bounded samples, inherited cap qualifications, and absence of destination changes                                                                                                                                     | FR013, FR029, NFR002                                                   |
+| AC33 | Save every reusable definition kind and its versioned dependencies in real PostgreSQL 19; restart the host, load and execute the saved pipeline, and verify pinned versions, revision conflicts, and preservation of prior versions after a failed save                                                                           | FR012, FR025, FR029, NFR005, NFR007                                    |
+| AC34 | Attempt definition-store access with an unavailable database or unsupported server major version; report the failure without silently selecting another store, overwriting saved definitions, or publishing destination data for an operation whose definitions could not be resolved                                             | FR009, FR025                                                           |
 | AC35 | Execute representative multi-stage transformations and mixed-source joins through actual SQLite and DuckDB backends; verify equivalent logical values, strict conversion failures, duplicate matches, outer nulls, ordering, rejection counts, lineage, and named-stage diagnostic categories against the functional expectations | FR003, FR004, FR010, FR011, FR028, FR029, FR030, FR031, NFR001, NFR007 |
-| AC36 | With suitably configured logical limits, exercise disk-backed intermediate processing under a constrained engine memory budget, then exhaust temporary space or cancel; verify bounded failure, workspace cleanup, preserved stored definitions, and no premature destination publication | FR009, FR021, FR024, FR025, FR030, NFR002 |
-| AC37 | Load one portable saved pipeline and execute it through the same public contracts with SQLite and DuckDB; verify that only execution configuration changes, stored rule versions stay unchanged, and results record the actual backend/version independently of source/destination identities | FR011, FR012, FR025, FR030, FR031, NFR001 |
-| AC38 | Select an unavailable backend, unsupported version, invalid backend option, or unsupported extension; fail before source reads with a common diagnostic and no silent fallback or destination changes | FR009, FR020, FR031 |
-| AC39 | Run independent operations on different backends concurrently, then cancel one; verify isolated tables, stage counts, resource budgets, workspaces, and publication outcomes | FR021, FR024, FR031, NFR006 |
-| AC40 | Execute the same parameterized SQL profile queries on SQLite and DuckDB over mixed-source and intermediate datasets; cover selection, filtering, joins, expressions, CASE, aggregates, DISTINCT, subqueries, WITH, UNION ALL, and ordering against explicit expected results | FR003, FR028, FR030, FR031, FR032, NFR001, NFR007 |
-| AC41 | Submit a write or multiple statements, an undeclared dataset, a disallowed function, an unsupported profile feature, or an incompatible version; reject it before query execution and without definition-store or destination mutation | FR009, FR020, FR032, NFR003 |
-| AC42 | Save a query and its versioned bindings, parameter declarations, and result schema in PostgreSQL 19; restart the host, reuse it at different pipeline stages and on either backend, and verify that runtime values and credentials are not embedded in the saved definition | FR012, FR025, FR029, FR031, FR032 |
-| AC43 | Test invalid casts, integer overflow, division by zero, null comparisons, empty aggregates, grouped-column validity, duplicate result names, and null ordering; verify equivalent values or failure categories and correct distinction between filtered records and validation rejections | FR003, FR004, FR010, FR011, FR032 |
-| AC44 | Preview a SQL stage, exercise a fully ordered limited result, and cancel or exceed a query resource budget; verify sample qualifications, named-stage diagnostics, cleanup, and no premature destination publication | FR009, FR013, FR021, FR024, FR032, NFR002 |
-| AC45 | Parse, resolve, and validate the same saved SQL definition through real Apache Calcite, then execute its plan through SQLite and DuckDB adapters; verify expected values, strict errors, schemas, ordering, bound parameters, stage diagnostics, and recorded planner/backend versions | FR003, FR011, FR030, FR031, FR032, FR033, NFR001, NFR007 |
-| AC46 | Submit an invalid profile operation, ambiguous name, incompatible type, or plan that the selected adapter cannot translate; return a located failure without bypassing Calcite validation, switching engines, changing the saved query, or publishing destination data | FR009, FR020, FR031, FR032, FR033 |
-| AC47 | Register a provider and restart the host; discover its exact persisted contract, parameters, schema mode, capability, documentation, and dependencies without reading business records or creating a pipeline binding | FR025, FR034, FR036 |
-| AC48 | Bind fixed-schema and runtime-shaped providers with connection references and typed values; reject missing parameters, incompatible schemas, unsupported options, and invalid connector capabilities before consuming stages execute | FR003, FR012, FR020, FR034, FR036 |
-| AC49 | Create or edit a connection, register a provider, and add a binding as separate actions; verify that only explicit binding makes the resource available to an operation, credentials remain referenced, and configured business rules keep their pinned versions | FR025, FR034, FR036 |
-| AC50 | Publish a read-only view with preparation, parameters, result schema, and exact dependencies; restart, bind it to another operation, join its output, and verify expected results on SQLite and DuckDB | FR025, FR028, FR031, FR032, FR033, FR035, FR036 |
-| AC51 | Republish a view and revise its underlying query or provider; existing bindings and runs retain earlier exact versions, dependency inspection identifies them, and failed publication preserves prior definitions | FR011, FR025, FR034, FR035 |
-| AC52 | Attempt a cyclic view, unresolved dependency, foreign transient result, future-stage reference, undeclared provider, or denied resource; fail explicitly without implicit registration, fallback to a newer version, or destination mutation | FR009, FR020, FR029, FR034, FR035, FR036 |
-| AC53 | Discover a writer and configure it through an output stage; attempts to invoke it through read-only SQL or conceal it in a view fail, and previews plus catalogue/view metadata publication leave business destinations unchanged | FR009, FR013, FR032, FR034, FR035, FR036 |
-| AC54 | Deny discovery or execution through the host policy and exercise unavailable connections or provider versions; reject use without exposing protected metadata, bypassing the host's policy, or interpreting an unavailable provider as an empty result | FR020, FR025, FR034, FR036 |
+| AC36 | With suitably configured logical limits, exercise disk-backed intermediate processing under a constrained engine memory budget, then exhaust temporary space or cancel; verify bounded failure, workspace cleanup, preserved stored definitions, and no premature destination publication                                         | FR009, FR021, FR024, FR025, FR030, NFR002                              |
+| AC37 | Load one portable saved pipeline and execute it through the same public contracts with SQLite and DuckDB; verify that only execution configuration changes, stored rule versions stay unchanged, and results record the actual backend/version independently of source/destination identities                                     | FR011, FR012, FR025, FR030, FR031, NFR001                              |
+| AC38 | Select an unavailable backend, unsupported version, invalid backend option, or unsupported extension; fail before source reads with a common diagnostic and no silent fallback or destination changes                                                                                                                             | FR009, FR020, FR031                                                    |
+| AC39 | Run independent operations on different backends concurrently, then cancel one; verify isolated tables, stage counts, resource budgets, workspaces, and publication outcomes                                                                                                                                                      | FR021, FR024, FR031, NFR006                                            |
+| AC40 | Execute the same parameterized SQL profile queries on SQLite and DuckDB over mixed-source and intermediate datasets; cover selection, filtering, joins, expressions, CASE, aggregates, DISTINCT, subqueries, WITH, UNION ALL, and ordering against explicit expected results                                                      | FR003, FR028, FR030, FR031, FR032, NFR001, NFR007                      |
+| AC41 | Submit a write or multiple statements, an undeclared dataset, a disallowed function, an unsupported profile feature, or an incompatible version; reject it before query execution and without definition-store or destination mutation                                                                                            | FR009, FR020, FR032, NFR003                                            |
+| AC42 | Save a query and its versioned bindings, parameter declarations, and result schema in PostgreSQL 19; restart the host, reuse it at different pipeline stages and on either backend, and verify that runtime values and credentials are not embedded in the saved definition                                                       | FR012, FR025, FR029, FR031, FR032                                      |
+| AC43 | Test invalid casts, integer overflow, division by zero, null comparisons, empty aggregates, grouped-column validity, duplicate result names, and null ordering; verify equivalent values or failure categories and correct distinction between filtered records and validation rejections                                         | FR003, FR004, FR010, FR011, FR032                                      |
+| AC44 | Preview a SQL stage, exercise a fully ordered limited result, and cancel or exceed a query resource budget; verify sample qualifications, named-stage diagnostics, cleanup, and no premature destination publication                                                                                                              | FR009, FR013, FR021, FR024, FR032, NFR002                              |
+| AC45 | Parse, resolve, and validate the same saved SQL definition through real Apache Calcite, then execute its plan through SQLite and DuckDB adapters; verify expected values, strict errors, schemas, ordering, bound parameters, stage diagnostics, and recorded planner/backend versions                                            | FR003, FR011, FR030, FR031, FR032, FR033, NFR001, NFR007               |
+| AC46 | Submit an invalid profile operation, ambiguous name, incompatible type, or plan that the selected adapter cannot translate; return a located failure without bypassing Calcite validation, switching engines, changing the saved query, or publishing destination data                                                            | FR009, FR020, FR031, FR032, FR033                                      |
+| AC47 | Register a provider and restart the host; discover its exact persisted contract, parameters, schema mode, capability, documentation, and dependencies without reading business records or creating a pipeline binding                                                                                                             | FR025, FR034, FR036                                                    |
+| AC48 | Bind fixed-schema and runtime-shaped providers with connection references and typed values; reject missing parameters, incompatible schemas, unsupported options, and invalid connector capabilities before consuming stages execute                                                                                              | FR003, FR012, FR020, FR034, FR036                                      |
+| AC49 | Create or edit a connection, register a provider, and add a binding as separate actions; verify that only explicit binding makes the resource available to an operation, credentials remain referenced, and configured business rules keep their pinned versions                                                                  | FR025, FR034, FR036                                                    |
+| AC50 | Publish a read-only view with preparation, parameters, result schema, and exact dependencies; restart, bind it to another operation, join its output, and verify expected results on SQLite and DuckDB                                                                                                                            | FR025, FR028, FR031, FR032, FR033, FR035, FR036                        |
+| AC51 | Republish a view and revise its underlying query or provider; existing bindings and runs retain earlier exact versions, dependency inspection identifies them, and failed publication preserves prior definitions                                                                                                                 | FR011, FR025, FR034, FR035                                             |
+| AC52 | Attempt a cyclic view, unresolved dependency, foreign transient result, future-stage reference, undeclared provider, or denied resource; fail explicitly without implicit registration, fallback to a newer version, or destination mutation                                                                                      | FR009, FR020, FR029, FR034, FR035, FR036                               |
+| AC53 | Discover a writer and configure it through an output stage; attempts to invoke it through read-only SQL or conceal it in a view fail, and previews plus catalogue/view metadata publication leave business destinations unchanged                                                                                                 | FR009, FR013, FR032, FR034, FR035, FR036                               |
+| AC54 | Deny discovery or execution through the host policy and exercise unavailable connections or provider versions; reject use without exposing protected metadata, bypassing the host's policy, or interpreting an unavailable provider as an empty result                                                                            | FR020, FR025, FR034, FR036                                             |
+| AC55 | Create organisations and namespaces; migrate existing configuration into default; save same-named resources in separate namespaces, then switch context and reopen the host; verify preserved ownership, isolated discovery/settings/history, and rejection of cross-organisation references without global fallback              | FR025, FR034, FR036, FR037                                             |
+| AC56 | Edit the same namespace through two design workspaces; switch namespaces and sessions and reopen the host; recover independent unpublished drafts without persisted sample records, publish one revision, and reject a stale overwrite from the other session                                                                     | FR012, FR025, FR037                                                    |
+| AC57 | Remove a saved or explicitly discarded design workspace and verify namespace resources remain; block default or non-empty namespace deletion, delete an empty namespace and reassign references, then remove an empty organisation without affecting another organisation                                                         | FR025, FR037                                                           |
+| AC58 | Browse a catalogue containing thousands of entries through card and list views, collapse categories, filter and page results, and search for an entry outside the current page; verify complete matching discovery without reading business records                                                                               | FR034, FR037                                                           |
 
 ## Current implementation and target gaps
 
@@ -699,18 +726,19 @@ The existing [README](../README.md), [concepts guide](UNIFY_CONCEPTS_README.md),
 
 ## Decisions for product review
 
-| ID | Proposed baseline | Effect of a different decision |
-| --- | --- | --- |
-| D01 | Deliver an embedded library | A service or UI needs separate interaction, authentication, and deployment requirements |
-| D02 | Support local CSV/JSON/XML, H2/SQLite, and single-response HTTP JSON; defer NoSQL | Additional products and HTTP workflows need explicit contracts and compatibility environments |
-| D03 | Preserve null, empty, and missing distinctions and use explicit defaults | Legacy behavior that merges these states needs a separately named migration policy |
-| D04 | Complete and validate transfers before publication, allowing engine-managed memory or temporary disk; retain transactional database append and complete file publication | Publishing a stream of partially processed records, append, upsert, and schema creation need different partial-failure contracts |
-| D05 | Use the seven existing scalar type categories | Exact decimal, 64-bit integer, offset datetime, and binary types need additional conversion and format rules |
-| D06 | Use the proposed protective defaults; set measured performance targets separately | Larger workloads may require architectural work rather than only higher limits |
-| D07 | Persist normalization, join, and SQL query definitions as reusable transformations; include expressions and aggregates specified by the portable query profile | Additional functions, specialized lookup operations, and custom operators need explicit input, output, ordering, and failure contracts |
-| D08 | Support inner, left, right, and full equality joins with composite keys and explicit ordered steps | Non-equality, range, fuzzy, or unrestricted cross joins need additional matching, ordering, and capacity contracts |
-| D09 | Use the documented SQLite-style read-only SQL profile, parsed and planned through Apache Calcite, as the portable query language on both backends | Full native SQLite or DuckDB dialect support, recursive queries, and window functions require additional compatibility contracts |
-| D10 | Separate provider catalogue, operation-scoped pipeline data, definition library, and connections; explicitly publish versioned read-only views | A discovery-only catalogue without view publication provides less reusable query composition; writer execution through SQL would require a separate functional contract |
+| ID  | Proposed baseline                                                                                                                                                        | Effect of a different decision                                                                                                                                          |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D01 | Deliver an embedded library                                                                                                                                              | A service or UI needs separate interaction, authentication, and deployment requirements                                                                                 |
+| D02 | Support local CSV/JSON/XML, H2/SQLite, and single-response HTTP JSON; defer NoSQL                                                                                        | Additional products and HTTP workflows need explicit contracts and compatibility environments                                                                           |
+| D03 | Preserve null, empty, and missing distinctions and use explicit defaults                                                                                                 | Legacy behavior that merges these states needs a separately named migration policy                                                                                      |
+| D04 | Complete and validate transfers before publication, allowing engine-managed memory or temporary disk; retain transactional database append and complete file publication | Publishing a stream of partially processed records, append, upsert, and schema creation need different partial-failure contracts                                        |
+| D05 | Use the seven existing scalar type categories                                                                                                                            | Exact decimal, 64-bit integer, offset datetime, and binary types need additional conversion and format rules                                                            |
+| D06 | Use the proposed protective defaults; set measured performance targets separately                                                                                        | Larger workloads may require architectural work rather than only higher limits                                                                                          |
+| D07 | Persist normalization, join, and SQL query definitions as reusable transformations; include expressions and aggregates specified by the portable query profile           | Additional functions, specialized lookup operations, and custom operators need explicit input, output, ordering, and failure contracts                                  |
+| D08 | Support inner, left, right, and full equality joins with composite keys and explicit ordered steps                                                                       | Non-equality, range, fuzzy, or unrestricted cross joins need additional matching, ordering, and capacity contracts                                                      |
+| D09 | Use the documented SQLite-style read-only SQL profile, parsed and planned through Apache Calcite, as the portable query language on both backends                        | Full native SQLite or DuckDB dialect support, recursive queries, and window functions require additional compatibility contracts                                        |
+| D10 | Separate provider catalogue, operation-scoped pipeline data, definition library, and connections; explicitly publish versioned read-only views                           | A discovery-only catalogue without view publication provides less reusable query composition; writer execution through SQL would require a separate functional contract |
+| D11 | Organisation → Namespace → resources; organisation-owned design workspaces are separate editing sessions referencing namespace resources                                 | Placing namespaces under sessions would prevent the required independent resource ownership and shared configuration                                                    |
 
 The data platform decisions are confirmed: PostgreSQL 19 stores reusable definitions, Apache Calcite parses and plans portable SQL, and SQLite and DuckDB are selectable execution backends behind common public contracts. The source/destination connector matrix is independent of these roles. Planning and execution require functional compatibility and workload qualification under FR030 through FR033. These platform choices are separate from the remaining proposed scope decisions above.
 
