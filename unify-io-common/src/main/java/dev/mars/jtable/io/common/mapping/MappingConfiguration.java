@@ -100,8 +100,36 @@ public class MappingConfiguration {
         return this;
     }
 
+    /**
+     * Replaces all column mappings with the given ones, in order. The list is copied first, so
+     * passing this configuration's own list is safe.
+     *
+     * @param columnMappings the new column mappings
+     * @return this MappingConfiguration for method chaining
+     */
+    public MappingConfiguration setColumnMappings(List<ColumnMapping> columnMappings) {
+        List<ColumnMapping> copy = new java.util.ArrayList<>(columnMappings);
+        this.columnMappings.clear();
+        this.columnMappings.addAll(copy);
+        return this;
+    }
+
     public Map<String, Object> getOptions() {
         return options;
+    }
+
+    /**
+     * Replaces all options with the given ones. The map is copied first, so passing this
+     * configuration's own map is safe.
+     *
+     * @param options the new options
+     * @return this MappingConfiguration for method chaining
+     */
+    public MappingConfiguration setOptions(Map<String, Object> options) {
+        Map<String, Object> copy = new java.util.LinkedHashMap<>(options);
+        this.options.clear();
+        this.options.putAll(copy);
+        return this;
     }
 
     /**

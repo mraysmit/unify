@@ -44,7 +44,7 @@ public class PerformanceBenchmark {
      * @return performance metrics for the operation
      */
     public PerformanceMetrics benchmark(String operationName, Runnable operation) {
-        return benchmark(operationName, () -> {
+        return benchmark(operationName, (Supplier<Object>) () -> {
             operation.run();
             return null;
         });
@@ -59,7 +59,7 @@ public class PerformanceBenchmark {
      * @return performance metrics for the operation
      */
     public <T> PerformanceMetrics benchmark(String operationName, Callable<T> operation) {
-        return benchmark(operationName, () -> {
+        return benchmark(operationName, (Supplier<T>) () -> {
             try {
                 return operation.call();
             } catch (Exception e) {

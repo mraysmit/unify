@@ -93,7 +93,7 @@ public class CSVToPostgreSQLDemo {
 
         // Step 1: Create a table to hold the data
         ITable table = new TableCore("CSVToPostgreSQLDemo-InputTable");
-        logger.info("Created table: {}", table.getTableName());
+        logger.info("Created table: {}", table.getName());
 
         // Step 2: Create CSV mapping configuration
         MappingConfiguration csvMappingConfig = createCSVMappingConfiguration(csvFile);

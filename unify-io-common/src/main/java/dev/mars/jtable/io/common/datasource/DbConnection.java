@@ -216,6 +216,18 @@ public class DbConnection implements IDataSourceConnection {
         return connection;
     }
 
+    /**
+     * Opens a new JDBC connection with this definition's URL and credentials. Unlike
+     * {@link #getRawConnection()}, the caller owns the returned connection and must close it;
+     * closing it does not affect this object's own connection.
+     *
+     * @return a new, open connection
+     * @throws SQLException if the connection cannot be opened
+     */
+    public Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(connectionString, username, password);
+    }
+
     @Override
     public Map<String, Object> getProperties() {
         return properties;

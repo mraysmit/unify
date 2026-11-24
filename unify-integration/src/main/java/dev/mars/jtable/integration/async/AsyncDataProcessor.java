@@ -98,21 +98,21 @@ public class AsyncDataProcessor {
      */
     public CompletableFuture<Void> writeDatabaseAsync(ITable table, MappingConfiguration config) {
         return CompletableFuture.runAsync(() -> {
-            logger.info("Starting async database write for table: {}", table.getTableName());
+            logger.info("Starting async database write for table: {}", table.getName());
             
             try {
                 DbConnection connection = connectionManager.createSQLiteConnection(new DatabaseProperties());
                 try {
                     sqliteProcessor.writeToSQLiteDatabase(table, connection, config);
                     logger.info("Completed async database write: {} rows from {}", 
-                               table.getRowCount(), table.getTableName());
+                               table.getRowCount(), table.getName());
                 } finally {
                     if (connection.isConnected()) {
                         connection.disconnect();
                     }
                 }
-            } catch (SQLException e) {
-                logger.error("Error writing to database for table {}: {}", table.getTableName(), e.getMessage(), e);
+            } catch (SQLException | IOException e) {
+                logger.error("Error writing to database for table {}: {}", table.getName(), e.getMessage(), e);
                 throw new RuntimeException("Failed to write to database", e);
             }
         }, executorService);

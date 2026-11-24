@@ -111,7 +111,7 @@ public abstract class JdbcEngine implements ExecutionEngine {
             throw new IOException("Dataset '" + dataset + "' already exists in " + name);
         }
         TableSchema schema = source.schema();
-        String table = "t" + (++tables);
+        String table = "b" + (++tables);
         List<String> columns = new ArrayList<>(schema.size());
         for (int i = 1; i <= schema.size(); i++) {
             columns.add("c" + i);

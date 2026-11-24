@@ -16,7 +16,6 @@
 package dev.mars.jtable.integration.db;
 
 import dev.mars.jtable.core.model.ITable;
-import dev.mars.jtable.io.common.adapter.JDBCTableAdapter;
 import dev.mars.jtable.io.common.datasource.DbConnection;
 import dev.mars.jtable.io.common.mapping.MappingConfiguration;
 import dev.mars.jtable.io.files.jdbc.JDBCMappingReader;
@@ -53,11 +52,10 @@ public class PostgreSQLProcessor {
             throw new SQLException("Database connection is not established");
         }
 
-        JDBCTableAdapter adapter = new JDBCTableAdapter(table);
         JDBCMappingReader reader = new JDBCMappingReader();
 
         try {
-            reader.readData(adapter, connection, mappingConfiguration.getOptions());
+            reader.readFromDatabase(table, mappingConfiguration);
             logger.info("Successfully read {} rows from PostgreSQL database", table.getRowCount());
         } catch (Exception e) {
             logger.error("Error reading from PostgreSQL database: {}", e.getMessage(), e);
@@ -87,11 +85,10 @@ public class PostgreSQLProcessor {
             createTableIfNotExists(connection, mappingConfiguration);
         }
 
-        JDBCTableAdapter adapter = new JDBCTableAdapter(table);
         JDBCMappingWriter writer = new JDBCMappingWriter();
 
         try {
-            writer.writeData(adapter, connection, mappingConfiguration.getOptions());
+            writer.writeToDatabase(table, mappingConfiguration);
             logger.info("Successfully wrote {} rows to PostgreSQL database", table.getRowCount());
         } catch (Exception e) {
             logger.error("Error writing to PostgreSQL database: {}", e.getMessage(), e);
@@ -122,8 +119,8 @@ public class PostgreSQLProcessor {
                 createTableSQL.append(", ");
             }
             
-            String columnName = columnMapping.getTargetColumn();
-            String dataType = mapDataTypeToPostgreSQL(columnMapping.getDataType());
+            String columnName = columnMapping.getTargetColumnName();
+            String dataType = mapDataTypeToPostgreSQL(columnMapping.getTargetColumnType());
             
             createTableSQL.append(columnName).append(" ").append(dataType);
             

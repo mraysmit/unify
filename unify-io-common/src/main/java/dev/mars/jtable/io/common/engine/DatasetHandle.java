@@ -25,7 +25,7 @@ import java.util.Objects;
  * handle carries the logical name, the Unify schema (which the engine's catalogue cannot always
  * reproduce), the number of records loaded, and the generated physical names the engine uses.
  *
- * <p>Engine tables and columns use generated names ({@code t3}, {@code c1} …) because SQLite and
+ * <p>Engine tables and columns use generated names ({@code b3}, {@code c1} …) because SQLite and
  * DuckDB match identifiers case-insensitively, while Unify column names are case-sensitive
  * (FR001): {@code "Name"} and {@code "name"} are distinct columns. Logical names appear only in
  * results and diagnostics.</p>
