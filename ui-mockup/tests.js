@@ -2,27 +2,335 @@
 © Mark Andrew Ray-Smith Cityline Ltd 2025
 Version 1.4.0
 
-Single automated-test companion. From the repository root:
-  npm --prefix scripts/ui-mockup ci --ignore-scripts
-  npm --prefix scripts/ui-mockup test
-Test dependencies live outside this mockup folder.
-*/
-const { createRequire } = require("node:module");
-const testToolingRequire = createRequire(
-  require("node:path").resolve(
-    __dirname,
-    "../../scripts/ui-mockup/package.json",
-  ),
-);
+In-browser tests for the Unify mockup. Open index.html?tests from this
+folder in any modern browser; no server, Node.js, npm or other tooling is
+needed. A results panel is shown beside the live app.
 
-// Core and optional server
+  index.html?tests        run every test
+  index.html?tests=logic  run only the logic tests
+  index.html?tests=ui     run only the UI workflow tests
+
+Logic tests exercise the libraries embedded in index.html directly. UI
+workflow tests start the real app on the page, drive it, and stop it again;
+each start uses a fresh in-memory store, so mockup configuration saved in
+this browser is never read or changed.
+*/
+
+const UnifyTests = (() => {
+  const tests = [];
+  let currentGroup = "logic";
+  const group = (name) => {
+    currentGroup = name;
+  };
+  function test(name, options, fn) {
+    if (typeof options === "function") [fn, options] = [options, {}];
+    tests.push({
+      name,
+      group: currentGroup,
+      timeout: options?.timeout ?? 15000,
+      fn,
+    });
+  }
+
+  class AssertionError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = "AssertionError";
+    }
+  }
+  const show = (value) => {
+    if (value instanceof RegExp || typeof value === "function")
+      return String(value);
+    try {
+      const text = JSON.stringify(value, (_, item) =>
+        item === undefined ? "<undefined>" : item,
+      );
+      return text === undefined ? String(value) : text;
+    } catch (_) {
+      return String(value);
+    }
+  };
+  const fail = (message, fallback) => {
+    if (message instanceof Error) throw message;
+    throw new AssertionError(message || fallback);
+  };
+  const enumerableKeys = (value) =>
+    Reflect.ownKeys(value).filter((key) =>
+      Object.prototype.propertyIsEnumerable.call(value, key),
+    );
+  // Strict deep equality with the same rules as node:assert/strict.
+  function same(a, b, memo) {
+    if (Object.is(a, b)) return true;
+    if (
+      typeof a !== "object" ||
+      typeof b !== "object" ||
+      a === null ||
+      b === null
+    )
+      return false;
+    if (Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false;
+    const tag = Object.prototype.toString.call(a);
+    if (tag !== Object.prototype.toString.call(b)) return false;
+    if (memo.get(a) === b) return true;
+    memo.set(a, b);
+    if (a instanceof Date && !Object.is(a.getTime(), b.getTime()))
+      return false;
+    if (a instanceof RegExp && String(a) !== String(b)) return false;
+    if (a instanceof Error && (a.name !== b.name || a.message !== b.message))
+      return false;
+    if (a instanceof Map) {
+      if (a.size !== b.size) return false;
+      for (const [key, item] of a)
+        if (!b.has(key) || !same(item, b.get(key), memo)) return false;
+    }
+    if (a instanceof Set) {
+      if (a.size !== b.size) return false;
+      for (const item of a) if (!b.has(item)) return false;
+    }
+    if (Array.isArray(a) && a.length !== b.length) return false;
+    const keysA = enumerableKeys(a),
+      keysB = enumerableKeys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every(
+      (key) =>
+        Object.prototype.propertyIsEnumerable.call(b, key) &&
+        same(a[key], b[key], memo),
+    );
+  }
+  function checkThrown(error, expected, message) {
+    if (expected instanceof RegExp) {
+      expected.lastIndex = 0;
+      if (!expected.test(String(error)))
+        fail(
+          message,
+          `The thrown error ${show(String(error))} does not match ${expected}`,
+        );
+    } else if (typeof expected === "function") {
+      if (expected.prototype !== undefined && error instanceof expected) return;
+      if (Error.isPrototypeOf(expected) || expected === Error)
+        fail(message, `The thrown error is not a ${expected.name}`);
+      if (expected.call({}, error) !== true)
+        fail(message, "The thrown error failed the validation function");
+    } else if (expected && typeof expected === "object") {
+      for (const key of Object.keys(expected)) {
+        const want = expected[key],
+          got = error?.[key];
+        const ok =
+          want instanceof RegExp && typeof got === "string"
+            ? want.test(got)
+            : same(got, want, new Map());
+        if (!ok)
+          fail(
+            message,
+            `The thrown error's ${key} is ${show(got)}, expected ${show(want)}`,
+          );
+      }
+    }
+  }
+  const assert = {
+    ok(value, message) {
+      if (!value) fail(message, "Expected a truthy value, got " + show(value));
+    },
+    equal(actual, expected, message) {
+      if (!Object.is(actual, expected))
+        fail(message, `Expected ${show(expected)}, got ${show(actual)}`);
+    },
+    notEqual(actual, expected, message) {
+      if (Object.is(actual, expected))
+        fail(message, `Expected a value other than ${show(expected)}`);
+    },
+    deepEqual(actual, expected, message) {
+      if (!same(actual, expected, new Map()))
+        fail(
+          message,
+          `Values are not deeply equal.\nExpected: ${show(expected)}\nActual:   ${show(actual)}`,
+        );
+    },
+    match(actual, pattern, message) {
+      pattern.lastIndex = 0;
+      if (typeof actual !== "string" || !pattern.test(actual))
+        fail(message, `Expected ${show(actual)} to match ${pattern}`);
+    },
+    doesNotMatch(actual, pattern, message) {
+      pattern.lastIndex = 0;
+      if (typeof actual !== "string" || pattern.test(actual))
+        fail(message, `Expected ${show(actual)} not to match ${pattern}`);
+    },
+    throws(fn, expected, message) {
+      if (typeof expected === "string") [message, expected] = [expected, null];
+      try {
+        fn();
+      } catch (error) {
+        if (expected) checkThrown(error, expected, message);
+        return;
+      }
+      fail(message, "Expected the function to throw");
+    },
+  };
+
+  const pause = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
+  function withTimeout(promise, ms) {
+    let timer;
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`Test timed out after ${ms} ms`)),
+          ms,
+        );
+      }),
+    ]).finally(() => clearTimeout(timer));
+  }
+  async function runOne(entry) {
+    const hooks = [];
+    const context = { name: entry.name, after: (hook) => hooks.push(hook) };
+    const started = performance.now();
+    let error = null;
+    try {
+      await withTimeout(
+        Promise.resolve().then(() => entry.fn(context)),
+        entry.timeout,
+      );
+    } catch (caught) {
+      error = caught;
+    }
+    for (const hook of hooks) {
+      try {
+        await hook();
+      } catch (caught) {
+        error = error || caught;
+      }
+    }
+    return { entry, error, ms: performance.now() - started };
+  }
+
+  // The results panel lives in a shadow root so the app's own queries and
+  // the tests' document queries never see it.
+  const GROUPS = { logic: "Logic", ui: "UI workflows" };
+  let panel = null,
+    running = false;
+  function buildPanel() {
+    const host = document.createElement("div");
+    host.id = "unify-test-runner";
+    document.body.appendChild(host);
+    document.body.style.marginRight = "min(420px, 45vw)";
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML = `<style>
+      :host { all: initial; position: fixed; top: 0; right: 0; bottom: 0;
+        width: min(420px, 45vw); z-index: 2147483000; display: flex;
+        flex-direction: column; background: #fff; color: #1d2433;
+        border-left: 1px solid #d5dae3; font: 13px/1.45 system-ui, sans-serif;
+        box-shadow: -4px 0 16px rgba(0,0,0,.08); }
+      header { padding: 14px 16px 10px; border-bottom: 1px solid #e4e7ee; }
+      .title { font-size: 15px; font-weight: 650; margin-bottom: 8px; }
+      .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+      button { font: inherit; padding: 5px 10px; border-radius: 6px;
+        border: 1px solid #c4cad6; background: #f6f7fa; cursor: pointer; }
+      button:disabled { opacity: .5; cursor: default; }
+      .summary { margin-top: 10px; font-weight: 600; }
+      .summary.pass { color: #1c7c3c; } .summary.fail { color: #b42318; }
+      ol { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; }
+      li { padding: 6px 16px; border-bottom: 1px solid #f0f2f6; }
+      li .row { display: flex; gap: 8px; align-items: baseline; }
+      .mark { font-weight: 700; width: 34px; flex: none; font-size: 11px; }
+      .pass .mark { color: #1c7c3c; } .fail .mark { color: #b42318; }
+      .run .mark { color: #8a6d00; }
+      .name { flex: 1; } .ms { color: #7a8294; font-size: 11px; }
+      .group { padding: 8px 16px 4px; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .04em; color: #5b6475;
+        background: #f8f9fb; }
+      pre { white-space: pre-wrap; word-break: break-word; margin: 6px 0 2px 42px;
+        padding: 8px; background: #fdf1f0; color: #7a1d14; border-radius: 6px;
+        font: 11.5px/1.4 ui-monospace, Consolas, monospace; }
+    </style>
+    <header><div class="title">Unify mockup tests</div>
+      <div class="actions">
+        <button data-run="">Run all</button>
+        <button data-run="logic">Logic only</button>
+        <button data-run="ui">UI workflows only</button>
+      </div>
+      <div class="summary"></div></header>
+    <ol></ol>`;
+    root.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-run]");
+      if (button && !running) run(button.dataset.run || null);
+    });
+    return { host, root };
+  }
+
+  async function run(only) {
+    running = true;
+    panel = panel || buildPanel();
+    const { host, root } = panel;
+    const list = root.querySelector("ol"),
+      summary = root.querySelector(".summary");
+    root.querySelectorAll("button").forEach((b) => (b.disabled = true));
+    list.innerHTML = "";
+    summary.className = "summary";
+    host.dataset.state = "running";
+    const selected = tests.filter((entry) => !only || entry.group === only);
+    const failures = [];
+    let passed = 0,
+      lastGroup = null;
+    const started = performance.now();
+    for (const [index, entry] of selected.entries()) {
+      if (entry.group !== lastGroup) {
+        const heading = document.createElement("li");
+        heading.className = "group";
+        heading.textContent = GROUPS[entry.group] || entry.group;
+        list.appendChild(heading);
+        lastGroup = entry.group;
+      }
+      const item = document.createElement("li");
+      item.className = "run";
+      item.innerHTML = `<div class="row"><span class="mark">RUN</span><span class="name"></span><span class="ms"></span></div>`;
+      item.querySelector(".name").textContent = entry.name;
+      list.appendChild(item);
+      summary.textContent = `Running ${index + 1} of ${selected.length}…`;
+      await pause();
+      const result = await runOne(entry);
+      item.className = result.error ? "fail" : "pass";
+      item.querySelector(".mark").textContent = result.error ? "FAIL" : "PASS";
+      item.querySelector(".ms").textContent = Math.round(result.ms) + " ms";
+      if (result.error) {
+        const detail = document.createElement("pre");
+        detail.textContent =
+          (result.error?.message || String(result.error)) +
+          (result.error?.stack ? "\n\n" + result.error.stack : "");
+        item.appendChild(detail);
+        failures.push({
+          group: entry.group,
+          name: entry.name,
+          message: result.error?.message || String(result.error),
+        });
+      } else passed++;
+    }
+    const seconds = ((performance.now() - started) / 1000).toFixed(1);
+    summary.textContent = `${passed} passed, ${failures.length} failed of ${selected.length} · ${seconds}s`;
+    summary.className = "summary " + (failures.length ? "fail" : "pass");
+    document.title = `${failures.length ? "FAIL" : "PASS"} · ${passed}/${selected.length} · Unify mockup tests`;
+    Object.assign(host.dataset, {
+      state: "done",
+      passed: String(passed),
+      failed: String(failures.length),
+      failures: JSON.stringify(failures),
+    });
+    root.querySelectorAll("button").forEach((b) => (b.disabled = false));
+    running = false;
+  }
+
+  return { test, assert, group, run };
+})();
+const { test, assert } = UnifyTests;
+// The page as loaded. In test mode the app is not started, so this is the
+// original markup with every embedded script intact.
+const pageHtml = "<!doctype html>\n" + document.documentElement.outerHTML;
+
+// Core
+UnifyTests.group("logic");
 (() => {
-  const { test } = require("node:test");
-  const assert = require("node:assert/strict");
-  const { readFileSync } = require("node:fs");
-  const { join } = require("node:path");
-  const html = readFileSync(join(__dirname, "index.html"), "utf8");
-  const D = require("./data.js");
+  const html = pageHtml;
+  const D = window.UnifyData;
   const coreSource = html.match(
     /<script id="unify-core">([\s\S]*?)<\/script>/,
   )?.[1];
@@ -166,42 +474,11 @@ const testToolingRequire = createRequire(
     );
     assert.equal(C.validateStageName("Join instruments", D.stages, "join"), "");
   });
-
-  test("the optional local server serves only prototype assets and read-only requests", async (t) => {
-    const { createPreviewServer } = await import(
-      "../../scripts/ui-mockup/serve.mjs"
-    );
-    const server = createPreviewServer();
-    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-    t.after(() => new Promise((resolve) => server.close(resolve)));
-    const origin = `http://127.0.0.1:${server.address().port}`;
-    const page = await fetch(origin);
-    assert.equal(page.status, 200);
-    assert.match(await page.text(), /Unify — Data workspace/);
-    const dataResponse = await fetch(origin + "/data.js");
-    assert.equal(dataResponse.status, 200);
-    assert.match(dataResponse.headers.get("content-type"), /javascript/);
-    for (const path of [
-      "/package.json",
-      "/app.js",
-      "/core.js",
-      "/styles.css",
-      "/node_modules/jsdom/package.json",
-      "/%2e%2e%5cTECHNICAL_DESIGN.md",
-      "/%ZZ",
-    ])
-      assert.equal((await fetch(origin + path)).status, 404);
-    assert.equal((await fetch(origin, { method: "POST" })).status, 405);
-  });
 })();
 
 // CSV parsing and mapping
 (() => {
-  const { test } = require("node:test");
-  const assert = require("node:assert/strict");
-  const { readFileSync } = require("node:fs");
-  const { join } = require("node:path");
-  const html = readFileSync(join(__dirname, "index.html"), "utf8");
+  const html = pageHtml;
   const source = html.match(/<script id="unify-csv">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(source, "CSV parsing and mapping must be embedded in the HTML");
   const api = { exports: {} };
@@ -386,13 +663,8 @@ const testToolingRequire = createRequire(
 
 // Configuration processing
 (() => {
-  const { test } = require("node:test");
-  const assert = require("node:assert/strict");
-  const { readFileSync } = require("node:fs");
-  const { join } = require("node:path");
-  const { JSDOM } = testToolingRequire("jsdom");
-  const html = readFileSync(join(__dirname, "index.html"), "utf8");
-  const root = { DOMParser: new JSDOM("").window.DOMParser };
+  const html = pageHtml;
+  const root = { DOMParser: window.DOMParser };
   for (const id of ["unify-csv", "unify-config", "unify-config-query"]) {
     const source = html.match(
       new RegExp('<script id="' + id + '">([\\s\\S]*?)<\\/script>'),
@@ -1109,51 +1381,48 @@ const testToolingRequire = createRequire(
 })();
 
 // Interface workflows
+UnifyTests.group("ui");
 (() => {
-  const { test } = require("node:test");
-  const assert = require("node:assert/strict");
-  const {
-    readFileSync,
-    copyFileSync,
-    mkdtempSync,
-    unlinkSync,
-    rmdirSync,
-  } = require("node:fs");
-  const { join } = require("node:path");
-  const { tmpdir } = require("node:os");
-  const { JSDOM, VirtualConsole } = testToolingRequire("jsdom");
-  const html = readFileSync(join(__dirname, "index.html"), "utf8");
-  const D = require("./data.js");
+  const D = window.UnifyData;
   const STORAGE = "unify-ui-prototype-v1";
 
+  // In-memory stand-in for localStorage, one per simulated page load.
+  function memoryStorage() {
+    const items = new Map();
+    return {
+      get length() {
+        return items.size;
+      },
+      key: (index) => [...items.keys()][index] ?? null,
+      getItem: (key) => (items.has(key) ? items.get(key) : null),
+      setItem: (key, value) => items.set(String(key), String(value)),
+      removeItem: (key) => items.delete(key),
+      clear: () => items.clear(),
+    };
+  }
+
+  // Starting a workspace is a simulated page load: it stops any app instance
+  // still on the page, then starts a fresh one with its own store.
+  let current = null;
   function workspace(t, stored) {
+    current?.stop();
     const errors = [];
-    const console = new VirtualConsole();
-    console.on("jsdomError", (error) => {
-      // jsdom has no viewport. Navigation scroll is excluded from DOM checks.
-      if (!error.message.includes("window.scrollTo")) errors.push(error);
-    });
-    const dom = new JSDOM(readFileSync(join(__dirname, "index.html"), "utf8"), {
-      url: "http://127.0.0.1:4321/",
-      runScripts: "outside-only",
-      virtualConsole: console,
-    });
-    const w = dom.window,
-      d = w.document;
-    w.addEventListener("error", (event) => errors.push(event.error));
-    if (stored) w.localStorage.setItem(STORAGE, stored);
-    for (const script of d.querySelectorAll("script")) {
-      const src = script.getAttribute("src");
-      if (src)
-        assert.equal(
-          src,
-          "data.js",
-          "Only the separate data file may be external",
-        );
-      w.eval(
-        src ? readFileSync(join(__dirname, src), "utf8") : script.textContent,
-      );
-    }
+    const onError = (event) =>
+      errors.push(event.error || new Error(event.message));
+    window.addEventListener("error", onError);
+    const store = memoryStorage();
+    if (stored) store.setItem(STORAGE, stored);
+    const instance = window.UnifyApp.start({ storage: store });
+    let running = true;
+    const stop = () => {
+      if (!running) return;
+      running = false;
+      instance.stop();
+      if (current?.stop === stop) current = null;
+    };
+    current = { stop };
+    const w = window,
+      d = document;
     const get = (selector) => {
       const el = d.querySelector(selector);
       assert.ok(el, "Missing control: " + selector);
@@ -1172,10 +1441,15 @@ const testToolingRequire = createRequire(
     };
     const rows = () =>
       d.querySelectorAll('table[aria-label="Preview data"] tbody tr').length;
-    const saved = () => JSON.parse(w.localStorage.getItem(STORAGE));
+    const saved = () => JSON.parse(store.getItem(STORAGE));
     t.after(() => {
-      dom.window.close();
-      assert.deepEqual(errors, [], "Unexpected interface errors");
+      stop();
+      window.removeEventListener("error", onError);
+      assert.deepEqual(
+        errors.map((error) => String(error?.stack || error)),
+        [],
+        "Unexpected interface errors",
+      );
     });
     return {
       w,
@@ -1186,7 +1460,7 @@ const testToolingRequire = createRequire(
       check,
       rows,
       saved,
-      stored: () => w.localStorage.getItem(STORAGE),
+      stored: () => store.getItem(STORAGE),
     };
   }
   const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -1202,75 +1476,34 @@ const testToolingRequire = createRequire(
   }
 
   test(
-    "copied mockup runs directly from disk with only its HTML and data file",
+    "mockup runs from its folder with only its HTML and data file",
     { timeout: 5000 },
     async (t) => {
-      const directory = mkdtempSync(join(tmpdir(), "unify-mockup-"));
-      const files = ["index.html", "data.js"];
-      for (const file of files)
-        copyFileSync(join(__dirname, file), join(directory, file));
-      let dom;
-      t.after(() => {
-        dom?.window.close();
-        for (const file of files) unlinkSync(join(directory, file));
-        rmdirSync(directory);
-      });
-      const errors = [];
-      const console = new VirtualConsole();
-      console.on("jsdomError", (error) => errors.push(error));
-      dom = await JSDOM.fromFile(join(directory, "index.html"), {
-        runScripts: "dangerously",
-        resources: "usable",
-        virtualConsole: console,
-      });
-      if (dom.window.document.readyState !== "complete") {
-        await new Promise((resolve) =>
-          dom.window.addEventListener("load", resolve, { once: true }),
-        );
-      }
-      const document = dom.window.document;
+      // The page as loaded must be self-contained: one embedded style sheet,
+      // no external resources, and data.js as the only script file
+      // (tests.js is added only when the page is opened with ?tests).
+      const page = new DOMParser().parseFromString(pageHtml, "text/html");
+      assert.equal(page.querySelectorAll('link[rel="stylesheet"]').length, 0);
+      assert.equal(page.querySelectorAll("style").length, 1);
       assert.equal(
-        document.querySelectorAll('link[rel="stylesheet"]').length,
-        0,
-      );
-      assert.equal(document.styleSheets.length, 1);
-      assert.equal(
-        document.querySelectorAll(
-          "script[src]:not([src='data.js']), iframe[src], img[src], source[src], video[src], audio[src]",
+        page.querySelectorAll(
+          "link[href], iframe[src], img[src], source[src], video[src], audio[src]",
         ).length,
         0,
       );
       assert.deepEqual(
-        [...document.querySelectorAll("script[src]")].map((script) =>
+        [...page.querySelectorAll("script[src]")].map((script) =>
           script.getAttribute("src"),
         ),
-        ["data.js"],
+        ["data.js", "tests.js"],
       );
-      assert.equal(
-        document.querySelectorAll('table[aria-label="Preview data"] tbody tr')
-          .length,
-        12,
-      );
-      assert.match(
-        document.querySelector("h1").textContent,
-        /Daily holdings enrichment/,
-      );
-      const parameter = document.querySelector('[name="minimum-units"]');
-      parameter.value = "100";
-      parameter.dispatchEvent(
-        new dom.window.Event("change", { bubbles: true }),
-      );
-      document.querySelector('[data-action="preview-stage"]').click();
-      const deadline = Date.now() + 3000;
-      while (document.querySelector(".progress-strip") && Date.now() < deadline)
-        await wait(25);
-      assert.equal(document.querySelector(".progress-strip"), null);
-      assert.equal(
-        document.querySelectorAll('table[aria-label="Preview data"] tbody tr')
-          .length,
-        10,
-      );
-      assert.deepEqual(errors, []);
+      const ui = workspace(t);
+      assert.equal(ui.rows(), 12);
+      assert.match(ui.get("h1").textContent, /Daily holdings enrichment/);
+      ui.field('[name="minimum-units"]', "100");
+      ui.click('[data-action="preview-stage"]');
+      await finishPreview(ui);
+      assert.equal(ui.rows(), 10);
     },
   );
 
@@ -3990,12 +4223,5 @@ const testToolingRequire = createRequire(
   });
 })();
 
-require("node:test").test(
-  "mockup folder contains only the HTML, data, and single test companion",
-  () => {
-    require("node:assert/strict").deepEqual(
-      require("node:fs").readdirSync(__dirname).sort(),
-      ["data.js", "index.html", "mockup.test.cjs"],
-    );
-  },
-);
+const requested = new URLSearchParams(location.search).get("tests");
+UnifyTests.run(["logic", "ui"].includes(requested) ? requested : null);

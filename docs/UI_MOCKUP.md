@@ -3,17 +3,9 @@ Version 1.4.0
 
 # Unify UI/UX prototype
 
-Open [index.html](ui-mockup/index.html) directly in a browser. All UI, styling, and application JavaScript are embedded in that single HTML file. Data is separate in **data.js**.
+The mockup lives in the top-level [ui-mockup/](../ui-mockup/) folder. Open [index.html](../ui-mockup/index.html) directly in a browser. All UI, styling, and application JavaScript are embedded in that single HTML file. Data is separate in **data.js**.
 
-Copy **index.html** and **data.js** to run or share the mockup. **mockup.test.cjs** is the single optional automated-test companion. Opening the mockup needs no build step, Node.js, node_modules, internet connection, or database setup. The mockup folder contains exactly those three files. Development tooling and test dependencies are in **scripts/ui-mockup/**.
-
-An optional local server provides a consistent origin for browser storage:
-
-```powershell
-node scripts/ui-mockup/serve.mjs
-```
-
-Open **http://127.0.0.1:4321**; stop the server with Ctrl+C. Nothing is remotely hosted.
+The folder contains exactly three files: **index.html**, **data.js**, and **tests.js** (the in-browser tests). Copy **index.html** and **data.js** to run or share the mockup; add **tests.js** to run the tests too. Nothing beyond HTML and JavaScript is needed: no build step, server, Node.js, npm, internet connection, or database setup. Nothing is remotely hosted.
 
 ## Ownership and design sessions
 
@@ -110,15 +102,18 @@ The reference screenshots could not be loaded; the inspiration is based on the d
 
 ## Verification
 
-Node.js 20+ runs the optional server and tests. jsdom is a development-only dependency:
+The tests run in the browser from the same folder. Open **index.html** with `?tests` added to its address:
 
-```powershell
-npm --prefix scripts/ui-mockup ci --ignore-scripts
-npm --prefix scripts/ui-mockup test
-```
+| Address                       | Runs                                                             |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `ui-mockup/index.html?tests`       | every test                                                       |
+| `ui-mockup/index.html?tests=logic` | logic tests only: the embedded parsing, SQL, join and output libraries |
+| `ui-mockup/index.html?tests=ui`    | UI workflow tests only                                           |
+
+A results panel beside the app lists each test as it runs, with the failure message for any that fail; its buttons re-run all tests or either group. In test mode the app is not started on its own. Each UI workflow test starts the real app on the page, drives it, and stops it again, so the workflows can be watched as they run. Every start uses a fresh in-memory store, so configuration saved in the browser is never read or changed by the tests.
 
 The suite exercises parsing, conversion, mapping, schema constraints, ordered rules, composite joins, SQL, serialization, budgets and full-page DOM workflows. It also checks direct file opening with only index.html and data.js, save/reopen, parameter binding, missing-source failures, recorded JDBC/HTTP samples, JDBC APPEND requirements and the 100-record preview regression. Regression coverage also checks sample reloads for all five reader formats, retained mappings, stage-specific SQL editing, reusable pipeline snapshots, grouped expressions, custom CSV null tokens, pipeline identity isolation, per-stage parameters, captured view schemas, required sample parameters, and cumulative join generation.
 
 Structure checks cover legacy migration, empty namespaces, resource isolation, organisation ownership validation, shared namespace resources with separate session drafts, draft recovery without persisted business records, deletion and discard behavior, stale revision conflicts, first-pipeline creation, scoped settings, and catalogue paging/search over 1,200 entries.
 
-All automated checks are consolidated in **docs/ui-mockup/mockup.test.cjs**. The test-only jsdom dependency is installed under scripts/ui-mockup/node_modules. The mockup itself needs only its HTML and data file. These checks do not verify visual layout, real transport, Calcite plans, database execution or destination writes. Browser visual review remains pending.
+All automated checks are consolidated in **ui-mockup/tests.js**. The mockup itself needs only its HTML and data file. These checks do not verify visual layout, real transport, Calcite plans, database execution or destination writes. Browser visual review remains pending.

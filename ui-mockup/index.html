@@ -6320,6 +6320,25 @@ Version 1.4.0
     <script id="unify-app">
       (function () {
         "use strict";
+        // start() boots one instance of the app; stop() removes it so the
+        // in-browser tests (index.html?tests) can restart it with a clean store.
+        function start(options = {}) {
+        const storage =
+          options.storage ||
+          (() => {
+            try {
+              return window.localStorage;
+            } catch (_) {
+              return null; /* storage is optional */
+            }
+          })();
+        const listeners = new AbortController();
+        const listen = (target, type, handler, capture = false) =>
+          target.addEventListener(type, handler, {
+            capture,
+            signal: listeners.signal,
+          });
+        let stopped = false;
         const D = window.UnifyData,
           C = window.UnifyCore,
           CS = window.UnifyCsv,
@@ -6954,7 +6973,7 @@ Version 1.4.0
 
         let saved = null;
         try {
-          saved = JSON.parse(localStorage.getItem(STORAGE) || "null");
+          saved = JSON.parse(storage.getItem(STORAGE) || "null");
         } catch (_) {
           /* storage is optional */
         }
@@ -7080,7 +7099,7 @@ Version 1.4.0
         function persist() {
           try {
             captureScopedState();
-            localStorage.setItem(
+            storage.setItem(
               STORAGE,
               JSON.stringify({
                 ...savedRevision,
@@ -7146,6 +7165,7 @@ Version 1.4.0
           return `${contextControls()}<header class='global-header'><div class='breadcrumb'><span>${E(activeOrganisation().name)} / ${E(activeNamespace().name)}</span>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div><div class='global-actions'><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>`;
         }
         function render() {
+          if (stopped) return;
           app.innerHTML = `<div class='shell'>${nav()}<div class='app-body'>${header()}<main class='page' id='main-content'>${state.view === "hierarchy" ? hierarchyPage() : state.view === "configuration" ? configurationWorkspace() : state.view === "csv" ? csvWorkspace() : state.view === "workspace" ? workspace() : state.view === "providers" ? providersPage() : state.view === "catalog" ? catalog() : state.view === "sources" ? sourcesPage() : state.view === "runs" ? runsPage() : pipelinesPage()}</main></div></div>`;
           if (state.view === "workspace") highlight();
         }
@@ -8516,7 +8536,7 @@ Version 1.4.0
           }
         }
         let eventTarget = null;
-        document.addEventListener("click", (event) => {
+        listen(document, "click", (event) => {
           const node = event.target.closest("[data-action]");
           if (!node || node.disabled) return;
           eventTarget = event.target;
@@ -8547,7 +8567,7 @@ Version 1.4.0
           dispatch(node.dataset.action, node);
           persist();
         });
-        document.addEventListener("input", (event) => {
+        listen(document, "input", (event) => {
           const el = event.target;
           if (configurationChanged(el, "input")) {
             persist();
@@ -8593,14 +8613,14 @@ Version 1.4.0
             );
           }
         });
-        document.addEventListener(
+        listen(document,
           "scroll",
           (event) => {
             if (event.target.id === "sql-editor") highlight();
           },
           true,
         );
-        document.addEventListener("change", (event) => {
+        listen(document, "change", (event) => {
           const el = event.target;
           if (
             [
@@ -8741,7 +8761,7 @@ Version 1.4.0
             markDirty();
           }
         });
-        document.addEventListener("keydown", (event) => {
+        listen(document, "keydown", (event) => {
           if (event.key === "Escape" && state.modal) {
             event.preventDefault();
             closeModal();
@@ -8813,7 +8833,7 @@ Version 1.4.0
             highlight();
           }
         });
-        window.addEventListener("beforeunload", (event) => {
+        listen(window, "beforeunload", (event) => {
           if (state.dirty) {
             event.preventDefault();
             event.returnValue = "";
@@ -14283,7 +14303,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           return false;
         }
 
-        document.addEventListener(
+        listen(document,
           "toggle",
           (event) => {
             const panel = event.target;
@@ -14309,8 +14329,26 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           true,
         );
         persist();
-        window.addEventListener("beforeunload", persist);
+        listen(window, "beforeunload", persist);
         render();
+        return {
+          stop() {
+            stopped = true;
+            listeners.abort();
+            clearTimeout(toastTimer);
+            clearTimeout(runTimer);
+            app.innerHTML = "";
+            overlays.innerHTML = "";
+            document.getElementById("toast-root").innerHTML = "";
+          },
+        };
+        }
+        window.UnifyApp = { start };
+        if (/[?&]tests(?:[=&]|$)/.test(location.search)) {
+          const script = document.createElement("script");
+          script.src = "tests.js";
+          document.body.appendChild(script);
+        } else start();
       })();
     </script>
   </body>
