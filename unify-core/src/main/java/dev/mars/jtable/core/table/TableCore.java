@@ -70,6 +70,12 @@ import dev.mars.jtable.core.model.ITable;
 
 import java.util.*;
 
+/**
+ * In-memory implementation of {@link ITable}.
+ *
+ * <p><b>Frozen legacy implementation (ADR-001).</b> No new features; fixes only for defects
+ * confirmed by characterization tests. See {@link ITable}.</p>
+ */
 public class TableCore implements ITable {
     private final Map<String, IColumn<?>> columns = new LinkedHashMap<>();
     private final List<IRow> rows = new ArrayList<>();

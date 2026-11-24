@@ -85,6 +85,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * For multi-threaded scenarios:
  * 1. ConcurrentHashMap with custom ordering logic for columns
  * 2. CopyOnWriteArrayList for rows (if read-heavy)
+ *
+ * <p><b>Frozen legacy implementation (ADR-001).</b> No further qualification or features. See
+ * {@link ITable}.</p>
  */
 public class OptimizedTableCore implements ITable {
     // Read-heavy collection (mostly read after initialization)

@@ -73,6 +73,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Builds a {@link TableCore} from columns and string-valued rows.
+ *
+ * <p><b>Frozen legacy API (ADR-001).</b> No new features. See {@link ITable}.</p>
+ */
 public class TableBuilder {
     private final ITable table;
     private final Map<String, IColumn<?>> columns = new LinkedHashMap<>();

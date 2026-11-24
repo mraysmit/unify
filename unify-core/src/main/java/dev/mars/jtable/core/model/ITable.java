@@ -70,6 +70,11 @@ import java.util.Map;
 /**
  * Interface representing a table.
  * A table contains columns and rows.
+ *
+ * <p><b>Frozen legacy API (ADR-001, docs/TECHNICAL_DESIGN.md).</b> Working data lives in the
+ * selected execution engine, not in Java tables. Do not add features; new code uses the schema
+ * core ({@code dev.mars.jtable.core.schema}) and the record-stream and engine contracts in
+ * unify-io-common. {@code LegacyTables} converts existing tables to and from record streams.</p>
  */
 public interface ITable {
 

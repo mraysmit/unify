@@ -1,25 +1,100 @@
 © Mark Andrew Ray-Smith Cityline Ltd 2025\
-Version 0.1
+Version 0.2
 
 # Unify Technical Design
 
-Status: Draft derived from the functional design  
-Date: 2026-11-22  
+Status: Draft derived from the functional design; revised by ADR-001  
+Date: 2026-11-24 (version 0.1: 2026-11-22)  
 Requirements baseline: [Unify Functional Design version 0.1](FUNCTIONAL_DESIGN.md)
 
 ## Design authority and implementation status
 
 This design specifies the implementation of FR001 through FR024 and NFR001 through NFR007 in the functional design. Functional scope, value semantics, destination guarantees, and acceptance scenarios are defined there. A change to one of those contracts requires a functional design revision before an incompatible technical change.
 
-The architecture and types below are proposed. Existing repository classes are identified explicitly; new type names and configuration examples are design interfaces, not currently available APIs. This document does not claim that the implementation or its tests already conform to the target contract.
+The architecture and types below are proposed. Existing repository classes are identified explicitly; new type names and configuration examples are design interfaces, not currently available APIs, except where a section marks a type as implemented. This document does not claim that the implementation or its tests already conform to the target contract.
+
+## Architecture decisions
+
+### ADR-001 Working data lives in the selected execution engine
+
+Status: Accepted, 2026-11-24.
+
+**Decision.** Working data lives in the selected engine. Java holds schemas, value rules, bounded samples and handles to engine datasets, never whole datasets.
+
+**Context.** The inherited model reads every source into an `ITable`, a mutable, row-oriented table held in Java memory, and writes every destination from one. Connectors exchange data through `IDataSource`, which moves values as text (`addRow(Map<String, String>)`, `String getValueAt(...)`), and JDBC query results are copied back into an `ITable`. The functional design instead selects SQLite or DuckDB as the execution backend and states that completion does not require copying the working dataset into Java memory (FR009). Keeping the in-memory table at the centre would:
+
+- store every dataset twice, once in Java memory and once in the engine, capping data size at the Java heap and discarding DuckDB's larger-than-memory processing;
+- implement the same rules twice (joins, filtering, null and type handling) in Java and in the engine, so results would depend on which path ran;
+- load slowly: the current JDBC writers bind every value as text and insert one auto-committed row per statement.
+
+**Consequences.**
+
+- Readers produce a `RecordSource`: bounded `RecordBatch`es whose values are already checked against a `TableSchema`. No reader fills a table.
+- Each engine has one loader. DuckDB uses its native appender. SQLite uses one prepared, typed INSERT executed in batches inside a single transaction, into a STRICT table.
+- A loaded dataset is referenced by a `DatasetHandle` (engine, name, Unify schema, record count). The schema travels with the handle because an engine catalogue cannot always reproduce Unify logical types.
+- Destinations consume query results as streamed `RecordSource`s.
+- Java may hold schemas, value rules, one batch per open stream, previews and samples within configured limits, and handles. It never holds a whole source, intermediate or result dataset.
+- Unify, not the engine, owns conversion and the null, missing and empty rules, and applies them before loading. Each engine adapts storage types and restores logical types from the schema when results are read.
+- Engine SQL is an internal contract. Public portable SQL reaches an engine only after Apache Calcite has parsed, validated and translated it.
+- Both engines must pass the same contract suite, which roughly doubles backend qualification work; ADR-002 records why both are kept.
+- Memory budgeting moves from the Java heap to engine memory and temporary disk.
+- The legacy `ITable`, `TableCore`, `OptimizedTableCore`, `Column`, `Row`, `Cell` and `TableBuilder` model is frozen (see Compatibility and migration). The programmatic table of UC01 is rebuilt later on the schema core as an in-memory source, not as working storage.
+
+**Rejected alternative.** Harden `ITable`/`TableCore` into strict canonical storage with schema metadata, strict normalization and atomic mutations (version 0.1, stage 2). It would invest in a component the architecture no longer places on the data path and would make the double storage and duplicated rules permanent.
+
+**Evidence.** The proof slice `LargerThanHeapSliceTest` streams a CSV file into DuckDB through the appender, runs a filter query, and streams the result to a CSV file, sampling the Java heap after garbage collection every 256 batches. Run on 2026-11-24 (Windows 11, DuckDB 1.5.6, Java heap capped at 64 MB):
+
+| Measure | Result |
+| --- | --- |
+| CSV input | 1,024 MB, 24,247,795 records: 16 times the maximum heap |
+| Load into DuckDB (appender) | 56.8 s |
+| Filter query streamed to CSV | 3.0 s, 1,814,594 records |
+| Java heap retained after GC | 4.1 MB to 5.5 MB across 100 checkpoints |
+| Output checks | Record count, ID checksum, ordering and filter condition all match the generated data |
+
+Rerun with `mvn -o test -pl unify-io-files -Dtest=LargerThanHeapSliceTest -DargLine="-Xmx64m -Dunify.slice.megabytes=1024"`. The load rate (about 430,000 records per second) is unoptimised: CSV parsing is character by character and the appender is called once per value. No throughput target is claimed (see Verification strategy).
+
+### ADR-002 SQLite for small integrations, DuckDB for large and analytical work
+
+Status: Accepted, 2026-11-24. The record-count thresholds in the selection guidance are provisional until TD09 evidence covers joins and aggregation.
+
+**Decision.** SQLite is the recommended execution engine for small integrations: few records, simple pipelines, short-lived operations, and hosts that run many operations or must start quickly. DuckDB is the engine for large or analytical work: large inputs, multi-way joins, aggregation, and anything that may exceed memory. A host's explicitly configured default should be SQLite unless its workload is mostly large. Selection stays exactly as the functional design defines it: per operation, directly or through an explicitly configured default, resolved before source reads, and recorded with the engine's actual version.
+
+**Context.** The functional design assigns SQLite to lightweight local processing and DuckDB to analytical and join-heavy work, but gives no basis for choosing between them. ADR-001 validated DuckDB for larger-than-heap streaming. It says nothing about the cost of a small operation, which is the most common kind of integration.
+
+**Evidence.** A load-and-filter workload (load N records of four columns, then a filtered, ordered query streamed back) was measured on 2026-11-24 with the engines described in Execution engines. The test machine was an Intel Core i7-1255U (12 logical processors, 32 GB) running Windows 11 and Java 26, with in-memory databases. Figures are medians of five fresh JVM processes. Warm figures average five further cycles inside each process, after the native library is loaded.
+
+| Measure | SQLite 3.42 | DuckDB 1.5.6 |
+| --- | --- | --- |
+| Open an engine, warm JVM | 0.4 to 0.6 ms | 14 to 22 ms |
+| Open, load, query and close: 1,000 records, warm | 6.5 ms | 25.3 ms |
+| Same cycle: 100,000 records, warm | 188 ms | 138 ms |
+| Same cycle: 1,000,000 records, warm | 1,955 ms | 1,133 ms |
+| First open in a fresh JVM (range over five runs) | 0.49 to 0.69 s | 0.69 to 0.96 s |
+| Peak process memory at 1,000 records (a bare JVM: 42 MB) | 70 MB | 77 MB |
+| Driver jar | 12.4 MB | 81.2 MB |
+| Native library, Windows x64 (Linux x64) | 0.9 MB | 33.5 MB (58 MB) |
+
+For this workload SQLite is faster up to somewhere between 1,000 and 100,000 records, and DuckDB is faster beyond that. Joins and aggregation were not measured. They are expected to favour DuckDB at smaller sizes, because DuckDB executes vectorised and in parallel while SQLite runs each query on one thread. First-open times are dominated by each driver unpacking its native library into the temporary directory, plus antivirus scanning of the new file, so they vary between runs.
+
+**Consequences.**
+
+- Both engines stay in the baseline and pass the same contract suite. This resolves the open question of whether SQLite as an execution engine, as distinct from SQLite as a connector, justifies the extra qualification work.
+- Small operations pay about half a millisecond to open an engine instead of 15 to 20 ms, and complete about four times faster at 1,000 records.
+- A host that only uses SQLite should not have to ship DuckDB's 81 MB driver, so the DuckDB engine becomes an optional dependency (see Execution engines).
+- SQLite brings engineering obligations: a minimum version, a fixed-width temporal text form, a memory cap, and single-threaded execution (see SQLite engine requirements).
+- Automatic selection by input size is not part of this baseline. Selection is resolved before source reads, when input size is usually unknown, and the functional design defines it as the host's explicit choice. An automatic policy would need a functional design revision.
+
+**Rejected alternatives.** *DuckDB only:* qualification would be simpler, but every small operation would pay DuckDB's open cost, memory and packaging. *SQLite only:* it cannot serve large, analytical or larger-than-memory work; the ADR-001 evidence depends on DuckDB.
 
 ## Repository baseline
 
 | Area | Existing implementation | Required technical change |
 | --- | --- | --- |
-| Tables | [`ITable`](../unify-core/src/main/java/dev/mars/jtable/core/model/ITable.java), [`TableCore`](../unify-core/src/main/java/dev/mars/jtable/core/table/TableCore.java), `Column`, `Row`, `Cell`, `TableBuilder` | Introduce explicit schema metadata, strict value normalization, and atomic mutations |
-| Alternative tables | `OptimizedTableCore`, `ProfiledOptimizedTableCore`, collection profiler | Share canonical semantics; qualify each implementation with the same contract tests |
-| I/O contracts | [`IDataReader`](../unify-io-common/src/main/java/dev/mars/jtable/io/common/datasource/IDataReader.java), `IDataWriter`, `IDataSourceConnection`, table adapters | Add typed requests, lifecycle ownership, connector capabilities, and operation results |
+| Tables | [`ITable`](../unify-core/src/main/java/dev/mars/jtable/core/model/ITable.java), [`TableCore`](../unify-core/src/main/java/dev/mars/jtable/core/table/TableCore.java), `Column`, `Row`, `Cell`, `TableBuilder`, `ColumnFactory`. Every dataset is held in Java memory. Columns hold only a name, Java class and default; null is always accepted; date and time defaults use the clock; missing-field defaults differ between `addRow(Map)` and `addRow(IRow)`/`TableBuilder`; columns can be added or replaced on a populated table; rows are stored by reference and new cells skip validation; double text depends on the platform locale or a per-row cache that can go stale | Freeze as the legacy compatibility surface (ADR-001). The new schema core (`TableSchema`, `ColumnDefinition`, `ValueNormalizer`, `RecordBatch`) carries types and value rules; working data moves to the execution engine. `LegacyTables` converts between the two. Rebuild UC01's programmatic table later on the schema core as an in-memory source |
+| Alternative tables | `OptimizedTableCore`, `ProfiledOptimizedTableCore`, collection profiler | Frozen with the legacy model; no further qualification work |
+| I/O contracts | [`IDataReader`](../unify-io-common/src/main/java/dev/mars/jtable/io/common/datasource/IDataReader.java), `IDataWriter`, `IDataSourceConnection`, table adapters. Readers fill an `ITable`; `IDataSource` moves every value as text | Replace with streamed, typed record batches (`RecordSource`, `RecordSink`) plus typed requests, lifecycle ownership, connector capabilities, and operation results. Legacy contracts are frozen |
+| Execution engines | None. H2 and SQLite appear only as JDBC connectors and in demos | `ExecutionEngine` with DuckDB and SQLite implementations holds working data (ADR-001; see Execution engines) |
 | Mappings | [`MappingConfiguration`](../unify-io-common/src/main/java/dev/mars/jtable/io/common/mapping/MappingConfiguration.java), `ColumnMapping`, JSON/YAML/JDBC serializers | Compile immutable validated mappings and introduce a versioned configuration envelope |
 | CSV | Separate readers, writers, and mapping readers/writers | Share one parser and one mapping execution path; retain quote provenance |
 | JSON | Jackson parsing with first-record inference; some errors are printed and swallowed | Use bounded parsing and the common normalization and result pipeline |
@@ -27,7 +102,7 @@ The architecture and types below are proposed. Existing repository classes are i
 | JDBC | Readers and writers with separate connection paths; mapping writer binds strings and executes inserts individually | Use one connection lease per write, typed binding, metadata checks, and an explicit transaction |
 | HTTP | `RESTConnection` and `RESTReader`; separate simplified response parsing | Use the same JSON decoder as file input, finite timeouts, and explicit response cleanup |
 | NoSQL | Placeholder connection and sample-record reader | Exclude from the supported connector registry |
-| Integration | CSV-to-H2 and CSV-to-SQLite demos and tests | Turn representative flows into acceptance coverage without making demos production orchestration |
+| Integration | CSV-to-H2 and CSV-to-SQLite demos and tests. The module does not compile: `IntegrationBenchmarkDemo` and several tests call `MappingConfiguration.setColumnMappings` and `setOptions`, which have never existed | Restore compilation, then turn representative flows into acceptance coverage without making demos production orchestration |
 
 The root [POM](../pom.xml) declares Java 23 properties but configures compiler source and target 17. The proposed baseline is Java 17 bytecode, expressed once using the compiler release setting. Implementation must first verify that the source and selected dependencies satisfy that baseline and align the README and module configuration. A different supported Java baseline is a documented technical decision, not an incidental compiler setting.
 
@@ -42,6 +117,8 @@ flowchart TD
     Facade --> SPI[Connector contracts in unify-io-common]
     Implementations[Connectors in unify-io-files] --> SPI
     Implementations --> Core
+    Engines[DuckDB and SQLite engines in unify-io-files] --> SPI
+    Facade --> Engines
     Host --> Implementations
     Integration[unify-integration] --> Facade
     Integration --> Implementations
@@ -53,9 +130,9 @@ flowchart TD
 
 | Module | Target responsibility |
 | --- | --- |
-| `unify-core` | Logical types, schema, typed cells, conversion, validation, table storage, and table contracts; no connector dependencies |
-| `unify-io-common` | Immutable operation definitions, mapping compiler, orchestration, capabilities, credential-provider contract, lifecycle leases, results, and configuration serialization |
-| `unify-io-files` | Physical parsers, encoders, file publication, JDBC dialects and transport, HTTP transport, and connector registration |
+| `unify-core` | Logical types, schema, record batches, conversion, and validation; no connector dependencies and no working-data storage. Also holds the frozen legacy table model |
+| `unify-io-common` | Record-stream and execution-engine contracts, immutable operation definitions, mapping compiler, orchestration, capabilities, credential-provider contract, lifecycle leases, results, configuration serialization, and the legacy-table converter |
+| `unify-io-files` | Physical parsers and encoders as record sources and sinks, file publication, DuckDB and SQLite execution engines, JDBC dialects and transport, HTTP transport, and connector registration |
 | `unify-integration` | Executable examples and acceptance workflows using public APIs |
 | `unify-coverage` | Coverage aggregation; no production behavior |
 
@@ -67,22 +144,23 @@ Keep logging through SLF4J. Logging bindings belong to the host or runnable demo
 
 ### Target types
 
-| Proposed type | Contents and invariant |
-| --- | --- |
-| `LogicalType` | STRING, INT32, DOUBLE, BOOLEAN, DATE, TIME, LOCAL_DATETIME |
-| `ColumnDefinition` | Name, logical type, nullability, optional typed default, validation rules, and text conversion settings |
-| `TableSchema` | Immutable ordered column definitions plus an immutable name-to-index lookup |
-| `SourceValue` | Explicit MISSING, NULL, or SCALAR value; source scalar may retain its original lexical token |
-| `CellValue` | NULL or one value of the declared logical type; MISSING never enters table storage |
-| `TypedRow` | A fixed-length ordered vector of validated cells |
-| `TableSnapshot` | Immutable schema and rows, with no open source resources |
-| `MutableTable` | Schema-fixed storage with validated atomic append and cell-update operations |
+The core describes data; it does not store working datasets (ADR-001). Types marked implemented exist in `dev.mars.jtable.core.schema`.
 
-Canonical Java representations are `String`, `Integer`, `Double`, `Boolean`, `LocalDate`, `LocalTime`, and `LocalDateTime`. Internal null cells use an explicit null representation. API adapters may expose Java null where required by existing signatures.
+| Type | Contents and invariant | Status |
+| --- | --- | --- |
+| `LogicalType` | STRING, INT32, DOUBLE, BOOLEAN, DATE, TIME, LOCAL_DATETIME, each with one canonical Java class | Implemented |
+| `ColumnDefinition` | Name (nonblank, case-sensitive, not trimmed), logical type, and nullability. Optional typed default, validation rules, and text conversion settings are added with the normalizer stages that apply them | Implemented: name, type, nullability |
+| `TableSchema` | Immutable ordered column definitions plus an immutable name-to-index lookup; at least one column; unique names | Implemented |
+| `ValueNormalizer` | The shared value rules: strict text conversion, typed-value checks, canonical text output | Implemented: conversion stages 4 to 6 below |
+| `RecordBatch` | A bounded, immutable group of records checked against one schema. NULL is Java null; MISSING never reaches a batch | Implemented |
+| `SourceValue` | Explicit MISSING, NULL, or SCALAR value; source scalar may retain its original lexical token | Proposed |
+| `InMemoryTable` | The programmatic table of UC01: schema-fixed, bounded, with whole-record append and validated cell update. It is an in-memory source and sink that is loaded into the engine like any other, not working storage | Proposed (replaces `TableSnapshot` and `MutableTable`) |
 
-Validate a full candidate row before appending it. Convert and validate an updated value before replacing its cell. Never mutate shared schema metadata or expose mutable backing collections. A schema can be replaced only while a table has no rows; conversion of populated data creates a new table.
+Canonical Java representations are `String`, `Integer`, `Double`, `Boolean`, `LocalDate`, `LocalTime`, and `LocalDateTime`.
 
-Use ordered column vectors and a name-to-index lookup rather than repeatedly building column lists for indexed access. Begin with ordinary operation-confined collections. Concurrent collection selection is an implementation option only after correctness and workload measurements; it does not establish table-wide thread safety.
+A record is checked whole before it is added to a batch, so a rejected record leaves the batch unchanged. "Atomic" in this design means all-or-nothing within one thread: a failed operation has no partial effect. It does not imply thread safety. `InMemoryTable` applies the same rule to append and cell update, copies records on insert, exposes only read-only views, and fixes its schema once records exist; changing the columns of populated data creates a new table.
+
+Use ordered column vectors and a name-to-index lookup rather than repeatedly building column lists for indexed access. Begin with ordinary operation-confined collections. Concurrent collection selection is an implementation option only after correctness and workload measurements; it does not establish thread safety.
 
 ### Conversion and validation pipeline
 
@@ -98,7 +176,9 @@ One `ValueNormalizer` implements the following order for every connector and pro
 
 Defaults are normalized and validated when compiling the configuration. Validation metadata itself must be consistent: minimum cannot exceed maximum, and rules must apply to the declared type. The pipeline never manufactures a date using the clock and never uses permissive boolean conversion that maps arbitrary tokens to false.
 
-Typed doubles use canonical value formatting on output. The old per-row `originalDoubleStrings` behavior is not part of the new value contract. Any lexical compatibility behavior retained for legacy entry points is isolated from canonical table storage.
+`ValueNormalizer` currently implements stages 4 to 6 for text input: nullability, conversion of the ISO and decimal text forms, and rejection of overflow, non-finite doubles, unrecognized booleans and invalid temporal fields. It never trims. Null tokens and empty-as-null are applied by the format source before conversion (the CSV source does both). Stages 1 to 3 and 7 arrive with defaults, trimming and validation rules in `ColumnDefinition`.
+
+Typed values use one canonical, locale-independent text form on output: `Double.toString` for doubles (the shortest text that converts back to the same value, always with `.` as the separator, and exponent notation outside 10⁻³ to 10⁷), `true`/`false` for booleans, and ISO-8601 local forms for temporal values. Every canonical form converts back to the same value. The old per-row `originalDoubleStrings` behavior is not part of the new value contract. Any lexical compatibility behavior retained for legacy entry points stays in the legacy model.
 
 ### Inference algorithm
 
@@ -128,21 +208,79 @@ ValidationResult validate(OperationDefinition definition);
 PreviewResult preview(PreviewRequest request, ExecutionContext context);
 ```
 
-`ExecutionContext` contains the operation identifier, clock/deadline, cancellation signal, limits, credential provider, and diagnostic policy. Requests are immutable snapshots. A write takes a table snapshot so concurrent host mutation cannot change the data after validation.
+`ExecutionContext` contains the operation identifier, clock/deadline, cancellation signal, limits, credential provider, selected execution engine, and diagnostic policy. Requests are immutable snapshots. A write reads from an engine dataset or a record source, never from a table the host can still mutate.
 
-`validate` checks configuration and declared capabilities without opening a destination for mutation. Source-aware validation occurs during preview or execution. Expected configuration, data, transport, and publication failures return typed results. `ReadResult` exposes a table only on successful completion. A legacy exception-based facade may adapt failures to existing exceptions while retaining the structured result as context.
+`validate` checks configuration and declared capabilities without opening a destination for mutation. Source-aware validation occurs during preview or execution. Expected configuration, data, transport, and publication failures return typed results. `ReadResult` exposes, on successful completion only, a `DatasetHandle` (the records stay in the engine) and any bounded preview sample. A legacy exception-based facade may adapt failures to existing exceptions while retaining the structured result as context.
 
-| Proposed connector contract | Responsibility |
-| --- | --- |
-| `ConnectorDescriptor` | Identifier, typed option schema, supported directions, types and shapes, verified products, ownership modes, and publication guarantee |
-| `SourceConnector` | Open an owned or borrowed `RecordCursor` and expose source metadata |
-| `RecordCursor` | Produce one complete located raw record at a time and report recoverable record errors separately from fatal parsing errors |
-| `DestinationConnector` | Validate representation and destination metadata, then create a `WriteSession` |
-| `WriteSession` | Write prepared rows, publish or commit once, abort if possible, expose publication state, and release resources |
-| `ResourceLease` | Associate a resource with OWNED or BORROWED lifecycle policy |
-| `CredentialProvider` | Resolve a typed credential reference in memory without making it serializable configuration |
+| Connector contract | Responsibility | Status |
+| --- | --- | --- |
+| `RecordSource` | Stream checked records in bounded `RecordBatch`es under a schema known before the first batch; single-use; closing releases owned resources | Implemented (`unify-io-common`) |
+| `RecordSink` | Accept batches; publish only on `complete()`; closing without completing discards the output | Implemented (`unify-io-common`) |
+| `ConnectorDescriptor` | Identifier, typed option schema, supported directions, types and shapes, verified products, ownership modes, and publication guarantee | Proposed |
+| `SourceConnector` | Open an owned or borrowed `RecordSource` and expose source metadata. Each codec's raw-record scanner is internal to its source | Proposed |
+| `DestinationConnector` | Validate representation and destination metadata, then create a `WriteSession` | Proposed |
+| `WriteSession` | A `RecordSink` that also exposes publication state, aborts if possible, and supports commit-once destinations | Proposed |
+| `ResourceLease` | Associate a resource with OWNED or BORROWED lifecycle policy | Proposed |
+| `CredentialProvider` | Resolve a typed credential reference in memory without making it serializable configuration | Proposed |
+
+`CsvRecordSource` and `CsvRecordSink` are the first implemented connectors on this contract. The source parses RFC 4180 incrementally against an explicit schema, reports errors by the line on which the failing record starts without echoing field contents, and distinguishes the unquoted null token, quoted literals, and empty text. The sink writes canonical text to a temporary file in the target directory and moves it to the target name only on completion, refusing an existing target; verified publication modes remain TD04.
 
 The registry contains CSV, JSON, XML, H2 JDBC, SQLite JDBC, and HTTP JSON implementations when their required capabilities are implemented and verified. It must not register the current NoSQL sample reader as supported. Product verification metadata includes the driver and product versions exercised by release tests; generic JDBC availability is not proof of compatibility.
+
+## Execution engines
+
+An `ExecutionEngine` holds an operation's working data (ADR-001). Records enter through `load` and leave as streams through `query` and `scan`; Java never holds a whole dataset. An engine instance is operation-scoped and single-threaded. `DuckDbEngine` and `SqliteEngine` in `unify-io-files` implement the contract, sharing `JdbcEngine` for dataset creation, all-or-nothing loading, result streaming, and strict result conversion.
+
+| Operation | Contract |
+| --- | --- |
+| `load(dataset, source)` | Creates a table from the source's schema and loads every record in one transaction. On any failure, including a source failing part-way, the table and its rows are rolled back and no dataset of that name remains. Returns a `DatasetHandle` |
+| `query(sql, resultSchema, batchSize)` | Runs a read-only query and streams the result. Until Calcite validation supplies result types, the caller declares the result schema. Column count and labels must match it exactly, and every value must convert strictly to the declared type: integers must fit INT32, text is never coerced to numbers, and NULL in a non-nullable column fails. Errors name the result record |
+| `scan(handle, batchSize)` | Streams a loaded dataset using the schema recorded in its handle |
+| `drop(dataset)` | Removes a dataset; dropping a missing dataset does nothing |
+| `name()`, `version()` | Backend identity and actual version, recorded in operation results (FR011) |
+
+Identifiers are always quoted, so any dataset or column name, including reserved words and embedded quotes, is safe. The SQL accepted by `query` is backend SQL and is not exposed publicly: the public API accepts only portable SQL that Calcite has parsed, validated and translated for the selected backend. Read-only enforcement for engine queries arrives with that translation layer.
+
+| Logical type | DuckDB column | SQLite STRICT column |
+| --- | --- | --- |
+| STRING | VARCHAR | TEXT |
+| INT32 | INTEGER | INTEGER |
+| DOUBLE | DOUBLE | REAL |
+| BOOLEAN | BOOLEAN | INTEGER with CHECK (value IN (0, 1)) |
+| DATE | DATE | TEXT, ISO-8601 `yyyy-MM-dd` |
+| TIME | TIME | TEXT, fixed-width ISO-8601 (see SQLite engine requirements) |
+| LOCAL_DATETIME | TIMESTAMP | TEXT, fixed-width ISO-8601 (see SQLite engine requirements) |
+
+Non-nullable columns are declared NOT NULL, so the engine enforces nullability as well as the batch.
+
+**DuckDB loader.** The native appender (`DuckDBAppender`) appends each checked value with its typed method inside the load transaction. Query results stream with `jdbc_stream_results`, so DuckDB does not materialize a whole result before the first batch. With a database file, DuckDB can spill intermediate work to disk; the caller owns and removes the file.
+
+**SQLite loader.** One prepared INSERT with typed bindings, executed in statement batches of 1,000 inside the single load transaction. STRICT tables make SQLite itself reject a value of the wrong storage class; booleans and temporal values are restored from the dataset schema on read.
+
+### Choosing an engine
+
+ADR-002 sets the roles: SQLite for small integrations, DuckDB for large and analytical work. The host chooses per operation or through its explicitly configured default; the choice is resolved before source reads and recorded with the engine version.
+
+| Choose | When |
+| --- | --- |
+| SQLite | Up to tens of thousands of records per operation (provisional); single-source or simple pipelines; many short operations in one host; command-line or one-shot processes where start-up time matters; small deployments that should not ship DuckDB |
+| DuckDB | Around 100,000 records or more (provisional); joins over large inputs; aggregation and other analytical SQL; inputs that may exceed memory; operations that should use several cores |
+
+The thresholds come from the load-and-filter measurements in ADR-002, where the crossover lies between 1,000 and 100,000 records. TD09 replaces them with figures from a repeatable benchmark that includes joins and aggregation. A pipeline that is portable under FR032 runs unchanged on either engine, so a host can change its default or override one operation without rewriting definitions.
+
+### SQLite engine requirements
+
+- **Minimum version 3.39.** RIGHT and FULL OUTER JOIN, which the join baseline requires, arrived in SQLite 3.39. STRICT tables need 3.37. The current driver (sqlite-jdbc 3.42.0.0) bundles SQLite 3.42. Release verification records the bundled SQLite version and fails below the minimum.
+- **Fixed-width temporal text.** The current loader stores DATE, TIME and LOCAL_DATETIME using `java.time`'s `toString`, which omits zero seconds and varies the length of the fraction. Equal values still produce equal text, and text order matches time order. But a literal or parameter written differently, for example `'10:15:00'` against a stored `'10:15'`, does not compare equal. Before qualification, store fixed-width text: `yyyy-MM-dd`, `HH:mm:ss.nnnnnnnnn` and `yyyy-MM-ddTHH:mm:ss.nnnnnnnnn`. The Calcite translation must render temporal literals and parameters in the same form, and map portable temporal functions to SQLite's text-based date and time functions.
+- **Memory cap.** An in-memory SQLite database grows until the process runs out of memory. Derive a limit from the operation's `LimitBudget` and enforce it with `PRAGMA hard_heap_limit` or a page-count limit. An operation that may exceed it uses a database file, or is a candidate for DuckDB.
+- **Single-threaded execution.** SQLite runs each query on the calling thread with no parallelism. That suits small operations and is one reason large ones belong on DuckDB.
+- **Cold start.** Both drivers unpack their native library into the temporary directory the first time a JVM loads them, which dominates first-open time. Long-running hosts pay this once. One-shot processes can point sqlite-jdbc at a pre-installed native library (`org.sqlite.lib.path`).
+
+### Packaging
+
+`unify-io-files` currently depends on both drivers. DuckDB becomes an optional dependency, declared optional in Maven and `requires static duckdb.jdbc` in the module descriptor, so a SQLite-only host does not ship 81 MB of driver and DuckDB loads only when selected. The SQLite driver remains a runtime dependency. Selecting an engine whose driver is absent fails validation with a clear error before any source is read.
+
+**Open items.** Calcite integration and portable SQL translation; engine memory limits, temporary directories, and their place in `LimitBudget`; cancellation and deadlines during load and query; record-level rejection budgets during load (FR010); a larger-than-heap proof per connector and for SQLite with a database file; SQLite fixed-width temporal storage and memory cap; optional DuckDB packaging; and the TD09 engine-selection benchmark.
 
 ## Versioned configuration
 
@@ -190,7 +328,7 @@ Existing JDBC mapping persistence may remain available through the legacy compat
 ```mermaid
 flowchart LR
     A[Validate definition] --> B[Read and resolve schema]
-    B --> C[Normalize and materialize]
+    B --> C[Normalize and load into the engine]
     C --> D[Prepare all output values]
     D --> E[Validate destination]
     E --> F[Write staged file or transaction]
@@ -203,7 +341,7 @@ flowchart LR
     G -. uncertain .-> X
 ```
 
-Each stage checks cancellation and the deadline. Generate the operation identifier before validation so configuration failures also have an identifier. Close source resources after materialization and before destination writes, including when source and destination use the same SQLite database or local file.
+Each stage checks cancellation and the deadline. Generate the operation identifier before validation so configuration failures also have an identifier. Close source resources after their records are loaded into the execution engine and before destination writes, including when source and destination use the same SQLite database or local file.
 
 Preview stops after its sample limit and reports whether EOF was observed or sampling was capped. Schema inference during preview uses only that sample. Validation of later data is performed by a new full execution; preview does not cache a promise of source consistency.
 
@@ -327,9 +465,9 @@ Use explicit closeable leases and structured cleanup, with suppressed cleanup fa
 
 ## Limits cancellation and diagnostic safety
 
-Use one `LimitBudget` per invocation. It enforces physical input bytes, complete records, columns, per-value UTF-8 bytes, aggregate materialized value bytes, retained issues, and the overall deadline. The functional design defines the initial values. Encoded input size and materialized-value size are different budgets; defaults, JSON unescaping, and projection can change their relationship.
+Use one `LimitBudget` per invocation. It enforces physical input bytes, complete records, columns, per-value UTF-8 bytes, aggregate loaded value bytes, retained issues, and the overall deadline. The functional design defines the initial values. Encoded input size and loaded-value size are different budgets; defaults, JSON unescaping, and projection can change their relationship.
 
-Read incrementally even though accepted records are ultimately materialized. Reject excessive headers, column counts, nesting, or scalar lengths before allocating unbounded buffers. Raw inference samples and accepted typed records share the operation's materialization budget. Preparing output must not create a second unbounded copy; retain a bounded prepared representation or rescan the immutable snapshot with the same deterministic plan.
+Read incrementally: accepted records are loaded into the execution engine, not retained in Java (ADR-001). Java memory holds at most one batch per open stream, plus bounded inference and preview samples. Reject excessive headers, column counts, nesting, or scalar lengths before allocating unbounded buffers. Engine storage is governed by engine memory and temporary-disk limits, which join the `LimitBudget` (see Execution engines). Preparing output streams from the engine with the same deterministic plan; it never creates a copy in Java.
 
 Check cancellation between records, batches, and immediately before publication. Use supported statement timeout/cancel APIs and transport timeouts for blocking calls. A deadline requests cooperative termination; it is not an in-process thread-kill guarantee when a driver ignores cancellation. After an overdue blocking call returns, do not begin publication. Qualify supported drivers with cancellation tests and document any maximum blocking interval. Never report rollback until it is confirmed.
 
@@ -341,7 +479,9 @@ An explicit value-diagnostics mode may include record values after host-controll
 
 Introduce the strict facade and configuration version without silently changing current `ITable`, reader/writer, and serializer behavior. Characterize existing observable behavior before redirecting old entry points. Legacy APIs remain a clearly named compatibility surface during a documented deprecation period; they do not establish conformance with the strict functional baseline.
 
-Where feasible, legacy adapters delegate to canonical storage with an explicit legacy normalization or presentation policy. Keep changes requiring different semantics behind the strict API until a declared breaking release. Do not permit mixed strict and legacy mutation of the same execution snapshot.
+Where feasible, legacy adapters delegate to the strict path with an explicit legacy normalization or presentation policy. Keep changes requiring different semantics behind the strict API until a declared breaking release. Do not permit mixed strict and legacy mutation of the same execution snapshot.
+
+The legacy table model (`ITable`, `TableCore`, `OptimizedTableCore`, `ProfiledOptimizedTableCore`, `Column`, `ColumnFactory`, `Row`, `Cell`, `TableBuilder`) and the text-based connector contracts (`IDataSource`, `IDataReader`, `IDataWriter`) are frozen by ADR-001: no new features, and fixes only for defects confirmed by characterization tests. `LegacyTables` (`unify-io-common`) bridges them to the strict path. `toRecordSource` streams an `ITable` into an engine or sink. `toTable` reads a record source into a new `ITable` but fails above a stated record limit, because a legacy table holds everything in Java memory; it is for previews and small results only. Converted columns are nullable, and only the seven Java types with a Unify logical type are accepted.
 
 Unify ordinary and mapping readers/writers behind the same codec and mapping pipeline after their compatibility boundaries are explicit. Retire swallowed exceptions, implicit type inference in writers, and ad hoc connection creation in the strict path. Do not preserve the NoSQL sample output as a successful strict connector result.
 
@@ -353,7 +493,8 @@ Mockito and substitute mocking frameworks are prohibited. Use real implementatio
 
 | Verification layer | Required coverage |
 | --- | --- |
-| Core behavior | Atomic mutation, strict conversion, null/default distinctions, inference combination rules, schema order, validation, and limit arithmetic |
+| Core behavior | Whole-record batch acceptance, strict conversion, null/default distinctions, inference combination rules, schema order, validation, and limit arithmetic |
+| Execution engines | One contract suite run against every engine: round trip of every logical type and null, rollback of a failed load, declared-schema enforcement on results, identifier quoting, and legacy conversion (`ExecutionEngineContractTest`). Larger-than-heap streaming with flat retained heap (`LargerThanHeapSliceTest`, ADR-001) |
 | Property tests | Logical-value round trips under an explicit schema; mapping-order preservation; mutation failure leaves state unchanged |
 | File fixtures | Actual encoded files with quoting, line breaks, Unicode, malformed encoding, null-token collisions, empty data, and mid-write failures |
 | File publication | Actual temporary directories; CREATE_NEW races; replacement failures; unsupported-provider behavior; old-file preservation; cleanup |
@@ -376,13 +517,13 @@ Technical sections below are named design areas; acceptance identifiers refer to
 
 | Requirement | Implementing design areas | Acceptance coverage |
 | --- | --- | --- |
-| FR001 | Core schema and table model; public execution API | AC01 |
+| FR001 | Core schema model; `InMemoryTable`; public execution API | AC01 |
 | FR002 | Inference algorithm; bounded cursors | AC04 |
 | FR003 | Conversion pipeline; typed encoders and JDBC binders | AC01, AC03, AC11, AC18 |
 | FR004 | SourceValue states; normalization; format null codecs | AC03, AC11 |
 | FR005 | Mapping compilation; separate input/output plans | AC03, AC14 |
 | FR006 | Compiled validation rules; atomic row acceptance | AC01, AC03 |
-| FR007 | Materialization; read result publication | AC06 |
+| FR007 | Engine load; dataset handles; read result publication | AC06 |
 | FR008 | File publication; preflight encoding | AC07, AC18 |
 | FR009 | Execution lifecycle; output preparation | AC07, AC08, AC15 |
 | FR010 | Record error classification; bounded rejection policy | AC04, AC08 |
@@ -401,7 +542,7 @@ Technical sections below are named design areas; acceptance identifiers refer to
 | FR023 | Explicit output schema; representation preflight | AC02, AC11, AC18 |
 | FR024 | LimitBudget; cancellation; publication state | AC13, AC15 |
 | NFR001 | One normalization and mapping pipeline | AC03 |
-| NFR002 | Incremental parsing and bounded materialization | AC15 |
+| NFR002 | Incremental parsing; record streams; engine-resident working data (ADR-001) | AC15 |
 | NFR003 | Typed configuration; prepared values; safe codecs | AC12 |
 | NFR004 | Explicit commit and publication state machine | AC09, AC10 |
 | NFR005 | Version envelope and legacy compatibility boundary | AC14 |
@@ -413,7 +554,9 @@ Technical sections below are named design areas; acceptance identifiers refer to
 | Stage | Deliverable | Exit evidence |
 | --- | --- | --- |
 | 1 | Confirm functional scope; reconcile Java build; characterize existing compatibility | Reviewed FD decisions D01 through D06, effective build settings, executed-test inventory |
-| 2 | Schema, SourceValue/CellValue, normalization, validation, inference, atomic tables | AC01, AC03, AC04 and core contract/property tests |
+| 2a | Schema core, strict value rules, record-stream contract, DuckDB and SQLite engines with their loaders, streaming CSV source and sink, legacy converter, larger-than-heap proof slice | Done 2026-11-24: engine contract suite on both engines; ADR-001 evidence |
+| 2b | SourceValue, defaults, trimming and validation rules in the normalizer, inference, `InMemoryTable` as a source | AC01, AC03, AC04 and core contract/property tests |
+| 2c | SQLite engine requirements (fixed-width temporal text, memory cap, minimum-version check), optional DuckDB packaging, engine-selection benchmark | Engine contract suite on both engines; TD09 benchmark results; a SQLite-only build without the DuckDB driver |
 | 3 | Strict requests, configuration envelope, mapping compiler, results, limits, ownership, preview | AC05, AC06, AC08, AC14, AC15, AC17 |
 | 4 | Shared CSV/JSON/XML codecs and verified file publication | AC02, AC07, AC11, AC12, AC18 |
 | 5 | H2/SQLite read contracts, metadata preflight, transactional write sessions | AC09, AC10, destination cases from AC18 |
@@ -433,5 +576,7 @@ Stages add conformance to one functional baseline; incomplete connectors remain 
 | TD05 | One owned JDBC transaction per append; no batch commits | Real database rollback, cleanup, and uncertain-outcome scenarios |
 | TD06 | Shared Jackson JSON codec, JDK structured XML codec, explicit CSV scanner | Parser boundary, null, encoding, duplicate, and malformed-input fixtures |
 | TD07 | No distributed transaction, automatic write retry, or production NoSQL connector in this baseline | Registry validation and public capability documentation |
+| TD08 | Working data lives in the selected execution engine; Java holds schemas, value rules, bounded samples and handles (ADR-001) | Larger-than-heap streaming with flat retained heap for each engine and each supported connector; engine contract suite on DuckDB and SQLite |
+| TD09 | SQLite is recommended for small integrations and DuckDB for large and analytical work (ADR-002) | A repeatable benchmark, kept separate from correctness tests, measuring open, load, filter, join and aggregation from 10³ to 10⁶ records on each supported operating system, with warm and cold figures and peak memory; the selection thresholds updated from its results |
 
 Implementation feedback that requires changing a functional guarantee must identify the affected FR or NFR, revise the functional design, and update the corresponding traceability and acceptance coverage.

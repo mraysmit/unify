@@ -69,6 +69,9 @@ import java.util.Map;
 /**
  * Interface for writing data from a data source to various destinations.
  * This interface defines the common methods that all data writers must implement.
+ *
+ * <p><b>Frozen legacy contract (ADR-001).</b> New writers implement
+ * {@link dev.mars.jtable.io.common.stream.RecordSink}. See {@link IDataSource}.</p>
  */
 public interface IDataWriter {
     /**

@@ -269,7 +269,8 @@ const UnifyTests = (() => {
     summary.className = "summary";
     host.dataset.state = "running";
     const selected = tests.filter((entry) => !only || entry.group === only);
-    const failures = [];
+    const failures = [],
+      results = [];
     let passed = 0,
       lastGroup = null;
     const started = performance.now();
@@ -292,6 +293,15 @@ const UnifyTests = (() => {
       item.className = result.error ? "fail" : "pass";
       item.querySelector(".mark").textContent = result.error ? "FAIL" : "PASS";
       item.querySelector(".ms").textContent = Math.round(result.ms) + " ms";
+      results.push({
+        group: entry.group,
+        name: entry.name,
+        ok: !result.error,
+        ms: Math.round(result.ms),
+        message: result.error
+          ? String(result.error?.message || result.error).slice(0, 1000)
+          : "",
+      });
       if (result.error) {
         const detail = document.createElement("pre");
         detail.textContent =
@@ -317,6 +327,18 @@ const UnifyTests = (() => {
     });
     root.querySelectorAll("button").forEach((b) => (b.disabled = false));
     running = false;
+    // One tagged console line with every result, read back from the browser
+    // log by the optional command-line runner (scripts/run-ui-mockup-tests.ps1).
+    console.log(
+      "@@UNIFY-TEST-RESULT@@" +
+        JSON.stringify({
+          passed,
+          failed: failures.length,
+          total: selected.length,
+          seconds: Number(seconds),
+          results,
+        }),
+    );
   }
 
   return { test, assert, group, run };

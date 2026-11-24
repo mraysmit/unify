@@ -112,6 +112,14 @@ The tests run in the browser from the same folder. Open **index.html** with `?te
 
 A results panel beside the app lists each test as it runs, with the failure message for any that fail; its buttons re-run all tests or either group. In test mode the app is not started on its own. Each UI workflow test starts the real app on the page, drives it, and stops it again, so the workflows can be watched as they run. Every start uses a fresh in-memory store, so configuration saved in the browser is never read or changed by the tests.
 
+To run the same tests from a terminal or CI without opening a browser window, use the optional PowerShell runner in **scripts/** (it is not part of the mockup folder):
+
+```powershell
+.\scripts\run-ui-mockup-tests.ps1          # all tests; also: logic | ui, -All, -Keep, -TimeoutSeconds
+```
+
+It opens `index.html?tests` in headless Microsoft Edge (or Google Chrome) with a throwaway profile under `%TEMP%\unify-mockup-tests`, reads the result line the page writes to the browser log, prints a summary per group with any failure messages, and exits with 0 when everything passes, 1 when a test fails and 2 when the run could not complete. Tests run on real time; a full run takes about half a minute.
+
 The suite exercises parsing, conversion, mapping, schema constraints, ordered rules, composite joins, SQL, serialization, budgets and full-page DOM workflows. It also checks direct file opening with only index.html and data.js, save/reopen, parameter binding, missing-source failures, recorded JDBC/HTTP samples, JDBC APPEND requirements and the 100-record preview regression. Regression coverage also checks sample reloads for all five reader formats, retained mappings, stage-specific SQL editing, reusable pipeline snapshots, grouped expressions, custom CSV null tokens, pipeline identity isolation, per-stage parameters, captured view schemas, required sample parameters, and cumulative join generation.
 
 Structure checks cover legacy migration, empty namespaces, resource isolation, organisation ownership validation, shared namespace resources with separate session drafts, draft recovery without persisted business records, deletion and discard behavior, stale revision conflicts, first-pipeline creation, scoped settings, and catalogue paging/search over 1,200 entries.

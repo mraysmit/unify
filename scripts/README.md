@@ -4,6 +4,15 @@ This directory contains PowerShell scripts for managing Java file headers in the
 
 ## Scripts
 
+### `run-ui-mockup-tests.ps1`
+Runs the UI mockup's in-browser tests (`ui-mockup/index.html?tests`) in headless Microsoft Edge or Google Chrome and exits with 0 (all passed), 1 (a test failed) or 2 (no result). Nothing to install. See [docs/UI_MOCKUP.md](../docs/UI_MOCKUP.md#verification).
+
+```powershell
+./run-ui-mockup-tests.ps1            # all tests
+./run-ui-mockup-tests.ps1 logic      # or: ui
+./run-ui-mockup-tests.ps1 -All       # list every test, not only failures
+```
+
 ### `add-license-headers.ps1`
 Adds Apache License 2.0 headers to Java files that don't have them.
 

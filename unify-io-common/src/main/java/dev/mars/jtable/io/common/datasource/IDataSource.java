@@ -66,6 +66,11 @@ package dev.mars.jtable.io.common.datasource;
 /**
  * Interface for data sources that can be read from or written to various formats.
  * This interface defines the common methods that all data sources must implement.
+ *
+ * <p><b>Frozen legacy contract (ADR-001, docs/TECHNICAL_DESIGN.md).</b> It moves every value as
+ * text and assumes the whole dataset is in Java memory. New connectors implement
+ * {@link dev.mars.jtable.io.common.stream.RecordSource} and
+ * {@link dev.mars.jtable.io.common.stream.RecordSink} instead.</p>
  */
 public interface IDataSource {
     /**

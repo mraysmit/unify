@@ -67,16 +67,21 @@
  */
 module dev.mars.jtable.io.files {
     requires dev.mars.jtable.core;
-    requires dev.mars.jtable.io.common;
+    // Transitive: the engines and record connectors expose the io-common contracts to callers.
+    requires transitive dev.mars.jtable.io.common;
     requires com.fasterxml.jackson.databind;
     requires java.sql;
     requires org.slf4j;
     requires ch.qos.logback.classic;
+    // DuckDB's JDBC jar has no module descriptor; this is its derived automatic module name.
+    requires duckdb.jdbc;
 
     exports dev.mars.jtable.io.files.csv;
+    exports dev.mars.jtable.io.files.engine;
     exports dev.mars.jtable.io.files.jdbc;
     exports dev.mars.jtable.io.files.json;
     exports dev.mars.jtable.io.files.nosql;
+    exports dev.mars.jtable.io.files.records;
     exports dev.mars.jtable.io.files.rest;
     exports dev.mars.jtable.io.files.xml;
 }

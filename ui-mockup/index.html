@@ -6320,6 +6320,11 @@ Version 1.4.0
     <script id="unify-app">
       (function () {
         "use strict";
+        // A timestamp alone repeats when two items are created within the same
+        // millisecond; the counter keeps every ID unique, across restarts too.
+        let idCounter = 0;
+        const uniqueId = (prefix) =>
+          prefix + Date.now().toString(36) + "-" + (++idCounter).toString(36);
         // start() boots one instance of the app; stop() removes it so the
         // in-browser tests (index.html?tests) can restart it with a clean store.
         function start(options = {}) {
@@ -7757,7 +7762,7 @@ Version 1.4.0
           error,
         ) {
           const run = {
-            id: "DEMO-" + Date.now().toString(36).toUpperCase(),
+            id: uniqueId("DEMO-").toUpperCase(),
             name: state.name,
             status,
             engine: state.engine,
@@ -8219,7 +8224,7 @@ Version 1.4.0
               state.stages.findIndex((s) => s.id === state.selectedStage) + 1;
             if (position >= state.stages.length)
               position = Math.max(1, state.stages.length - 1);
-            const id = "stage-" + Date.now().toString(36),
+            const id = uniqueId("stage-"),
               n = state.stages.length + 1;
             const stage = {
               id,
@@ -8370,7 +8375,7 @@ Version 1.4.0
               return;
             }
             const def = {
-              id: prior?.id || "definition-" + Date.now().toString(36),
+              id: prior?.id || uniqueId("definition-"),
               name,
               kind,
               version: prior ? prior.version + 1 : 1,
@@ -8480,7 +8485,7 @@ Version 1.4.0
               return;
             }
             state.definitions.push({
-              id: "pipeline-" + Date.now().toString(36),
+              id: uniqueId("pipeline-"),
               name: state.name,
               kind: "Pipeline",
               version: state.version,
@@ -8500,7 +8505,7 @@ Version 1.4.0
             state.sources = C.clone(D.initialBindings).map(hydrateBinding);
             state.selectedStage = "query";
             state.editorMode = "sql";
-            state.pipelineId = "pipeline-current-" + Date.now().toString(36);
+            state.pipelineId = uniqueId("pipeline-current-");
             state.definitions.push({
               id: state.pipelineId,
               name,
@@ -9425,7 +9430,7 @@ ${isWriter ? `<label class='form-label'>Publication mode<select id='binding-mode
               schemaRef = { id: definition.id, version: definition.version };
             }
             const binding = hydrateBinding({
-              id: "binding-" + Date.now().toString(36),
+              id: uniqueId("binding-"),
               name,
               alias,
               providerId: p.id,
@@ -9511,7 +9516,7 @@ ${isWriter ? `<label class='form-label'>Publication mode<select id='binding-mode
               return true;
             }
             const connection = {
-              id: id || "connection-" + Date.now().toString(36),
+              id: id || uniqueId("connection-"),
               name,
               connector: field("new-source-format"),
               location,
@@ -9611,7 +9616,7 @@ ${isWriter ? `<label class='form-label'>Publication mode<select id='binding-mode
               version: definition.version,
             });
             const provider = {
-              id: existing?.id || "view-" + Date.now().toString(36),
+              id: existing?.id || uniqueId("view-"),
               name,
               version: existing ? existing.version + 1 : 1,
               kind: "View",
@@ -10200,7 +10205,7 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
               return true;
             }
             const provider = {
-              id: "csv-" + Date.now().toString(36),
+              id: uniqueId("csv-"),
               name: e.name,
               version: 1,
               kind: "Reader",
@@ -12135,7 +12140,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
           );
           if (mapping.length) CF.validateSchema(mapping);
           return hydrateBinding({
-            id: editor.bindingId || "binding-" + Date.now().toString(36),
+            id: editor.bindingId || uniqueId("binding-"),
             name: editor.name,
             alias: editor.settings.alias,
             providerId: p.id,
@@ -12357,7 +12362,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
           )
             throw Error("A definition already uses that name.");
           const definition = {
-            id: existing?.id || "definition-" + Date.now().toString(36),
+            id: existing?.id || uniqueId("definition-"),
             name: editor.name,
             kind,
             version: existing ? existing.version + 1 : 1,
@@ -12426,7 +12431,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               throw Error("A connection already uses that name.");
             const connection = {
               ...C.clone(e.settings),
-              id: e.connectionId || "connection-" + Date.now().toString(36),
+              id: e.connectionId || uniqueId("connection-"),
               name: e.name,
               description: e.description,
               validationStatus: "Locally valid",
@@ -12537,7 +12542,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
                 "This reader changed in another design workspace. Reopen its latest configuration.",
               );
             const provider = {
-              id: prior?.id || "source-" + Date.now().toString(36),
+              id: prior?.id || uniqueId("source-"),
               name: e.name,
               version: prior ? prior.version + 1 : 1,
               kind: "Reader",
@@ -12614,7 +12619,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
           if (e.kind === "pipeline") {
             if (e.isNew && state.stages.length && state.pipelineId)
               state.definitions.push({
-                id: "pipeline-snapshot-" + Date.now().toString(36),
+                id: uniqueId("pipeline-snapshot-"),
                 name: state.name,
                 kind: "Pipeline",
                 version: state.version,
@@ -12637,7 +12642,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               state.stages.find((s) => s.kind === "SQL query")?.id ||
               state.stages[0].id;
             if (e.isNew) {
-              state.pipelineId = "pipeline-current-" + Date.now().toString(36);
+              state.pipelineId = uniqueId("pipeline-current-");
               state.version = 1;
               state.definitions.push({
                 id: state.pipelineId,
@@ -12800,7 +12805,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               if (prior && prior.kind !== "View")
                 throw Error("That name belongs to a reader or writer.");
               const provider = {
-                id: prior?.id || "view-" + Date.now().toString(36),
+                id: prior?.id || uniqueId("view-"),
                 name: e.name,
                 version: prior ? prior.version + 1 : 1,
                 kind: "View",

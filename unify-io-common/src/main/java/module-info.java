@@ -66,7 +66,8 @@
  * limitations under the License.
  */
 module dev.mars.jtable.io.common {
-    requires dev.mars.jtable.core;
+    // Transitive: the record-stream and engine contracts expose core schema types to callers.
+    requires transitive dev.mars.jtable.core;
     requires java.sql;
     requires org.slf4j;
     requires com.fasterxml.jackson.databind;
@@ -74,7 +75,10 @@ module dev.mars.jtable.io.common {
 
     exports dev.mars.jtable.io.common.adapter;
     exports dev.mars.jtable.io.common.datasource;
+    exports dev.mars.jtable.io.common.engine;
+    exports dev.mars.jtable.io.common.legacy;
     exports dev.mars.jtable.io.common.mapping;
+    exports dev.mars.jtable.io.common.stream;
 
     opens dev.mars.jtable.io.common.mapping to com.fasterxml.jackson.databind;
 }

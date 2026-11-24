@@ -69,6 +69,9 @@ import java.util.Map;
 /**
  * Interface for reading data from various sources into a data source.
  * This interface defines the common methods that all data readers must implement.
+ *
+ * <p><b>Frozen legacy contract (ADR-001).</b> New readers implement
+ * {@link dev.mars.jtable.io.common.stream.RecordSource}. See {@link IDataSource}.</p>
  */
 public interface IDataReader {
     /**
