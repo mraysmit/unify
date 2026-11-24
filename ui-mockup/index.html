@@ -3463,6 +3463,221 @@ Version 1.4.0
           min-width: 200px;
         }
       }
+      /* Simulated sign-in and roles (FR044, FR045). */
+      .session-user {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .session-user strong {
+        color: var(--ink);
+      }
+      .role-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .role-switch select {
+        font-size: 12px;
+        padding: 3px 6px;
+      }
+      .role-notice {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        margin: 0 24px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        font-size: 13px;
+      }
+      [data-action].denied {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .sign-in-page {
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      .sign-in-card {
+        max-width: 460px;
+        width: 100%;
+        display: grid;
+        gap: 12px;
+      }
+      @media (max-width: 760px) {
+        .session-user {
+          white-space: normal;
+          flex-wrap: wrap;
+        }
+      }
+      /* Automated demo panel, pointer and shield. */
+      .demo-panel {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        z-index: 2147483000;
+        width: min(380px, calc(100vw - 32px));
+        max-height: calc(100vh - 32px);
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+        font-size: 13px;
+      }
+      .demo-panel.min .demo-body {
+        display: none;
+      }
+      .demo-head {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      .demo-head strong {
+        flex: 1;
+      }
+      .demo-head button,
+      .demo-pick button,
+      .demo-controls button,
+      .demo-controls select {
+        font: inherit;
+        padding: 3px 9px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--soft);
+        cursor: pointer;
+      }
+      .demo-controls button.primary {
+        background: var(--blue, #2563eb);
+        border-color: var(--blue, #2563eb);
+        color: #fff;
+      }
+      .demo-controls button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .demo-body {
+        display: grid;
+        gap: 8px;
+        padding: 10px 12px;
+        overflow: auto;
+      }
+      .demo-pick,
+      .demo-controls {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .demo-pick span {
+        flex: 1;
+        color: var(--muted);
+      }
+      .demo-list {
+        display: grid;
+        gap: 4px;
+        max-height: 170px;
+        overflow: auto;
+      }
+      .demo-list label {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .demo-caption {
+        padding: 8px 10px;
+        border-radius: 8px;
+        background: var(--soft);
+      }
+      .demo-results {
+        display: grid;
+        gap: 2px;
+        max-height: 220px;
+        overflow: auto;
+      }
+      .demo-results .sc {
+        font-weight: 600;
+        margin-top: 6px;
+      }
+      .demo-results .pass {
+        color: #1c7c3c;
+      }
+      .demo-results .fail {
+        color: #b42318;
+      }
+      .demo-results .sum {
+        margin-top: 8px;
+        font-weight: 600;
+      }
+      .demo-pointer {
+        position: fixed;
+        left: -100px;
+        top: -100px;
+        z-index: 2147483647;
+        width: 24px;
+        height: 24px;
+        pointer-events: none;
+      }
+      .demo-pointer.clicking::after {
+        content: "";
+        position: absolute;
+        left: -11px;
+        top: -11px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 3px solid #2563eb;
+        animation: demo-pulse 0.45s ease-out forwards;
+      }
+      @keyframes demo-pulse {
+        from {
+          transform: scale(0.4);
+          opacity: 1;
+        }
+        to {
+          transform: scale(1.5);
+          opacity: 0;
+        }
+      }
+      .demo-bubble {
+        position: absolute;
+        left: 26px;
+        top: 20px;
+        width: max-content;
+        max-width: 300px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        background: #16181d;
+        color: #fff;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      .demo-pointer.flip .demo-bubble {
+        left: auto;
+        right: 26px;
+      }
+      .demo-bubble:empty {
+        display: none;
+      }
+      .demo-target {
+        outline: 3px solid #2563eb !important;
+        outline-offset: 2px;
+      }
+      .demo-shield {
+        position: fixed;
+        inset: 0;
+        z-index: 2147482000;
+        cursor: progress;
+      }
     </style>
   </head>
   <body>
@@ -6344,6 +6559,91 @@ Version 1.4.0
             signal: listeners.signal,
           });
         let stopped = false;
+        // Simulated sign-in and roles (FR044, FR045). The product signs users
+        // in through an OpenID Connect provider and grants roles to its groups.
+        const ROLES = ["Viewer", "Editor", "Publisher", "Operator", "Administrator"];
+        const ROLE_PERMISSIONS = {
+          Viewer: ["read"],
+          Editor: ["read", "edit", "preview", "export", "test"],
+          Publisher: ["read", "edit", "preview", "export", "test", "publish"],
+          Operator: ["read", "execute"],
+          Administrator: ["read", "edit", "preview", "export", "test", "publish", "execute", "administer"],
+        };
+        const PERMISSION_LABELS = {
+          edit: "editing",
+          preview: "previewing",
+          export: "exporting",
+          test: "testing connections",
+          publish: "registering providers, publishing views and importing bundles",
+          execute: "executing and repeating runs",
+          administer: "administering organisations, namespaces and workspaces",
+          cancel: "cancelling runs",
+        };
+        const READ_ACTIONS = new Set([
+          "backdrop-close", "catalog-mobile", "catalogue-mode", "catalogue-page", "close-modal",
+          "command", "config-back", "config-section", "connection-detail", "definition",
+          "editor-mode", "explorer-tab", "guide", "inspect-stage-result", "library-filter",
+          "manage-structure", "navigate", "open-provider-directory", "open-workspace",
+          "provider-detail", "provider-filter", "provider-section", "result-tab", "row-detail",
+          "run-detail", "select-stage", "show-issues", "sort-result", "source-detail",
+          "source-toggle", "structure-cancel", "structure-open", "versions", "sign-in", "sign-out",
+        ]);
+        const ACTION_PERMISSIONS = {
+          preview: ["run-pipeline", "preview-stage", "config-preview", "csv-preview", "validate-query"],
+          export: ["export-design", "export-csv", "config-download", "csv-export"],
+          test: ["config-test-connection", "config-test-connection-get"],
+          publish: ["register-provider", "config-new-provider", "config-provider", "configure-csv", "csv-catalogue", "csv-save", "publish-view", "confirm-view", "import-bundle", "confirm-bundle-import"],
+          execute: ["execute-pipeline", "repeat-run", "simulate-publish"],
+          administer: ["structure-new", "structure-edit", "structure-save", "structure-delete", "structure-confirm-delete", "structure-discard"],
+          cancel: ["cancel-run"],
+        };
+        function permissionFor(action) {
+          if (!action || READ_ACTIONS.has(action)) return "read";
+          for (const [permission, actions] of Object.entries(ACTION_PERMISSIONS))
+            if (actions.includes(action)) return permission;
+          return "edit";
+        }
+        function allowed(permission) {
+          const session = state?.session;
+          if (!session) return permission === "read";
+          const granted = ROLE_PERMISSIONS[session.role] || [];
+          if (permission === "cancel")
+            return granted.includes("preview") || granted.includes("execute");
+          return permission === "read" || granted.includes(permission);
+        }
+        function rolesWith(permission) {
+          return ROLES.filter((role) =>
+            permission === "cancel"
+              ? ROLE_PERMISSIONS[role].includes("preview") || ROLE_PERMISSIONS[role].includes("execute")
+              : ROLE_PERMISSIONS[role].includes(permission),
+          ).join(", ");
+        }
+        function denial(permission) {
+          return `The ${state.session.role} role cannot do this: ${PERMISSION_LABELS[permission] || "this action"} needs ${rolesWith(permission)}. Nothing was changed.`;
+        }
+        // Disables what the signed-in role may not do, and explains why.
+        function applyPermissions(root) {
+          if (!state?.session) return;
+          for (const el of root.querySelectorAll("[data-action]")) {
+            const permission = permissionFor(el.dataset.action);
+            if (allowed(permission)) continue;
+            if ("disabled" in el) el.disabled = true;
+            el.setAttribute("aria-disabled", "true");
+            el.classList.add("denied");
+            el.title = denial(permission);
+          }
+          if (allowed("edit")) return;
+          const scope = root.querySelector("#main-content") || (root === overlays ? root : null);
+          if (!scope) return;
+          for (const field of scope.querySelectorAll("input, textarea, select")) {
+            if (/search/i.test(field.id) || field.id === "catalogue-connector") continue;
+            if (field.id === "engine-select" && allowed("execute")) continue;
+            field.disabled = true;
+          }
+        }
+        function signedInDefault() {
+          return { principal: "demo.user", name: "Demo User", role: "Administrator" };
+        }
         const D = window.UnifyData,
           C = window.UnifyCore,
           CS = window.UnifyCsv,
@@ -6982,6 +7282,9 @@ Version 1.4.0
         } catch (_) {
           /* storage is optional */
         }
+        // undefined: never stored (signed in by default); null: signed out.
+        const savedSession =
+          saved && typeof saved === "object" && "session" in saved ? saved.session : undefined;
         const scopeModel = initialiseStructure(saved);
         saved = structureDocument(scopeModel);
         const state = {
@@ -7019,7 +7322,7 @@ Version 1.4.0
           pipelineId:
             saved?.pipelineId ??
             (saved?.stages?.length === 0 ? null : "daily-holdings"),
-          engine: ["SQLite", "DuckDB"].includes(saved?.engine)
+          engine: ["Automatic", "SQLite", "DuckDB"].includes(saved?.engine)
             ? saved.engine
             : "DuckDB",
           sql: typeof saved?.sql === "string" ? saved.sql : D.sql,
@@ -7062,6 +7365,12 @@ Version 1.4.0
             nullToken: "\\N",
           },
           lastSaved: saved?.lastSaved || null,
+          session:
+            savedSession === undefined
+              ? signedInDefault()
+              : savedSession && ROLES.includes(savedSession.role)
+                ? savedSession
+                : null,
         };
         state.sources = C.clone(saved?.bindings || D.initialBindings).map(
           hydrateBinding,
@@ -7119,6 +7428,7 @@ Version 1.4.0
                 runs: state.runs,
                 snapshots: state.snapshots,
                 lastSaved: state.lastSaved,
+                session: state.session,
               }),
             );
             return true;
@@ -7153,7 +7463,7 @@ Version 1.4.0
             )
             .join(
               "",
-            )}</nav><div class='sidebar-bottom'><button class='nav-item' data-action='guide' title='Prototype guide'>${icon("help")}<span class='nav-text'>Prototype guide</span></button><button class='nav-item' data-action='manage-structure' data-kind='organisations'>${icon("grid")}<span class='nav-text'>Organisation structure</span></button><div class='profile'><span class='avatar'>DW</span><div>${E(activeNamespace().name)}<small>${E(activeOrganisation().name)}</small></div></div></div></aside>`;
+            )}</nav><div class='sidebar-bottom'><button class='nav-item' data-open-demo title='Watch an automated demo'>${icon("workflow")}<span class='nav-text'>Run demo</span></button><button class='nav-item' data-action='guide' title='Prototype guide'>${icon("help")}<span class='nav-text'>Prototype guide</span></button><button class='nav-item' data-action='manage-structure' data-kind='organisations'>${icon("grid")}<span class='nav-text'>Organisation structure</span></button><div class='profile'><span class='avatar'>DW</span><div>${E(activeNamespace().name)}<small>${E(activeOrganisation().name)}</small></div></div></div></aside>`;
         }
         function header() {
           const title = {
@@ -7167,19 +7477,35 @@ Version 1.4.0
             catalog: "Definition library",
             runs: "Run history",
           }[state.view];
-          return `${contextControls()}<header class='global-header'><div class='breadcrumb'><span>${E(activeOrganisation().name)} / ${E(activeNamespace().name)}</span>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div><div class='global-actions'><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>`;
+          return `${contextControls()}<header class='global-header'><div class='breadcrumb'><span>${E(activeOrganisation().name)} / ${E(activeNamespace().name)}</span>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div><div class='global-actions'><span class='session-user' data-session-user>Signed in as <strong>${E(state.session.name)}</strong><label class='role-switch'><span>Role</span><select id='role-select' aria-label='Role (simulated sign-in)'>${ROLES.map((role) => `<option ${state.session.role === role ? "selected" : ""}>${role}</option>`).join("")}</select></label>${button("sign-out", "Sign out", null, "small subtle")}</span><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>${roleNotice()}`;
+        }
+        function roleNotice() {
+          const missing = ["edit", "preview", "execute", "publish", "administer"].filter(
+            (permission) => !allowed(permission),
+          );
+          if (!missing.length) return "";
+          const can = ROLE_PERMISSIONS[state.session.role].filter((p) => p !== "read");
+          return `<div class='role-notice' role='note' data-role-notice>${icon("info")}<span>Signed in as <strong>${E(state.session.role)}</strong> (simulated). You can discover and inspect${can.length ? ", and " + can.map((p) => PERMISSION_LABELS[p]).join(", ") : ""}. Not available: ${missing.map((p) => PERMISSION_LABELS[p]).join("; ")}.</span></div>`;
+        }
+        function signInPage() {
+          return `<main class='page sign-in-page' id='main-content'><section class='card sign-in-card'><h1>Sign in to Unify</h1><p>Unify signs you in through your organisation's identity provider (OpenID Connect), and your identity-provider groups grant your role in each organisation and namespace. This mockup simulates both: choose a name and a role.</p><label class='form-label'>Display name<input id='sign-in-name' value='Demo User' maxlength='80'></label><label class='form-label'>Role granted to your group<select id='sign-in-role'>${ROLES.map((role) => `<option ${role === "Editor" ? "selected" : ""}>${role}</option>`).join("")}</select></label>${button("sign-in", "Sign in (simulated)", "circleCheck", "primary")}<p class='content-note'>${icon("info")}No password is entered or stored, and no token is saved.</p></section></main>`;
         }
         function render() {
           if (stopped) return;
+          if (!state.session) {
+            app.innerHTML = signInPage();
+            return;
+          }
           app.innerHTML = `<div class='shell'>${nav()}<div class='app-body'>${header()}<main class='page' id='main-content'>${state.view === "hierarchy" ? hierarchyPage() : state.view === "configuration" ? configurationWorkspace() : state.view === "csv" ? csvWorkspace() : state.view === "workspace" ? workspace() : state.view === "providers" ? providersPage() : state.view === "catalog" ? catalog() : state.view === "sources" ? sourcesPage() : state.view === "runs" ? runsPage() : pipelinesPage()}</main></div></div>`;
           if (state.view === "workspace") highlight();
+          applyPermissions(app);
         }
         function heading(title, description, actions) {
           return `<div class='page-heading'><div><div class='title-line'><h1>${E(title)}</h1>${state.view === "workspace" ? badge(state.dirty ? "Unsaved changes" : `v${state.version}`, state.dirty ? "amber" : "outline") : ""}</div><p>${description}</p></div><div class='heading-actions'>${actions || ""}</div></div>`;
         }
         function workspace() {
           if (!state.stages.length) return emptyWorkbench();
-          return `${heading(state.name, `Build, combine, and validate data in one portable pipeline.`, `${button("catalog-mobile", "Catalogue", "database", "mobile-catalog")}${button("versions", "Versions", "history")}${button("save-version", "Save version", "save")}<span class='separator'></span><label class='select-label'><span>Execution engine</span><select id='engine-select' aria-label='Execution engine' ${state.running ? "disabled" : ""}>${["SQLite", "DuckDB"].map((e) => `<option ${state.engine === e ? "selected" : ""}>${e}</option>`).join("")}</select></label>${button(state.running ? "cancel-run" : "run-pipeline", state.running ? "Cancel" : "Preview pipeline", state.running ? "stop" : "play", state.running ? "" : "primary")}`)}<div class='workbench'>${explorer()}<div class='workspace-main'>${pipelineFlow()}<div class='editor-layout'>${editor()}${inspector()}</div>${results()}<div class='workspace-footer'><span>Local sample processing · Calcite and database engines are not connected</span><span>${state.lastSaved ? "Saved locally " + date(state.lastSaved) : "Editing saved revision v" + state.version} · ${state.stages.length} stages</span></div></div></div>`;
+          return `${heading(state.name, `Build, combine, and validate data in one portable pipeline.`, `${button("catalog-mobile", "Catalogue", "database", "mobile-catalog")}${button("versions", "Versions", "history")}${button("save-version", "Save version", "save")}<span class='separator'></span><label class='select-label'><span>Execution engine</span><select id='engine-select' aria-label='Execution engine' ${state.running ? "disabled" : ""}>${["Automatic", "SQLite", "DuckDB"].map((e) => `<option ${state.engine === e ? "selected" : ""}>${e}</option>`).join("")}</select></label>${button(state.running ? "cancel-run" : "run-pipeline", state.running ? "Cancel" : "Preview pipeline", state.running ? "stop" : "play", state.running ? "" : "primary")}${button("execute-pipeline", "Execute (simulated)", "upload", "", state.running || !state.result?.ok ? "disabled" : "")}`)}<div class='workbench'>${explorer()}<div class='workspace-main'>${pipelineFlow()}<div class='editor-layout'>${editor()}${inspector()}</div>${results()}<div class='workspace-footer'><span>Local sample processing · Calcite and database engines are not connected</span><span>${state.lastSaved ? "Saved locally " + date(state.lastSaved) : "Editing saved revision v" + state.version} · ${state.stages.length} stages</span></div></div></div>`;
         }
         function pipelineFlow() {
           return `<section class='card pipeline-panel' aria-label='Pipeline stages'><div class='pipeline-panel-header'><h2>Pipeline stages <span>${state.stages.length} stages · select a stage to inspect</span></h2>${button("config-pipeline", "Configure pipeline", "sliders", "small")}${button("add-stage", "Add stage", "plus", "small")}</div><div class='pipeline-flow'>${state.stages.map((s, index) => `${index ? "<div class='stage-link' aria-hidden='true'></div>" : ""}<button class='stage-card ${s.id === state.selectedStage ? "active" : ""} ${state.running?.current === s.id ? "stage-running" : ""} ${state.running?.completed?.includes(s.id) ? "stage-complete" : ""}' data-action='select-stage' data-id='${E(s.id)}' aria-pressed='${s.id === state.selectedStage}'><span class='stage-card-top'>${icon(s.icon)}${E(s.kind)}</span><strong>${E(s.name)}</strong></button>`).join("")}</div></section>`;
@@ -7294,7 +7620,7 @@ Version 1.4.0
             )
             .join(
               "",
-            )}</div><div class='results-tools'>${tiny("validate-query", "Check query", "shield")}${button("export-csv", "Export preview", "download", "small subtle", r?.ok ? "" : "disabled")}</div></div>${state.running ? `<div class='progress-strip'><span class='spinner' aria-hidden='true'></span><span role='status'>${E(state.running.status)} · local preview</span><div class='progress-track'><div class='progress-fill' style='width:${Math.round((state.running.completed.length / state.running.total) * 100)}%'></div></div>${button("cancel-run", "Cancel", "stop", "small subtle")}</div>` : ""}<div class='results-summary'><div class='summary-items'><span class='summary-good'>${icon(r?.ok ? "circleCheck" : "warning")} ${r?.ok ? "Sample preview ready" : "Preview needs attention"}</span><span>${E(state.resultLabel)}</span><span>${E(state.engine)} · demo</span></div><span>Destination unchanged</span></div>${!r?.ok ? `<div class='results-message error'>${icon("warning")} ${E(issues[0]?.message || "Preview the selected stage to see data.")}</div>` : r.unmatched && state.resultTab === "results" ? `<div class='results-message'>${icon("info")} ${r.unmatched} input records did not match a joined dataset.${button("show-issues", "Inspect", "eye", "small subtle")}</div>` : ""}${r?.qualifications?.length ? `<div class='results-message'>${E(r.qualifications.join(" "))}</div>` : ""}<div id='result-content'>${resultContent()}</div></section>`;
+            )}</div><div class='results-tools'>${tiny("validate-query", "Check query", "shield")}${button("export-csv", "Export preview", "download", "small subtle", r?.ok ? "" : "disabled")}</div></div>${state.running ? `<div class='progress-strip'><span class='spinner' aria-hidden='true'></span><span role='status'>${E(state.running.status)} · stage ${Math.min(state.running.completed.length + 1, state.running.total)} of ${state.running.total} · local preview</span><div class='progress-track'><div class='progress-fill' style='width:${Math.round((state.running.completed.length / state.running.total) * 100)}%'></div></div>${button("cancel-run", "Cancel", "stop", "small subtle")}</div>` : ""}<div class='results-summary'><div class='summary-items'><span class='summary-good'>${icon(r?.ok ? "circleCheck" : "warning")} ${r?.ok ? "Sample preview ready" : "Preview needs attention"}</span><span>${E(state.resultLabel)}</span><span>${E(engineLabel())} · demo</span></div><span>Destination unchanged</span></div>${!r?.ok ? `<div class='results-message error'>${icon("warning")} ${E(issues[0]?.message || "Preview the selected stage to see data.")}</div>` : r.unmatched && state.resultTab === "results" ? `<div class='results-message'>${icon("info")} ${r.unmatched} input records did not match a joined dataset.${button("show-issues", "Inspect", "eye", "small subtle")}</div>` : ""}${r?.qualifications?.length ? `<div class='results-message'>${E(r.qualifications.join(" "))}</div>` : ""}<div id='result-content'>${resultContent()}</div></section>`;
         }
         function resultContent() {
           const r = state.result;
@@ -7428,7 +7754,7 @@ Version 1.4.0
           );
         }
         function runsPage() {
-          return `${heading("Run history", "Inspect outcomes, stage diagnostics, and the definitions used for each run.", button("open-workspace", "Open workbench", "code"))}<div class='stat-grid'><div class='stat-box'><p>Demonstration runs</p><strong>${state.runs.length}</strong></div><div class='stat-box'><p>Completed</p><strong>${state.runs.filter((r) => r.status === "Completed").length}</strong></div><div class='stat-box'><p>Failed</p><strong>${state.runs.filter((r) => r.status === "Failed").length}</strong></div><div class='stat-box'><p>Cancelled</p><strong>${state.runs.filter((r) => r.status === "Cancelled").length}</strong></div></div><div class='card' style='overflow:auto'><table class='list-table'><thead><tr><th>Operation</th><th>Status</th><th>Engine</th><th>Result rows</th><th>Started</th><th>Destination</th><th></th></tr></thead><tbody>${state.runs.map((r) => `<tr data-action='run-detail' data-id='${E(r.id)}' tabindex='0'><td><span class='run-name'>${E(r.name)}<small class='mono'>${E(r.id)} · pipeline v${r.version} · ${E(r.mode)}</small></span></td><td>${badge(r.status, r.status === "Completed" ? "green" : r.status === "Failed" ? "red" : "amber")}</td><td>${E(r.engine)}</td><td>${r.output}</td><td>${date(r.date)}</td><td>${E(r.destination)}</td><td>${tiny("run-detail", "Inspect run", "chevron", `data-id='${E(r.id)}'`)}</td></tr>`).join("")}</tbody></table></div><p class='content-note'>${icon("info")}Historical entries and durations are demonstration records, not performance measurements of either database engine.</p>`;
+          return `${heading("Run history", "Inspect outcomes, stage diagnostics, and the definitions used for each run.", button("open-workspace", "Open workbench", "code"))}<div class='stat-grid'><div class='stat-box'><p>Demonstration runs</p><strong>${state.runs.length}</strong></div><div class='stat-box'><p>Queued or running</p><strong>${state.runs.filter((r) => r.status === "Queued" || r.status === "Running").length}</strong></div><div class='stat-box'><p>Completed</p><strong>${state.runs.filter((r) => r.status === "Completed").length}</strong></div><div class='stat-box'><p>Failed or abandoned</p><strong>${state.runs.filter((r) => r.status === "Failed" || r.status === "Abandoned").length}</strong></div><div class='stat-box'><p>Cancelled</p><strong>${state.runs.filter((r) => r.status === "Cancelled").length}</strong></div></div><div class='card' style='overflow:auto'><table class='list-table'><thead><tr><th>Operation</th><th>Kind</th><th>Status</th><th>Engine</th><th>Result rows</th><th>Started</th><th>Submitted by</th><th>Destination</th><th></th></tr></thead><tbody>${state.runs.map((r) => `<tr data-action='run-detail' data-id='${E(r.id)}' tabindex='0'><td><span class='run-name'>${E(r.name)}<small class='mono'>${E(r.id)} · pipeline v${r.version} · ${E(r.mode)}</small></span></td><td>${E(runKind(r))}</td><td>${runBadge(r)}</td><td>${E(r.engine)}${r.selection?.mode === "Automatic" ? " (auto)" : ""}</td><td>${r.output}</td><td>${date(r.date)}</td><td>${E(r.principal || "demo.user")}</td><td>${E(r.destination)}</td><td>${tiny("run-detail", "Inspect run", "chevron", `data-id='${E(r.id)}'`)}</td></tr>`).join("")}</tbody></table></div><p class='content-note'>${icon("info")}Historical entries and durations are demonstration records, not performance measurements of either database engine.</p>`;
         }
 
         function openModal(type, data = {}) {
@@ -7596,11 +7922,14 @@ Version 1.4.0
               return;
             }
             title = r.name;
-            description = `${r.id} · ${date(r.date)} · illustrative execution`;
+            description = `${r.id} · ${date(r.date)} · ${runKind(r)} · submitted by ${r.principal || "demo.user"}${r.repeatOf ? " · repeat of " + r.repeatOf : ""}`;
             wide = true;
-            body = `<div class='right-split'>${badge(r.status, r.status === "Completed" ? "green" : r.status === "Failed" ? "red" : "amber")}${badge(r.mode, "outline")}${badge(r.engine, "blue")}${badge("Pipeline v" + r.version, "outline")}</div><div class='source-detail-grid'><div><strong>${r.input}</strong><small>Holdings read</small></div><div><strong>${r.output}</strong><small>Result records</small></div><div><strong>${(r.duration / 1000).toFixed(2)}s</strong><small>Simulated elapsed time</small></div></div><div class='detail-field'><span>Destination outcome</span><strong>${E(r.destination)}</strong></div>${r.error ? `<div class='notice amber'>${icon("warning")}${E(r.error)}</div>` : ""}<h3>Stage progress</h3>${Array.from({ length: r.stepCount || 6 }, (_, i) => `<div class='history-step'>${icon(r.status === "Completed" ? "circleCheck" : i === 0 ? "warning" : "clock")}<span>${E(r.stageNames?.[i] || D.stages[i]?.name || "Transformation stage")}</span><small>${r.status === "Completed" ? "Completed" : i === 0 ? r.status : "Not started"}</small></div>`).join("")}<div class='notice'>${icon("info")}This is a local prototype run. No SQL engine, catalogue database, or destination is connected.</div>`;
+            body = `<div class='right-split'>${runBadge(r)}${badge(runKind(r), "outline")}${badge(r.mode, "outline")}${badge(r.engine, "blue")}${badge("Pipeline v" + r.version, "outline")}</div><div class='source-detail-grid'><div><strong>${r.input}</strong><small>Holdings read</small></div><div><strong>${r.output}</strong><small>Result records</small></div><div><strong>${(r.duration / 1000).toFixed(2)}s</strong><small>Simulated elapsed time</small></div></div><div class='detail-field'><span>Destination outcome</span><strong>${E(r.destination)}</strong></div>${r.selection ? `<div class='detail-field' data-engine-selection><span>Engine selection</span><strong>${r.selection.mode === "Automatic" ? `Automatic: ${E(r.selection.useCase)} (${E(r.selection.useCaseDescription)}) selected ${E(r.selection.engine)} · shape ${E(r.selection.shape)} · ${r.selection.records} records (${E(r.selection.sizeMethod)}) · profile ${E(r.selection.profile)}` : `Explicit: ${E(r.selection.engine)} · shape ${E(r.selection.shape)} · ${r.selection.records} records`}</strong></div>` : ""}${r.error ? `<div class='notice amber'>${icon("warning")}${E(r.error)}</div>` : ""}<h3>Stage progress</h3>${Array.from({ length: r.stepCount || 6 }, (_, i) => `<div class='history-step'>${icon(r.status === "Completed" ? "circleCheck" : i === 0 ? "warning" : "clock")}<span>${E(r.stageNames?.[i] || D.stages[i]?.name || "Transformation stage")}</span><small>${r.status === "Completed" ? "Completed" : i === 0 ? r.status : "Not started"}</small></div>`).join("")}<div class='notice'>${icon("info")}This is a local prototype run. No SQL engine, catalogue database, or destination is connected.</div>`;
             footer =
               button("close-modal", "Close", null) +
+              (runKind(r) === "Execution" && !["Queued", "Running"].includes(r.status)
+                ? button("repeat-run", "Repeat run", "workflow", "", `data-id='${E(r.id)}'`)
+                : "") +
               button("open-workspace", "Open workbench", "code", "primary");
           } else if (m.type === "row") {
             const row = resultRows()[m.index];
@@ -7629,11 +7958,24 @@ Version 1.4.0
               button("export-csv", "Download preview CSV", "download") +
               button(
                 "simulate-publish",
-                "Simulate publication",
+                "Submit execution (simulated)",
                 "upload",
                 "primary",
                 state.result?.ok ? "" : "disabled",
               );
+          } else if (m.type === "bundle-import") {
+            title = "Name conflicts";
+            description =
+              "Nothing has been imported. Give each clashing resource a new, unused name, or cancel.";
+            body = `${m.clashes
+              .map((key) => {
+                const [kind, ...rest] = key.split(":");
+                return `<label class='form-label'>${E(kind)} “${E(rest.join(":"))}” already exists. New name<input data-bundle-rename='${E(key)}' value=''></label>`;
+              })
+              .join("")}<div class='form-error' id='modal-error' role='alert'></div>`;
+            footer =
+              button("close-modal", "Cancel", null) +
+              button("confirm-bundle-import", "Import with new names", "upload", "primary");
           } else if (m.type === "remove-stage") {
             title = "Remove this stage?";
             description = `“${selected().name}” will be removed from the unsaved pipeline.`;
@@ -7679,11 +8021,13 @@ Version 1.4.0
               button("close-modal", "Start exploring", null, "primary");
           } else if (m.type === "command") {
             overlays.innerHTML = `<div class='backdrop' data-action='backdrop-close'><section class='modal command-modal' role='dialog' aria-modal='true' aria-label='Search workspace'><input id='command-search' class='command-input' placeholder='Search datasets, definitions, or pages…' aria-label='Search workspace'><div class='command-results' id='command-results'>${commandItems("")}</div><div class='modal-footer'><span class='footer-note'>Local workspace search</span>${button("close-modal", "Close", null, "small")}</div></section></div>`;
+            applyPermissions(overlays);
             document.body.style.overflow = "hidden";
             overlays.querySelector("input").focus();
             return;
           }
           overlays.innerHTML = `<div class='backdrop' data-action='backdrop-close'><section class='modal ${wide ? "wide" : ""}' role='dialog' aria-modal='true' aria-labelledby='modal-title'><div class='modal-header'><div><h2 id='modal-title'>${E(title)}</h2><p>${E(description)}</p></div>${tiny("close-modal", "Close dialog", "close")}</div><div class='modal-body'>${body}</div>${footer ? `<div class='modal-footer'>${footer}</div>` : ""}</section></div>`;
+          applyPermissions(overlays);
           document.body.style.overflow = "hidden";
           const focus = overlays.querySelector(
             "input:not([readonly]):not([disabled]),textarea,select,button",
@@ -7753,6 +8097,207 @@ Version 1.4.0
             );
           return state.sql;
         }
+        // Automatic engine selection (FR031, ADR-003). The product ships a
+        // selection profile derived from detailed use-case testing; this one
+        // is illustrative so the mockup can show the mechanism.
+        const SELECTION_PROFILE = {
+          id: "unify-default",
+          version: "illustrative-1",
+          useCases: [
+            { id: "SEL-02", shapes: ["SCAN", "SORT"], min: 0, max: 50000, engine: "SQLite", description: "Small load, filter or sort" },
+            { id: "SEL-03", shapes: ["SCAN", "SORT"], min: 50001, max: Infinity, engine: "DuckDB", description: "Large load, filter or sort" },
+            { id: "SEL-04", shapes: ["JOIN", "AGGREGATE", "JOIN_AGGREGATE", "MULTI_JOIN"], min: 0, max: 10000, engine: "SQLite", description: "Small joins or aggregation" },
+            { id: "SEL-05", shapes: ["JOIN", "AGGREGATE", "JOIN_AGGREGATE", "MULTI_JOIN"], min: 10001, max: Infinity, engine: "DuckDB", description: "Large joins or aggregation" },
+          ],
+        };
+        function pipelineShape(stages) {
+          let joins = 0,
+            aggregate = false,
+            sort = false;
+          for (const stage of stages) {
+            if (stage.kind === "Join") joins++;
+            const sql = stage.sql || (stage.kind === "SQL query" ? state.sql : "");
+            joins += (sql.match(/\bJOIN\b/gi) || []).length;
+            if (/\bGROUP\s+BY\b|\bDISTINCT\b|\b(COUNT|SUM|AVG|MIN|MAX)\s*\(/i.test(sql)) aggregate = true;
+            if (/\bORDER\s+BY\b/i.test(sql)) sort = true;
+          }
+          return joins >= 2 ? "MULTI_JOIN" : joins === 1 && aggregate ? "JOIN_AGGREGATE" : aggregate ? "AGGREGATE" : joins === 1 ? "JOIN" : sort ? "SORT" : "SCAN";
+        }
+        function engineSelection() {
+          const shape = pipelineShape(state.stages),
+            records = state.sources.reduce((n, s) => n + (s.rows?.length || 0), 0);
+          if (state.engine !== "Automatic")
+            return { mode: "Explicit", engine: state.engine, shape, records };
+          const useCase = SELECTION_PROFILE.useCases.find(
+            (u) => u.shapes.includes(shape) && records >= u.min && records <= u.max,
+          );
+          return {
+            mode: "Automatic",
+            engine: useCase.engine,
+            useCase: useCase.id,
+            useCaseDescription: useCase.description,
+            shape,
+            records,
+            sizeMethod: "supplied-count",
+            profile: SELECTION_PROFILE.id + " " + SELECTION_PROFILE.version,
+          };
+        }
+        function runKind(run) {
+          return run.kind || (run.mode === "Preview" ? "Preview" : "Execution");
+        }
+        function runBadge(run) {
+          const tone =
+            run.status === "Completed"
+              ? "green"
+              : run.status === "Failed" || run.status === "Abandoned"
+                ? "red"
+                : run.status === "Queued" || run.status === "Running"
+                  ? "blue"
+                  : "amber";
+          return badge(run.status, tone);
+        }
+        // Background execution jobs (FR046), simulated: queued, running, then
+        // completed. A page reload stands in for a stopped service instance.
+        const jobTimers = new Set();
+        function jobStep(fn, ms) {
+          const timer = setTimeout(() => {
+            jobTimers.delete(timer);
+            if (stopped) return;
+            fn();
+            persist();
+            if (state.view === "runs") render();
+            else if (state.modal?.type === "run") drawModal();
+          }, ms);
+          jobTimers.add(timer);
+        }
+        function submitExecution(repeatOf) {
+          const run = addRun(
+            state.result,
+            "Queued",
+            performance.now(),
+            state.stages.map((s) => s.name),
+            "Execution (simulated)",
+          );
+          run.phase = "queued";
+          run.repeatOf = repeatOf || null;
+          persist();
+          jobStep(() => {
+            run.status = "Running";
+            run.phase = "loading";
+          }, 250);
+          jobStep(() => {
+            run.phase = "publishing";
+          }, 500);
+          jobStep(() => {
+            run.status = "Completed";
+            run.phase = "done";
+            run.destination = "Committed (simulated)";
+          }, 750);
+          return run;
+        }
+        // Configuration bundles (FR012): the pipeline plus the providers and
+        // connections its bindings use; never records, samples or history.
+        function exportBundle() {
+          const providerIds = new Set(state.sources.map((b) => b.providerId).filter(Boolean)),
+            connectionIds = new Set(state.sources.map((b) => b.connectionId).filter(Boolean));
+          return {
+            bundleVersion: 1,
+            prototype: true,
+            exportedAt: new Date().toISOString(),
+            sourceNamespace: activeNamespace().name,
+            resources: [
+              { kind: "Pipeline", id: state.pipelineId || "draft", name: state.name, version: state.version, content: designSnapshot() },
+              ...state.providers
+                .filter((p) => providerIds.has(p.id))
+                .map((p) => ({ kind: "Provider", id: p.id, name: p.name, version: p.version, content: C.clone(p) })),
+              ...state.connections
+                .filter((c) => connectionIds.has(c.id))
+                .map((c) => ({ kind: "Connection", id: c.id, name: c.name, content: C.clone(c) })),
+            ],
+          };
+        }
+        function bundleClashes(bundle, renames = {}) {
+          const nameOf = (r) => renames[r.kind + ":" + r.name] || r.name,
+            exists = (kind, name) =>
+              kind === "Pipeline"
+                ? state.definitions.some((d) => d.kind === "Pipeline" && d.name === name)
+                : kind === "Provider"
+                  ? state.providers.some((p) => p.name === name)
+                  : state.connections.some((c) => c.name === name),
+            seen = new Set();
+          return bundle.resources
+            .filter((r) => {
+              const key = r.kind + ":" + nameOf(r),
+                duplicate = seen.has(key);
+              seen.add(key);
+              return duplicate || exists(r.kind, nameOf(r));
+            })
+            .map((r) => r.kind + ":" + r.name);
+        }
+        function importBundle(bundle, renames = {}) {
+          const ids = {},
+            nameOf = (r) => renames[r.kind + ":" + r.name] || r.name;
+          for (const r of bundle.resources) ids[r.id] = uniqueId(r.kind.toLowerCase() + "-");
+          for (const r of bundle.resources) {
+            if (r.kind === "Provider")
+              state.providers.push({ ...C.clone(r.content), id: ids[r.id], name: nameOf(r) });
+            else if (r.kind === "Connection")
+              state.connections.push({ ...C.clone(r.content), id: ids[r.id], name: nameOf(r) });
+          }
+          for (const r of bundle.resources.filter((x) => x.kind === "Pipeline")) {
+            const snapshot = C.clone(r.content);
+            snapshot.name = nameOf(r);
+            snapshot.pipelineId = ids[r.id];
+            snapshot.organisationId = scopeModel.activeOrganisationId;
+            snapshot.namespaceId = scopeModel.activeNamespaceId;
+            for (const b of snapshot.bindings || []) {
+              if (ids[b.providerId]) b.providerId = ids[b.providerId];
+              if (ids[b.connectionId]) b.connectionId = ids[b.connectionId];
+            }
+            state.definitions.push({
+              id: ids[r.id],
+              name: nameOf(r),
+              kind: "Pipeline",
+              version: r.version,
+              description: "Imported from a configuration bundle.",
+              usedBy: 0,
+              icon: "workflow",
+              content: JSON.stringify(snapshot, null, 2),
+            });
+          }
+          persist();
+          return bundle.resources.length;
+        }
+        function readBundleFile(input) {
+          const file = input.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (stopped) return;
+            let bundle;
+            try {
+              bundle = JSON.parse(String(reader.result));
+              if (bundle?.bundleVersion !== 1 || !Array.isArray(bundle.resources)) throw Error();
+            } catch (_) {
+              toast("This file is not a Unify configuration bundle.", "warning");
+              return;
+            }
+            const clashes = bundleClashes(bundle);
+            if (clashes.length) {
+              openModal("bundle-import", { bundle, clashes });
+              return;
+            }
+            const count = importBundle(bundle);
+            render();
+            toast(`Imported ${count} resources into namespace ${activeNamespace().name}.`);
+          };
+          reader.readAsText(file);
+        }
+        function engineLabel(selection = engineSelection()) {
+          return selection.mode === "Automatic"
+            ? `Automatic → ${selection.engine} (${selection.useCase})`
+            : selection.engine;
+        }
         function addRun(
           result,
           status,
@@ -7761,11 +8306,15 @@ Version 1.4.0
           mode = "Preview",
           error,
         ) {
+          const selection = engineSelection();
           const run = {
             id: uniqueId("DEMO-").toUpperCase(),
             name: state.name,
             status,
-            engine: state.engine,
+            engine: selection.engine,
+            selection,
+            kind: mode === "Preview" ? "Preview" : "Execution",
+            principal: state.session?.principal || "demo.user",
             mode,
             date: new Date().toISOString(),
             duration: Math.max(0, performance.now() - started),
@@ -8422,18 +8971,28 @@ Version 1.4.0
             openModal("review-output");
             return;
           }
-          if (action === "simulate-publish") {
-            const run = addRun(
-              state.result,
-              "Completed",
-              performance.now(),
-              state.stages.map((s) => s.name),
-              "Publication simulation",
+          if (action === "execute-pipeline") {
+            if (state.running || !state.result?.ok) return;
+            const run = submitExecution();
+            toast(
+              `Execution ${run.id} submitted as a background job (simulated). Follow it in Run history.`,
             );
-            run.destination = "Committed (simulated)";
-            persist();
+            return;
+          }
+          if (action === "simulate-publish") {
+            submitExecution();
             closeModal();
-            toast("Publication simulated. No external destination changed.");
+            toast(
+              "Execution submitted as a background job (simulated). No external destination changes.",
+            );
+            return;
+          }
+          if (action === "repeat-run") {
+            const original = state.runs.find((x) => x.id === node.dataset.id);
+            if (!original) return;
+            const repeat = submitExecution(original.id);
+            closeModal();
+            toast(`Run ${original.id} repeated as ${repeat.id}.`);
             return;
           }
           if (action === "export-csv") {
@@ -8451,25 +9010,35 @@ Version 1.4.0
           }
           if (action === "export-design") {
             download(
-              "unify-pipeline-design.json",
-              JSON.stringify(
-                {
-                  prototype: true,
-                  name: state.name,
-                  version: state.version,
-                  engine: state.engine,
-                  sql: state.sql,
-                  parameters: { minimumUnits: state.minimumUnits },
-                  stages: state.stages,
-                  bindings: state.sources.map(bindingRecord),
-                  output: state.output,
-                },
-                null,
-                2,
-              ),
+              "unify-bundle.json",
+              JSON.stringify(exportBundle(), null, 2),
               "application/json",
             );
-            toast("Current local design exported.");
+            toast("Configuration bundle exported: the pipeline with its providers and connections.");
+            return;
+          }
+          if (action === "import-bundle") {
+            document.getElementById("bundle-file")?.click();
+            return;
+          }
+          if (action === "confirm-bundle-import") {
+            const m = state.modal,
+              renames = {};
+            for (const input of document.querySelectorAll("[data-bundle-rename]")) {
+              const value = input.value.trim();
+              if (value) renames[input.dataset.bundleRename] = value;
+            }
+            if (
+              m.clashes.some((key) => !renames[key]) ||
+              bundleClashes(m.bundle, renames).length
+            ) {
+              modalError("Give every clashing resource a new, unused name. Nothing was imported.");
+              return;
+            }
+            const count = importBundle(m.bundle, renames);
+            closeModal();
+            render();
+            toast(`Imported ${count} resources under the new names.`);
             return;
           }
           if (action === "new-pipeline") {
@@ -8544,6 +9113,34 @@ Version 1.4.0
         listen(document, "click", (event) => {
           const node = event.target.closest("[data-action]");
           if (!node || node.disabled) return;
+          if (node.dataset.action === "sign-in") {
+            const name =
+              document.getElementById("sign-in-name").value.trim() || "Demo User";
+            state.session = {
+              principal:
+                name.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.|\.$/g, "") || "user",
+              name,
+              role: document.getElementById("sign-in-role").value,
+            };
+            persist();
+            render();
+            toast(`Signed in as ${name} with the ${state.session.role} role (simulated).`);
+            return;
+          }
+          if (node.dataset.action === "sign-out") {
+            closeModal();
+            state.session = null;
+            persist();
+            render();
+            return;
+          }
+          // The access policy (FR038, FR045): a denied action changes nothing.
+          const permission = permissionFor(node.dataset.action);
+          if (!allowed(permission)) {
+            event.preventDefault();
+            toast(denial(permission), "warning");
+            return;
+          }
           eventTarget = event.target;
           if (node.dataset.action === "backdrop-close" && event.target !== node)
             return;
@@ -8657,6 +9254,19 @@ Version 1.4.0
           }
           if (el.id === "config-sample-file") {
             loadConfigurationSample(el);
+            return;
+          }
+          if (el.id === "bundle-file") {
+            readBundleFile(el);
+            return;
+          }
+          if (el.id === "role-select") {
+            if (!ROLES.includes(el.value)) return;
+            state.session.role = el.value;
+            closeModal();
+            persist();
+            render();
+            toast(`Role switched to ${el.value} (simulated). Actions this role cannot use are disabled.`);
             return;
           }
           if (configurationChanged(el, "change")) {
@@ -8782,6 +9392,10 @@ Version 1.4.0
           }
           if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
             event.preventDefault();
+            if (!allowed("preview")) {
+              toast(denial("preview"), "warning");
+              return;
+            }
             if (state.modal?.type === "expand") {
               setStageSQL(
                 document.getElementById("expanded-sql").value,
@@ -8799,6 +9413,10 @@ Version 1.4.0
             event.key.toLowerCase() === "s"
           ) {
             event.preventDefault();
+            if (!allowed("edit")) {
+              toast(denial("edit"), "warning");
+              return;
+            }
             if (state.stages.length) openModal("save-version");
             else toast("Create or open a pipeline first.", "warning");
             return;
@@ -11729,7 +12347,7 @@ ${
 }
 <div class='config-section-title'><h2>${e.format === "JDBC" ? "Result sample" : e.format === "HTTP JSON" ? "Response body sample" : "Source sample"}</h2>${button("config-example", "Load example", "file")}</div><label class='form-label'>Load sample file<input id='config-sample-file' type='file' accept='.json,.xml,.txt,application/json,application/xml,text/plain'></label>${configArea("Paste sample data", "raw", e.raw, true, 10, "config-source-text")}<div class='config-grid'>${configInput("First data record", "firstRecord", s.firstRecord, { type: "number", min: 1 })}${configInput("Last data record (blank for all)", "lastRecord", s.lastRecord, { type: "number", min: 1 })}${configSchemaSelect("Use saved output schema", "schemaId", s.schemaId || "")}</div>${button("config-analyze", "Read sample and map fields", "table", "primary")}`;
           if (e.kind === "connection")
-            return `<div class='config-grid'>${configInput("Connection name", "name", e.name, { top: true, id: "new-source-name" })}${configSelect("Connector", "connector", s.connector, ["CSV", "JSON", "XML", "JDBC", "HTTP JSON"], false, "new-source-format")}${configInput(s.connector === "JDBC" ? "JDBC URL" : s.connector === "HTTP JSON" ? "Base URL" : "Base directory", "location", s.location, { id: "new-source-location" })}${configInput("Credential reference", "credentialRef", s.credentialRef, { id: "connection-credential" })}${s.connector === "JDBC" ? configSelect("JDBC product", "driver", s.driver, ["SQLite", "H2"]) : ""}${s.connector === "HTTP JSON" ? configInput("Connect timeout (ms)", "connectTimeout", s.connectTimeout, { type: "number", min: 1 }) + configInput("Read timeout (ms)", "readTimeout", s.readTimeout, { type: "number", min: 1 }) : ""}${configInput("Description", "description", e.description, { top: true, id: "new-source-description" })}</div><div class='notice'>${icon("info")}Validate settings checks required fields and syntax. A live connector is not connected, so these settings are never marked “connection tested”.</div>${button("config-validate-connection", "Validate settings", "shield", "primary")}`;
+            return `<div class='config-grid'>${configInput("Connection name", "name", e.name, { top: true, id: "new-source-name" })}${configSelect("Connector", "connector", s.connector, ["CSV", "JSON", "XML", "JDBC", "HTTP JSON"], false, "new-source-format")}${configInput(s.connector === "JDBC" ? "JDBC URL" : s.connector === "HTTP JSON" ? "Base URL" : "Base directory", "location", s.location, { id: "new-source-location" })}${configInput("Credential reference", "credentialRef", s.credentialRef, { id: "connection-credential" })}${s.connector === "JDBC" ? configSelect("JDBC product", "driver", s.driver, ["SQLite", "H2"]) : ""}${s.connector === "HTTP JSON" ? configInput("Connect timeout (ms)", "connectTimeout", s.connectTimeout, { type: "number", min: 1 }) + configInput("Read timeout (ms)", "readTimeout", s.readTimeout, { type: "number", min: 1 }) : ""}${configInput("Description", "description", e.description, { top: true, id: "new-source-description" })}</div><div class='notice'>${icon("info")}Validate settings checks required fields and syntax without contacting anything. Test connection is a separate, explicit check of the endpoint; in this mockup it is simulated and nothing is contacted.</div>${button("config-validate-connection", "Validate settings", "shield", "primary")}${button("config-test-connection", s.connector === "HTTP JSON" ? "Test connection (handshake)" : "Test connection", "link")}${s.connector === "HTTP JSON" ? button("config-test-connection-get", "Test with GET request", "link") : ""}${e.test ? `<div class='notice ${e.test.outcome === "REACHABLE" ? "" : "amber"}' data-connection-test>${icon(e.test.outcome === "REACHABLE" ? "circleCheck" : "warning")}Live test (simulated): <strong>${E(e.test.outcome)}</strong> · ${E(e.test.detail)}. Not stored, and not required before execution.</div>` : ""}`;
           if (e.kind === "runtime")
             return `<div class='config-grid'>${configInput("Preview record limit (all source reads)", "previewLimit", s.previewLimit, { type: "number", min: 1 })}${configInput("Total source-record budget", "maxInputRecords", s.maxInputRecords, { type: "number", min: 1 })}${configInput("Generated-record budget", "maxGeneratedRows", s.maxGeneratedRows, { type: "number", min: 1 })}${configInput("Working payload budget (bytes)", "maxPayloadBytes", s.maxPayloadBytes, { type: "number", min: 1 })}${configInput("Operation deadline (ms)", "deadlineMs", s.deadlineMs, { type: "number", min: 1 })}${configSelect(
               "Invalid-record policy",
@@ -13000,6 +13618,42 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               render();
               return true;
             }
+            if (
+              action === "config-test-connection" ||
+              action === "config-test-connection-get"
+            ) {
+              // FR040: an explicit live test, separate from settings
+              // validation. Simulated here; the product opens the endpoint.
+              validateConnectionSettings(e);
+              const s = e.settings,
+                location = String(s.location || "");
+              const unreachable = /\.invalid(\/|:|$)/i.test(location);
+              e.test = unreachable
+                ? {
+                    outcome: "UNREACHABLE",
+                    detail: "the host name does not resolve",
+                  }
+                : s.connector === "HTTP JSON"
+                  ? {
+                      outcome: "REACHABLE",
+                      detail:
+                        action === "config-test-connection-get"
+                          ? "GET returned 200; the body was not read"
+                          : "TLS handshake completed; no request sent",
+                    }
+                  : s.connector === "JDBC"
+                    ? {
+                        outcome: "REACHABLE",
+                        detail: (s.driver || "Database") + " connection opened; product metadata read",
+                      }
+                    : {
+                        outcome: "REACHABLE",
+                        detail: "directory exists and is readable; no file contents read",
+                      };
+              e.error = "";
+              render();
+              return true;
+            }
             if (action === "config-analyze") {
               configurationSourceRead();
               e.section = "fields";
@@ -13125,8 +13779,9 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             if (action === "config-download") {
               if (!e.preview?.ok || !e.serialized)
                 throw Error("Prepare valid serialized output first.");
+              // FR013: the download is identified as a preview sample.
               download(
-                e.settings.name || "output." + e.settings.format.toLowerCase(),
+                "preview-" + (e.settings.name || "output." + e.settings.format.toLowerCase()),
                 e.serialized,
                 {
                   CSV: "text/csv",
@@ -13783,7 +14438,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           const pipelines = state.definitions.filter(
             (item) => item.kind === "Pipeline",
           );
-          return `${heading("Pipelines", "Saved in namespace " + E(activeNamespace().name) + ". Drafts are held in " + E(activeDesignWorkspace().name) + ".", button("new-pipeline", "New pipeline", "plus", "primary", state.sources.length ? "" : "disabled"))}<div class='stat-grid'><div class='stat-box'><p>Saved pipelines</p><strong>${pipelines.length}</strong></div><div class='stat-box'><p>Stages in current session</p><strong>${state.stages.length}</strong></div><div class='stat-box'><p>Bound inputs</p><strong>${state.sources.length}</strong></div></div>${state.stages.length ? `<section class='card structure-main'><h2>Current editing session</h2><p>${E(state.name)} · ${state.dirty ? "Unpublished changes" : "Saved configuration"}</p>${button("open-workspace", "Open workbench", "code")}</section>` : ""}<section class='card structure-main'>${pipelines.length ? `<table class='list-table' aria-label='Saved pipelines'><thead><tr><th>Name</th><th>Saved revision</th><th>Actions</th></tr></thead><tbody>${pipelines.map((item) => `<tr><td><strong>${E(item.name)}</strong><small>${E(item.description || "")}</small></td><td>${badge("v" + item.version, "outline")}</td><td>${button("revise-definition", "Open configuration", "code", "small", `data-id='${E(item.id)}'`)}</td></tr>`).join("")}</tbody></table>` : `<div class='empty-state'><h2>No saved pipelines in this namespace</h2><p>Configure a reader and bind its input in the catalogue, then create a pipeline.</p>${button("navigate", "Browse catalogue", "database", "", "data-view='providers'")}</div>`}</section>`;
+          return `${heading("Pipelines", "Saved in namespace " + E(activeNamespace().name) + ". Drafts are held in " + E(activeDesignWorkspace().name) + ".", button("import-bundle", "Import bundle", "upload") + button("new-pipeline", "New pipeline", "plus", "primary", state.sources.length ? "" : "disabled"))}<input type='file' id='bundle-file' accept='.json,application/json' hidden><div class='stat-grid'><div class='stat-box'><p>Saved pipelines</p><strong>${pipelines.length}</strong></div><div class='stat-box'><p>Stages in current session</p><strong>${state.stages.length}</strong></div><div class='stat-box'><p>Bound inputs</p><strong>${state.sources.length}</strong></div></div>${state.stages.length ? `<section class='card structure-main'><h2>Current editing session</h2><p>${E(state.name)} · ${state.dirty ? "Unpublished changes" : "Saved configuration"}</p>${button("open-workspace", "Open workbench", "code")}</section>` : ""}<section class='card structure-main'>${pipelines.length ? `<table class='list-table' aria-label='Saved pipelines'><thead><tr><th>Name</th><th>Saved revision</th><th>Actions</th></tr></thead><tbody>${pipelines.map((item) => `<tr><td><strong>${E(item.name)}</strong><small>${E(item.description || "")}</small></td><td>${badge("v" + item.version, "outline")}</td><td>${button("revise-definition", "Open configuration", "code", "small", `data-id='${E(item.id)}'`)}</td></tr>`).join("")}</tbody></table>` : `<div class='empty-state'><h2>No saved pipelines in this namespace</h2><p>Configure a reader and bind its input in the catalogue, then create a pipeline.</p>${button("navigate", "Browse catalogue", "database", "", "data-view='providers'")}</div>`}</section>`;
         }
         function managementNav() {
           return `<div class='management-nav' aria-label='Structure management'>${[
@@ -14333,15 +14988,29 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           },
           true,
         );
+        // A job still queued or running at start-up belonged to a stopped
+        // instance: mark it abandoned and never restart it (FR046).
+        for (const run of state.runs) {
+          if (run.status !== "Queued" && run.status !== "Running") continue;
+          run.destination = run.phase === "publishing" ? "Unknown" : "Not started";
+          run.status = "Abandoned";
+          run.error =
+            "The service instance stopped while this job ran. It was not restarted; repeat it from history if needed.";
+        }
         persist();
         listen(window, "beforeunload", persist);
         render();
         return {
+          save() {
+            if (!stopped) persist();
+          },
           stop() {
             stopped = true;
             listeners.abort();
             clearTimeout(toastTimer);
             clearTimeout(runTimer);
+            jobTimers.forEach(clearTimeout);
+            jobTimers.clear();
             app.innerHTML = "";
             overlays.innerHTML = "";
             document.getElementById("toast-root").innerHTML = "";
@@ -14353,7 +15022,468 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           const script = document.createElement("script");
           script.src = "tests.js";
           document.body.appendChild(script);
-        } else start();
+        } else window.UnifyApp.page = start();
+      })();
+    </script>
+    <script id="unify-demo">
+      // Automated demo: drives the real UI with a visible pointer and
+      // narration, checking results as it goes. Each scenario runs on a fresh
+      // app instance with an in-memory store, so saved data is never read or
+      // written; afterwards the page's own app restarts from saved data.
+      (function () {
+        "use strict";
+        const KEY = "unify-ui-prototype-v1";
+        const STOP = new Error("Demo stopped");
+        const demo = { running: false, paused: false, stop: false, speed: 1, results: [], instance: null, store: null };
+        let panel = null,
+          pointer = null,
+          shield = null;
+        const $ = (s, root = document) => root.querySelector(s),
+          $$ = (s, root = document) => [...root.querySelectorAll(s)];
+        const esc = (s) =>
+          String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+        function memoryStorage() {
+          const items = new Map();
+          return {
+            get length() {
+              return items.size;
+            },
+            key: (i) => [...items.keys()][i] ?? null,
+            getItem: (k) => (items.has(k) ? items.get(k) : null),
+            setItem: (k, v) => items.set(String(k), String(v)),
+            removeItem: (k) => items.delete(k),
+            clear: () => items.clear(),
+          };
+        }
+
+        // ---- Pointer, narration and actions.
+        async function wait(ms) {
+          let left = ms * demo.speed;
+          do {
+            if (demo.stop) throw STOP;
+            await new Promise((r) => setTimeout(r, Math.min(40, Math.max(0, left)) || 0));
+            if (!demo.paused) left -= 40;
+          } while (left > 0 || demo.paused);
+        }
+        async function until(test, what, ms = 6000) {
+          const t0 = Date.now();
+          while (!test()) {
+            if (demo.stop) throw STOP;
+            if (Date.now() - t0 > ms) throw new Error("Timed out waiting for " + what);
+            await new Promise((r) => setTimeout(r, 40));
+          }
+        }
+        const shown = (e) => !!e && e.isConnected && e.getClientRects().length > 0;
+        async function find(target, what) {
+          const t0 = Date.now();
+          for (;;) {
+            if (demo.stop) throw STOP;
+            const e = typeof target === "function" ? target() : $(target);
+            if (shown(e)) return e;
+            if (Date.now() - t0 > 5000) throw new Error("Couldn't find " + (what || target));
+            await new Promise((r) => setTimeout(r, 60));
+          }
+        }
+        function caption(text) {
+          $("#demo-caption", panel).textContent = text;
+          $(".demo-bubble", pointer).textContent = text;
+        }
+        async function point(e) {
+          e.scrollIntoView({ block: "nearest", inline: "nearest" });
+          await wait(60);
+          const r = e.getBoundingClientRect(),
+            x = r.left + Math.min(r.width / 2, 36),
+            y = r.top + Math.min(r.height / 2, 18),
+            duration = Math.max(40, 450 * demo.speed);
+          pointer.style.transition = `left ${duration}ms ease, top ${duration}ms ease`;
+          pointer.classList.toggle("flip", x > window.innerWidth - 320);
+          pointer.style.left = x + "px";
+          pointer.style.top = y + "px";
+          await wait(duration / Math.max(demo.speed, 0.01) + 40);
+          e.classList.add("demo-target");
+          setTimeout(() => e.classList.remove("demo-target"), Math.max(250, 900 * demo.speed));
+        }
+        async function click(target, what) {
+          const e = await find(target, what);
+          await point(e);
+          pointer.classList.remove("clicking");
+          void pointer.offsetWidth;
+          pointer.classList.add("clicking");
+          e.click();
+          await wait(380);
+        }
+        // Shows the text being typed, then fires one input and one change
+        // event, as a user finishing a field would.
+        async function type(target, text, what) {
+          const e = await find(target, what);
+          await point(e);
+          e.focus();
+          e.value = "";
+          for (const ch of String(text)) {
+            e.value += ch;
+            await wait(35);
+          }
+          e.dispatchEvent(new Event("input", { bubbles: true }));
+          e.dispatchEvent(new Event("change", { bubbles: true }));
+          await wait(250);
+        }
+        async function choose(target, value, what) {
+          const e = await find(target, what);
+          await point(e);
+          e.value = value;
+          e.dispatchEvent(new Event("change", { bubbles: true }));
+          await wait(380);
+        }
+        async function say(text) {
+          caption(text);
+          await wait(1100);
+        }
+        function check(label, test) {
+          let pass = false,
+            note = "";
+          try {
+            pass = !!test();
+          } catch (e) {
+            note = e.message;
+          }
+          demo.results[demo.results.length - 1].checks.push({ label, pass, note });
+          renderResults();
+        }
+        const saved = () => JSON.parse(demo.store.getItem(KEY) || "null");
+        const rows = () => $$('table[aria-label="Preview data"] tbody tr').length;
+        const previewDone = () => until(() => !$(".progress-strip"), "the preview to finish", 10000);
+
+        // ---- Scenarios: each starts from a fresh instance with sample data.
+        const SCENARIOS = [
+          {
+            id: "preview",
+            title: "Preview a pipeline on sample data",
+            run: async () => {
+              await say("The workbench holds a saved pipeline: load, normalise, join, query, validate and publish.");
+              check("The pipeline has six stages", () => $$(".stage-card").length === 6);
+              await say("Change the query parameter to holdings of at least 100 units.");
+              await type('[name="minimum-units"]', "100", "Minimum units");
+              await say("A preview runs every stage on sample data and writes nothing to a destination.");
+              await click('[data-action="run-pipeline"]', "Preview pipeline");
+              await previewDone();
+              check("Ten holdings meet the threshold", () => rows() === 10);
+            },
+          },
+          {
+            id: "engine",
+            title: "Let Unify choose the engine",
+            run: async () => {
+              await say("Unify can choose SQLite or DuckDB automatically, from use cases measured in testing.");
+              await choose("#engine-select", "Automatic", "Execution engine");
+              check("SQLite is chosen for this small, join-heavy pipeline", () =>
+                /Automatic → SQLite \(SEL-04\)/.test($(".summary-items").textContent),
+              );
+              await click('[data-action="run-pipeline"]', "Preview pipeline");
+              await previewDone();
+              await say("Run history records how the engine was chosen.");
+              await click('[data-action="navigate"][data-view="runs"]', "Run history");
+              await click(".list-table tbody tr", "the latest run");
+              check("The run records the matched use case", () =>
+                /Automatic: SEL-04/.test($("[data-engine-selection]").textContent),
+              );
+              await click('[data-action="close-modal"]', "Close");
+            },
+          },
+          {
+            id: "execute",
+            title: "Execute as a background job",
+            run: async () => {
+              await say("Executing submits a background job: it is queued, runs, then completes.");
+              await click('[data-action="execute-pipeline"]', "Execute");
+              check("The job is submitted and recorded as an execution", () =>
+                saved().runs[0].kind === "Execution" && ["Queued", "Running", "Completed"].includes(saved().runs[0].status),
+              );
+              await click('[data-action="navigate"][data-view="runs"]', "Run history");
+              await until(() => saved().runs[0].status === "Completed", "the job to complete");
+              await wait(300);
+              check("Run history shows the completed execution", () =>
+                /Execution.*Completed/s.test($(".list-table tbody tr").textContent),
+              );
+              await say("A finished execution can be repeated from history.");
+              await click(".list-table tbody tr", "the execution");
+              await click('[data-action="repeat-run"]', "Repeat run");
+              check("The repeat is a new run that names the original", () => saved().runs[0].repeatOf === saved().runs[1].id);
+            },
+          },
+          {
+            id: "connections",
+            title: "Validate a connection, then test it",
+            run: async () => {
+              await click('[data-action="navigate"][data-view="sources"]', "Connections");
+              await click('[data-action="new-source"]', "New connection");
+              await type("#new-source-name", "Rates API", "Connection name");
+              await choose("#new-source-format", "HTTP JSON", "Connector");
+              await type("#new-source-location", "https://example.invalid/rates", "Base URL");
+              await say("Validate settings checks the syntax without contacting anything.");
+              await click('[data-action="config-validate-connection"]', "Validate settings");
+              check("Validation runs no live test", () => !$("[data-connection-test]"));
+              await say("Testing is a separate, explicit step. This host name does not resolve.");
+              await click('[data-action="config-test-connection"]', "Test connection");
+              check("An unresolvable host is reported as unreachable", () =>
+                /UNREACHABLE/.test($("[data-connection-test]").textContent),
+              );
+              await type("#new-source-location", "https://rates.example.com/v1", "Base URL");
+              await click('[data-action="config-test-connection"]', "Test connection");
+              check("By default only the handshake is tested", () =>
+                /no request sent/.test($("[data-connection-test]").textContent),
+              );
+              await click('[data-action="config-test-connection-get"]', "Test with GET request");
+              check("A GET is sent only when asked, and its body is not read", () =>
+                /body was not read/.test($("[data-connection-test]").textContent),
+              );
+            },
+          },
+          {
+            id: "catalogue",
+            title: "Find a provider in the catalogue",
+            run: async () => {
+              await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
+              await say("Providers are grouped by category. Switch to the compact list and search.");
+              await click('[data-action="catalogue-mode"][data-mode="list"]', "List view");
+              await type("#provider-search", "Holdings", "Search providers");
+              check("Search finds the holdings reader", () => /Files\.Holdings/.test($("#provider-directory").textContent));
+            },
+          },
+          {
+            id: "roles",
+            title: "What each role can do",
+            run: async () => {
+              await say("Switch roles to see what each may do. A Viewer can only look.");
+              await choose("#role-select", "Viewer", "Role");
+              check("A Viewer cannot preview or execute", () =>
+                $('[data-action="run-pipeline"]').disabled && $('[data-action="execute-pipeline"]').disabled,
+              );
+              check("A notice says what is not available", () => /Not available/.test($("[data-role-notice]").textContent));
+              await say("An Operator runs pipelines but does not edit or preview them.");
+              await choose("#role-select", "Operator", "Role");
+              check("An Operator can execute but not preview", () =>
+                !$('[data-action="execute-pipeline"]').disabled && $('[data-action="run-pipeline"]').disabled,
+              );
+              await say("An Editor builds and previews, but does not execute.");
+              await choose("#role-select", "Editor", "Role");
+              check("An Editor can preview but not execute", () =>
+                !$('[data-action="run-pipeline"]').disabled && $('[data-action="execute-pipeline"]').disabled,
+              );
+              await choose("#role-select", "Administrator", "Role");
+              check("An Administrator can do both", () =>
+                !$('[data-action="run-pipeline"]').disabled && !$('[data-action="execute-pipeline"]').disabled,
+              );
+            },
+          },
+          {
+            id: "bundle",
+            title: "Export a bundle and import it under new names",
+            run: async () => {
+              await say("Export the pipeline with the providers and connections it uses as a bundle.");
+              await click('[data-action="versions"]', "Versions");
+              // Capture the download instead of saving a file.
+              const createObjectURL = URL.createObjectURL,
+                anchorClick = HTMLAnchorElement.prototype.click;
+              let blob = null;
+              URL.createObjectURL = (b) => {
+                blob = b;
+                return "blob:unify-demo";
+              };
+              HTMLAnchorElement.prototype.click = function () {
+                if (!this.download) anchorClick.call(this);
+              };
+              try {
+                await click('[data-action="export-design"]', "Export current design");
+              } finally {
+                URL.createObjectURL = createObjectURL;
+                HTMLAnchorElement.prototype.click = anchorClick;
+              }
+              const text = await blob.text();
+              check("The bundle holds the pipeline and its providers", () => {
+                const bundle = JSON.parse(text);
+                return bundle.resources.some((r) => r.kind === "Pipeline") && bundle.resources.some((r) => r.kind === "Provider");
+              });
+              await say("Importing it into the same namespace clashes with every name, so nothing is imported yet.");
+              await click('[data-action="navigate"][data-view="pipelines"]', "Pipelines");
+              await point(await find('[data-action="import-bundle"]', "Import bundle"));
+              const input = document.getElementById("bundle-file");
+              Object.defineProperty(input, "files", {
+                configurable: true,
+                value: [new File([text], "unify-bundle.json", { type: "application/json" })],
+              });
+              input.dispatchEvent(new Event("change", { bubbles: true }));
+              await find("[data-bundle-rename]", "the name-conflict dialog");
+              check("Every clashing name is listed", () => $$("[data-bundle-rename]").length === JSON.parse(text).resources.length);
+              await say("Give each clashing resource a new name, then import.");
+              for (const field of $$("[data-bundle-rename]"))
+                await type(() => field, field.dataset.bundleRename.split(":").slice(1).join(":") + " (copy)", "New name");
+              await click('[data-action="confirm-bundle-import"]', "Import with new names");
+              check("The pipeline is imported under its new name", () =>
+                saved().definitions.some((d) => d.kind === "Pipeline" && / \(copy\)$/.test(d.name)),
+              );
+            },
+          },
+          {
+            id: "signin",
+            title: "Sign out and sign in",
+            run: async () => {
+              await say("Unify signs people in through their identity provider. Here it is simulated.");
+              await click('[data-action="sign-out"]', "Sign out");
+              check("Signing out shows the sign-in page", () => /Sign in to Unify/.test($("h1").textContent));
+              await type("#sign-in-name", "Jane Doe", "Display name");
+              await choose("#sign-in-role", "Operator", "Role");
+              await click('[data-action="sign-in"]', "Sign in");
+              check("Jane Doe is signed in as an Operator", () =>
+                /Jane Doe/.test($("[data-session-user]").textContent) && $("#role-select").value === "Operator",
+              );
+            },
+          },
+        ];
+
+        // ---- Panel and runner.
+        function renderResults() {
+          const box = $("#demo-results", panel);
+          if (!box) return;
+          const total = demo.results.reduce((n, r) => n + r.checks.length, 0),
+            passed = demo.results.reduce((n, r) => n + r.checks.filter((c) => c.pass).length, 0);
+          box.dataset.results = JSON.stringify(demo.results);
+          box.innerHTML =
+            demo.results
+              .map(
+                (r) =>
+                  `<div class='sc'>${esc(r.title)}${r.error ? " <span class='fail'>(stopped)</span>" : ""}</div>${r.checks
+                    .map((c) => `<div class='${c.pass ? "pass" : "fail"}'>${c.pass ? "✓" : "✗"} ${esc(c.label)}${c.note ? " (" + esc(c.note) + ")" : ""}</div>`)
+                    .join("")}${r.error ? `<div class='fail'>✗ ${esc(r.error)}</div>` : ""}`,
+              )
+              .join("") +
+            (demo.results.length && !demo.running
+              ? `<div class='sum ${passed === total && !demo.results.some((r) => r.error) ? "pass" : "fail"}'>${passed} of ${total} checks passed. Your saved data was not touched.</div>`
+              : "");
+        }
+        function openPanel() {
+          if (!panel) {
+            panel = document.createElement("div");
+            panel.className = "demo-panel";
+            panel.setAttribute("role", "dialog");
+            panel.setAttribute("aria-label", "Automated demo");
+            panel.innerHTML = `<div class='demo-head'><strong>▶ Automated demo</strong><button type='button' data-demo='min' title='Minimise'>–</button><button type='button' data-demo='close' title='Close'>✕</button></div>
+<div class='demo-body'><div class='demo-pick'><span>${SCENARIOS.length} scenarios</span><button type='button' data-demo='all'>All</button><button type='button' data-demo='none'>None</button></div>
+<div class='demo-list'>${SCENARIOS.map((s) => `<label><input type='checkbox' value='${s.id}' checked> ${esc(s.title)}</label>`).join("")}</div>
+<div class='demo-controls'><select id='demo-speed' aria-label='Speed'><option value='1.6'>Slow</option><option value='1' selected>Normal</option><option value='0.4'>Fast</option><option value='0.03'>Instant (test run)</option></select><button type='button' class='primary' data-demo='run'>Run</button><button type='button' data-demo='pause' disabled>Pause</button><button type='button' data-demo='stop' disabled>Stop</button></div>
+<div class='demo-caption' id='demo-caption'>Choose scenarios and press Run. Each scenario uses fresh sample data in memory; your saved data is never touched, and the app reopens from it afterwards.</div>
+<div class='demo-results' id='demo-results'></div></div>`;
+            document.body.appendChild(panel);
+            pointer = document.createElement("div");
+            pointer.className = "demo-pointer";
+            pointer.innerHTML =
+              "<svg viewBox='0 0 24 24' width='24' height='24' aria-hidden='true'><path d='M3 2l7 19 2.6-7.4L20 11z' fill='#fff' stroke='#16181d' stroke-width='1.6' stroke-linejoin='round'/></svg><div class='demo-bubble'></div>";
+            panel.addEventListener("click", (event) => {
+              const b = event.target.closest("[data-demo]");
+              if (!b) return;
+              const action = b.dataset.demo;
+              if (action === "run") run();
+              if (action === "pause") {
+                demo.paused = !demo.paused;
+                b.textContent = demo.paused ? "Resume" : "Pause";
+              }
+              if (action === "stop") {
+                demo.stop = true;
+                demo.paused = false;
+              }
+              if (action === "min") panel.classList.toggle("min");
+              if ((action === "all" || action === "none") && !demo.running)
+                $$(".demo-list input", panel).forEach((i) => (i.checked = action === "all"));
+              if (action === "close" && !demo.running) closePanel();
+            });
+          }
+          panel.classList.remove("min");
+          return panel;
+        }
+        function closePanel() {
+          panel?.remove();
+          panel = null;
+        }
+        async function run(options = {}) {
+          if (demo.running) return demo.results;
+          openPanel();
+          const ids = options.ids || $$(".demo-list input:checked", panel).map((i) => i.value);
+          const chosen = SCENARIOS.filter((s) => ids.includes(s.id));
+          if (!chosen.length) {
+            caption("Tick at least one scenario.");
+            return [];
+          }
+          if (options.speed) $("#demo-speed", panel).value = String(options.speed);
+          const page = window.UnifyApp.page;
+          // The page's own app saves and steps aside; it reopens from saved data.
+          if (page) {
+            page.save();
+            page.stop();
+            window.UnifyApp.page = null;
+          }
+          Object.assign(demo, { running: true, paused: false, stop: false, results: [], speed: +$("#demo-speed", panel).value });
+          shield = document.createElement("div");
+          shield.className = "demo-shield";
+          document.body.appendChild(shield);
+          document.body.appendChild(pointer);
+          $$("[data-demo='pause'], [data-demo='stop']", panel).forEach((b) => (b.disabled = false));
+          $("[data-demo='run']", panel).disabled = true;
+          try {
+            for (const scenario of chosen) {
+              demo.results.push({ id: scenario.id, title: scenario.title, checks: [], error: "" });
+              renderResults();
+              try {
+                demo.instance?.stop();
+                demo.store = memoryStorage();
+                demo.instance = window.UnifyApp.start({ storage: demo.store });
+                caption(scenario.title);
+                await wait(400);
+                await scenario.run();
+              } catch (error) {
+                demo.results[demo.results.length - 1].error = error === STOP ? "Stopped by you" : "Step failed: " + error.message;
+                if (error === STOP) break;
+              }
+            }
+          } finally {
+            demo.running = false;
+            demo.instance?.stop();
+            demo.instance = null;
+            demo.store = null;
+            shield.remove();
+            pointer.remove();
+            pointer.style.left = "-100px";
+            if (page) window.UnifyApp.page = window.UnifyApp.start();
+          }
+          $("[data-demo='run']", panel).disabled = false;
+          $$("[data-demo='pause'], [data-demo='stop']", panel).forEach((b) => {
+            b.disabled = true;
+            b.textContent = b.dataset.demo === "pause" ? "Pause" : "Stop";
+          });
+          caption("Finished. The app has reopened from your saved data.");
+          renderResults();
+          return demo.results;
+        }
+        document.addEventListener("click", (event) => {
+          if (event.target.closest("[data-open-demo]")) openPanel();
+        });
+        // While the demo drives the page, the keyboard belongs to the demo
+        // panel; the shield already stops clicks.
+        ["keydown", "keypress", "keyup", "beforeinput", "paste", "drop"].forEach((type) =>
+          window.addEventListener(
+            type,
+            (event) => {
+              if (!demo.running || panel?.contains(event.target)) return;
+              event.preventDefault();
+              event.stopImmediatePropagation();
+            },
+            true,
+          ),
+        );
+        window.UnifyDemo = {
+          open: openPanel,
+          close: closePanel,
+          run,
+          scenarios: SCENARIOS.map(({ id, title }) => ({ id, title })),
+        };
       })();
     </script>
   </body>

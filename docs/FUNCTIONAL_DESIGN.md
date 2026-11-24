@@ -1,5 +1,5 @@
 © Mark Andrew Ray-Smith Cityline Ltd 2025\
-Version 0.11
+Version 0.14
 
 # Unify Functional Design
 
@@ -16,7 +16,7 @@ Unify enables applications to read tabular data from different sources, process 
 
 This design defines the proposed first functional baseline. It specifies externally observable behavior rather than classes, frameworks, or algorithms. Requirements describe intended behavior; they do not imply that the current implementation already satisfies it. The technical design must implement these requirements and must identify any requirement it cannot satisfy. A technical limitation must not silently change the functional contract.
 
-The working product assumption is an embedded Java library used by a host application. Both designs remain drafts until their scope and behavior have been reviewed.
+Unify is delivered as a service with an HTTP API and its own user interface, built on an embedded Java library that applications can also use directly (D01). Both designs remain drafts until their scope and behavior have been reviewed.
 
 ## Problem and intended outcomes
 
@@ -34,8 +34,9 @@ Success means that a CSV-to-database transfer and a JSON-to-XML transfer use the
 | Integration maintainer                | Store, find, version, and reuse input/output schemas, mappings, transformations, and format options | Review data contracts and coordinate source changes            |
 | Operator through the host application | Diagnose rejected records and failed transfers                                                      | Schedule jobs, manage credentials, and decide whether to rerun |
 | Connector implementer                 | Add a source or destination with the same behavioral contract                                       | Establish compatibility with the external product              |
+| Unify administrator                   | Configure organisations, namespaces, and the identity-provider groups granted each role             | Operate the service, its PostgreSQL database, and the identity provider |
 
-These are usage roles, not accounts or permissions managed by Unify. The host application controls access to files, databases, network endpoints, and diagnostic data.
+These are usage roles. In the Unify service, permissions come from Unify roles granted to identity-provider groups (FR044, FR045). An application embedding the library supplies its own access policy (FR038). Access to files, databases, and network endpoints is further limited by the credentials each connection uses.
 
 ## Scope of the first functional baseline
 
@@ -60,10 +61,14 @@ These are usage roles, not accounts or permissions managed by Unify. The host ap
 - SQLite and DuckDB as selectable execution backends behind common pipeline and data contracts, qualified against the same functional baseline.
 - Reusable configuration, validation before execution, and a preview that does not write to a destination.
 - Explicit operation results, rejection reporting, cancellation, and bounded resource use.
+- The Unify service: an HTTP API described by OpenAPI, and a user interface built only on that API.
+- Sign-in through an external OpenID Connect identity provider, and Unify roles granted to identity-provider groups.
+- Background execution of operations, with live progress, cancellation, and run history.
+- An embedded library offering the same capabilities to applications that use Unify directly.
 
 ### Deferred capabilities
 
-The first baseline excludes a user interface, standalone server, scheduler, distributed processing, continuous synchronization, change capture, arbitrary transformation scripts, and datasets that require processing beyond configured materialization limits. Filtering, expressions, aggregation, and sorting are included through the SQL query profile in FR032. Non-equality joins, unrestricted cross joins, recursive queries, and window functions remain outside the proposed portable query baseline.
+The first baseline excludes a scheduler for recurring operations, Unify-managed user accounts, distributed processing, continuous synchronization, change capture, arbitrary transformation scripts, and datasets that require processing beyond configured materialization limits. Filtering, expressions, aggregation, and sorting are included through the SQL query profile in FR032. Non-equality joins, unrestricted cross joins, recursive queries, and window functions remain outside the proposed portable query baseline.
 
 MongoDB and other NoSQL integrations are deferred. HTTP writes, pagination, automatic retries, OAuth token acquisition, remote file destinations, file append, database upsert, table replacement, and automatic database schema creation or migration are also deferred. Existing experimental APIs do not expand this baseline.
 
@@ -116,12 +121,18 @@ Join eligibility depends on a connector's read capability, independently of its 
 | Operation             | One read, write, preview, or source-to-destination transfer                                                                                                                            |
 | Rejection             | A complete record excluded by an explicitly selected validation policy                                                                                                                 |
 | Result                | Completion status, record counts, diagnostics, and destination outcome                                                                                                                 |
+| Run record            | The stored result of one execution or preview in a namespace's run history, without business records, samples, or secrets                                                              |
+| Design-time sample    | Records supplied by upload, paste, or example while configuring; bounded, session-scoped, and never persisted                                                                          |
+| Configuration bundle  | An export of selected saved resources with the exact versions they depend on, without records, samples, credentials, or run history                                                    |
+| Access policy         | The decisions about which principal may discover, inspect, bind, save, publish, execute, use a connection, or administer structure; in the service, derived from role grants             |
+| Role grant            | One Unify role given to one identity-provider group in an organisation or namespace                                                                                                    |
+| Execution job         | A submitted execution waiting for or running on a service worker, visible as a queued, running, or abandoned run                                                                       |
 
 A table contains scalar values. Nested objects, collections, and binary values are outside the baseline. Null, empty, and missing values have distinct meanings even when a source format needs explicit settings to distinguish them.
 
 ## Catalogue and workspace concepts
 
-The host-facing model distinguishes the following areas. The HTML mockup illustrates these interactions; an independently delivered production UI remains outside the embedded-library baseline.
+The host-facing model distinguishes the following areas. The Unify UI provides these interactions through the service API (FR043). The HTML mockup is its design reference and relies only on capabilities of the configuration interface (FR038).
 
 | Area               | Contents and purpose                                                                                                         |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
@@ -161,7 +172,7 @@ SQLite and DuckDB are supported execution backends behind a common Unify contrac
 | DuckDB execution backend          | Execute portable pipelines for analytical and join-heavy processing, including supported disk-backed intermediate work                        |
 | Source and destination connectors | Read and write business data independently of the chosen execution backend                                                                    |
 
-The host selects SQLite or DuckDB per operation, directly or through an explicitly configured default. Selection is resolved before source reads and recorded with the actual engine version in the result. A portable saved pipeline can run on either backend without rewriting its business rules. Selection is not inferred from an unmeasured record-count threshold, and execution must not silently switch engines.
+The host selects SQLite or DuckDB per operation in one of three ways: directly, through an explicitly configured default, or through automatic selection. Automatic selection applies a versioned selection profile derived from detailed testing of both backends across many integration use cases, each measured on every metric in FR030; it never relies on an unmeasured threshold. Its inputs are known before any source records are read: the pipeline's shape from its validated definition, the size of every source, the operation's resource budgets, and which backends are installed. Source size is never unknown: every source reports its size before selection, and a source that cannot report it is staged to temporary storage first. Selection is resolved before source records are read, recorded in the result with the actual engine version, and fixed for the operation. A portable saved pipeline can run on either backend without rewriting its business rules, so automatic selection changes performance and resource use but never logical results. Execution must not silently switch engines.
 
 This workload guidance reflects [SQLite's emphasis on lightweight local storage](https://www.sqlite.org/whentouse.html) and DuckDB's [analytical execution design](https://duckdb.org/why_duckdb) and [larger-than-memory processing](https://duckdb.org/docs/2.0/guides/performance/how_to_tune_workloads). Actual performance, startup, memory, and temporary-disk use must be measured against representative Unify workloads. Neither backend has a universal performance advantage.
 
@@ -307,7 +318,7 @@ Results include phase, start and end time, records read, accepted, rejected, and
 
 When stored definitions are used, results identify the exact schema, mapping, transformation, SQL query, join-plan, stage, and pipeline identifiers and versions resolved for the operation. A later edit to the definition store must not change that execution record.
 
-Executed operations also identify the resolved SQLite or DuckDB backend and its actual version, independently of source and destination connector identities.
+Executed operations also identify the resolved SQLite or DuckDB backend and its actual version, independently of source and destination connector identities. They record how the backend was selected (explicit, configured default, or automatic). For automatic selection they also record the selection profile and version, the matched use case, and the inputs used: pipeline shape, each source's reported size and how it was determined, the applicable resource budgets, and the installed backends.
 
 For a transfer, a final result record is accepted only after all its required processing stages and final validation have succeeded. A record instance rejected at a stage counts once as rejected and does not continue to dependent stages, so later transformation failures cannot leave an accepted final result record silently unwritten.
 
@@ -323,7 +334,9 @@ An application can construct, save, load, and validate a versioned operation def
 
 JSON and YAML representations must preserve equivalent behavior, ordered mappings, stage and step order, source/result aliases, stage dependencies, selected final result, and definition references. An exported operation must either include its exact referenced definitions or preserve explicit references that must be resolved before execution. Unknown required versions, unresolved references, incompatible definitions, unknown options, unsupported capabilities, ambiguous selectors, and invalid defaults fail validation. Existing persisted mapping formats require a documented migration path. Credentials are supplied separately or by reference and are never embedded in newly saved configurations.
 
-Operation configuration preserves the requested execution backend or configured-default reference and its resource settings separately from the portable pipeline definition. Reusing a portable pipeline with another backend does not rewrite its logical definitions or create a different business schema merely to match a native database type.
+A configuration bundle exports selected saved resources of one namespace together with the exact versions of everything they depend on. Importing a bundle into another namespace or host recreates those versions' content unchanged and reports any name that already exists there rather than overwriting it. Bundles never contain business records, design-time samples, credentials, or run history. An import may supply a new name for each clashing resource; when every clash has a new name, those resources are imported under their new names, and otherwise the whole import is still rejected.
+
+Operation configuration preserves the requested execution backend, configured-default reference, or automatic-selection request with its selection-profile reference, and the resource settings, separately from the portable pipeline definition. Reusing a portable pipeline with another backend does not rewrite its logical definitions or create a different business schema merely to match a native database type.
 
 ### FR013 Preview and validation
 
@@ -333,21 +346,25 @@ For joins, preview has a per-source sample limit and a separate final-result lim
 
 A user can preview the final pipeline result or a named intermediate stage. Preview executes the dependencies needed for that sample and reports stage schemas, samples, and diagnostics within the same operation budgets. It does not publish intermediate or final data to a destination. Capped-source qualifications carry through every dependent stage.
 
+From a preview of a file output stage, a user can download the prepared sample encoded exactly as that stage's connector and format settings would write it (FR014, FR015, FR016). The download contains only the bounded preview records, is identified as a preview sample, and writes nothing to the destination. A JDBC output has no file encoding; its preview shows the prepared rows only.
+
 ### FR014 CSV behavior
 
 CSV supports explicit header presence, delimiter, quote character, encoding, and output record separator. Defaults are a header, comma delimiter, double quote, UTF-8 encoding, and LF output separators. Quoted delimiters, escaped quotes, quoted line breaks, non-ASCII characters, and trailing empty fields must be handled. Duplicate headers, inconsistent record widths, and unterminated quotes are errors. Empty physical records are not silently discarded.
 
 Empty fields represent empty strings by default. A caller requiring null must configure a null token. An unquoted token represents null; a quoted token represents literal text, and a writer must preserve this distinction. Without a null token, export of null fails before publication. Headerless input requires positional mapping or an explicit positional schema. Whitespace and leading zeros must not disappear through parsing.
 
+A reader can select the header record by position and the range of data records by first and last position, so that explicit preambles and trailers are excluded. Positions count physical CSV records, so a quoted line break does not start a new record. Records outside the range are reported as skipped by configuration, not as rejections. A selected range that the input does not reach is an error rather than a shorter result.
+
 ### FR015 JSON behavior
 
-JSON input is an array of flat objects, at the document root or under one configured object member. Each array entry must be an object, and selected fields must be scalar or null. Duplicate object members are errors. Missing members use FR004. Selected nested values fail; explicitly unselected nested fields may be ignored. The library does not flatten or stringify nested values implicitly.
+JSON input is an array of flat objects, at the document root or under one configured object member. Each array entry must be an object, and selected fields must be scalar or null. Duplicate object members are errors. Missing members use FR004. Selected nested values fail; explicitly unselected nested fields may be ignored. The library does not flatten or stringify nested values implicitly. A configured record range selects array entries by first and last position, with the same skipped-record reporting and range errors as FR014.
 
 Output contains an array of objects with selected fields in mapping order and native JSON scalar values. Dates and times are strings in their configured output format. Null remains JSON null. Array order is preserved. An empty array requires an explicit schema for import.
 
 ### FR016 XML behavior
 
-XML input has one configured root and repeated configured row elements. Selected columns are scalar child elements; mixed content, repeated selected children, and nested selected values are errors. Names are matched by namespace URI and local name, independently of namespace prefix. Attributes are excluded except for the explicit null marker. Missing children use FR004, empty elements represent empty strings, and the XML Schema instance nil attribute with value true or 1 represents null. A nil element containing text or children is invalid.
+XML input has one configured root and repeated configured row elements. Selected columns are scalar child elements; mixed content, repeated selected children, and nested selected values are errors. Names are matched by namespace URI and local name, independently of namespace prefix. Attributes are excluded except for the explicit null marker. Missing children use FR004, empty elements represent empty strings, and the XML Schema instance nil attribute with value true or 1 represents null. A nil element containing text or children is invalid. A configured record range selects row elements by first and last position, with the same skipped-record reporting and range errors as FR014.
 
 Output preserves the configured root, row, column order, namespace identities, escaping, and null marker. An empty table produces a valid root with no rows. External resource resolution and document type declarations are rejected. XML schema validation and general XPath selection are outside this baseline.
 
@@ -365,7 +382,7 @@ If commit cannot be confirmed, the destination outcome is unknown. If rollback c
 
 ### FR019 HTTP JSON reads
 
-A caller supplies an HTTP or HTTPS endpoint, GET parameters, permitted headers, and any credential reference. HTTPS is the default requirement for non-loopback endpoints; allowing cleartext requires an explicit setting. One response is read within configured connection, read, overall-duration, and size limits. Non-success status, unexpected content type, malformed content, and authentication failures fail the operation. A successful response with no body is an error; an empty JSON array follows FR015.
+A caller supplies an HTTP or HTTPS endpoint, GET parameters, permitted headers, and any credential reference. HTTPS is the default requirement for non-loopback endpoints; allowing cleartext requires an explicit setting. One response is read within configured connection, read, overall-duration, and size limits. Non-success status, unexpected content type, malformed content, and authentication failures fail the operation. A successful response with no body is an error; an empty JSON array follows FR015. Because an HTTP response cannot reliably report its size in advance, the body is staged to temporary storage within the size limit before execution-backend selection (FR031), then decoded from the staged copy; the connection is released once staging completes.
 
 Automatic redirects and retries are disabled in the baseline. Endpoint credentials must not be forwarded to another location. Response parsing uses the JSON behavior in FR015. Pagination, token acquisition, HTTP mutation, and XML or CSV response parsing are deferred.
 
@@ -419,7 +436,7 @@ A transformation definition declares the supported operation or ordered sequence
 
 Operations can select stored transformations for any number of named stages, including source preparation, intermediate processing, and output preparation. The same transformation definition can be reused at different stages with explicit bindings. Validation checks each step's required fields, parameters, input/output type compatibility, and agreement with the selected schemas and mappings. Transformations must respect the missing, null, default, and validation rules in FR003 through FR006. Invalid definitions fail before execution; data-dependent transformation failures use the record policy in FR010. All required stages finish and pass validation before destination publication under FR009.
 
-The initial transformation library includes the conversion and normalization rules already specified, such as type conversion, text trimming, empty-as-null handling, and configured temporal formats; reusable join plans under FR027 and FR028; and the SQL query profile under FR032. Other transformation operators are a functional scope decision. Unsupported operators must be rejected rather than ignored. Saved definitions contain declarative rules, supported query text, and parameter declarations, not executable scripts or serialized implementation objects.
+The initial transformation library includes the conversion and normalization rules already specified, such as type conversion, text trimming, lower- and upper-case conversion (ASCII letters only, matching LOWER and UPPER in FR032), empty-as-null handling, and configured temporal formats; reusable join plans under FR027 and FR028; and the SQL query profile under FR032. Other transformation operators are a functional scope decision. Unsupported operators must be rejected rather than ignored. Saved definitions contain declarative rules, supported query text, and parameter declarations, not executable scripts or serialized implementation objects.
 
 ### FR027 Multiple sources and join stages
 
@@ -486,11 +503,17 @@ Transfers can use temporary disk-backed intermediates to process working data be
 
 Qualification uses actual SQLite and DuckDB execution and real connector boundaries, including mixed-source joins, repeated stages, nulls, temporal values, malformed input, duplicate-key expansion, cancellation, and cleanup. Both backends run the same portable contract scenarios against explicit expected results. Representative small and large workloads must record startup time, execution time, Java and native memory use, temporary disk use, data shape, and engine version. Any performance comparison must use equivalent functional behavior rather than bypassing validation, ordering, or diagnostic requirements.
 
+Detailed testing applies these measurements to many integration use cases. Each tested use case is a concrete integration with defined sources, pipeline shape, record width, data size, and engine state (cold or already initialised), run on both backends on each supported operating system. Together the use cases span the supported data sizes, every pipeline shape, single and mixed sources, both engine states, and default and constrained budgets. The selection profile for automatic selection (FR031) is derived from these results. Each profile use case states the pipeline shapes and size range it covers, the backend it selects, and the tested use cases that support the choice on every metric. A use case without that evidence cannot ship in a selection profile, and a release whose test results contradict a shipped use case must regenerate the profile.
+
 ### FR031 Backend-neutral public contracts and selection
 
 Applications define and execute portable pipelines through the same public data, schema, stage, and operation contracts for both backends. Changing the execution backend must not require changes to portable stored mappings, transformations, join plans, stages, or business schemas. A definition remains portable when its required operations and options belong to the shared baseline. The same pipeline version can be reused with a different compatible engine selection.
 
-The host explicitly chooses a backend or supplies a configured default. The resolved engine and supported version are validated before reading source data and remain fixed for the operation. Results identify the actual backend and version. Engine selection and resource settings belong to execution configuration, separately from the logical pipeline rules. Independent operations may choose different backends concurrently.
+The host chooses a backend explicitly, supplies a configured default, or requests automatic selection. An explicit choice always overrides automatic selection. Automatic selection applies only to portable pipelines; a definition that uses an engine-specific extension runs only on that engine. It resolves the backend from the selection profile shipped with Unify, derived from Unify's use-case testing, or from a host-supplied profile derived the same way from testing on the host's own hardware and workloads. Its inputs are the pipeline shape, the reported size of every source, the operation's resource budgets, whether each backend is already initialised in the host process, and the installed backends and versions. Given the same inputs and profile version, it always selects the same backend; it does not depend on earlier runs. Every combination of inputs must match exactly one use case in a valid profile, and an invalid profile fails validation before any operation uses it.
+
+Every source reports its size before records are read. Local files report their exact byte size. JDBC sources and supplied tables report an exact record count, or a bounded count sufficient to determine the matching use case. A source that cannot report its size, such as an HTTP response, is staged to temporary storage within the input size limit and measured. If a source delivers more data than the reported size allows for the matched use case, the operation fails before publication as a source change rather than switching backends. Exceeding the selected backend's resource budget is a located failure that records the selection inputs, so the profile can be corrected.
+
+The resolved engine and supported version are validated before reading source records and remain fixed for the operation. Results identify the actual backend and version and the selection details required by FR011. Engine selection and resource settings belong to execution configuration, separately from the logical pipeline rules. Independent operations may choose different backends concurrently.
 
 Each backend declares its supported baseline, extensions, verified versions, and resource options. A missing backend, unsupported version, unsupported extension, or invalid resource option fails before execution. An engine-specific extension must be clearly identified in its saved definition; its portability limit is reported when the user validates or selects a backend. There is no silent engine substitution or weakening of the pipeline contract.
 
@@ -590,9 +613,71 @@ Applying stage, binding, and output changes updates the session's pipeline draft
 
 Host management must support creating, listing, selecting, renaming, and describing organisations, namespaces, and design workspaces. An owning organisation cannot be changed by a rename or context switch. Deleting a design workspace removes only its session and drafts after an explicit discard or save decision; all saved namespace resources remain. Deletion of a non-default namespace requires it to contain no resources or pending drafts; referencing sessions then select default. The default namespace cannot be renamed or deleted independently. An organisation can be removed only when its namespaces contain no resources or pending drafts; its empty child structures and sessions are then removed. Keep at least one organisation and one design workspace per organisation.
 
-The host UI should preserve both card and list catalogue views, with collapsible categories, entry counts, filters, and bounded pages. Searching must cover all matching entries, including collapsed categories and entries outside the current page. Metadata discovery must not read business records. Pagination size and storage representation are implementation decisions.
+The Unify UI should preserve both card and list catalogue views, with collapsible categories, entry counts, filters, and bounded pages. Searching must cover all matching entries, including collapsed categories and entries outside the current page. Metadata discovery must not read business records. Pagination size and storage representation are implementation decisions.
 
-These are functional requirements for the host configuration model and library-facing ownership context. They do not add a standalone UI, user-account system, or authentication service to the embedded-library baseline. The host remains responsible for authorization; logical namespace filtering alone is not a tenant security boundary.
+These requirements define the configuration model shared by the Unify service and the embedded library. In the service, sign-in and permissions follow FR044 and FR045; an embedding application supplies its own access policy (FR038). Logical namespace filtering alone is not a tenant security boundary.
+
+### FR038 Configuration interface
+
+Every configuration, discovery, binding, preview, execution, and history capability in this design is available through a programmatic interface of the embedded library. The Unify service and UI, and any application embedding the library, rely only on this interface; no capability exists only in a user interface. Each call states its organisation, namespace, and, where applicable, design workspace explicitly, together with an opaque identity of the acting principal supplied by the host. Unify records that identity on saved versions and run records but does not authenticate it.
+
+The host supplies an access policy that Unify consults before discovering, inspecting, binding, saving, publishing, executing, using a connection, or administering organisations, namespaces, and design workspaces. A denied action fails with a common diagnostic and leaves stored definitions, drafts, and destinations unchanged. Catalogue listings, counts, and searches include only entries the policy allows. Expected failures, including validation errors, denials, and concurrent-revision conflicts, are reported as typed results. The Unify service exposes this interface over HTTP (FR043), identifies principals by sign-in (FR044), and supplies the access policy from Unify roles (FR045). An embedding application supplies its own principal identities and access policy.
+
+### FR039 Operation run history
+
+An execution appears in its namespace's run history from the moment it is submitted, as queued and then running, and its record is completed when it ends. An execution whose service instance stopped while it was running is marked abandoned (FR046). Each completed, failed, cancelled, or abandoned execution, and each preview, is recorded with its FR011 result: operation identifier, whether it was a preview or an execution, the pipeline and definition versions, the backend selection, start and end times, completion status, counts per binding and stage, destination outcome, and located diagnostics. Run history never contains business records, design-time samples, credentials, or sensitive parameter values. Record values appear only when the host has enabled value diagnostics under FR022, with the same redaction.
+
+Users can list runs by pipeline, status, and time, and inspect one run's stages and diagnostics. A run can be repeated from history: Unify reconstructs the operation from its pinned definition versions and recorded execution settings, and the host supplies credentials and runtime values again. Repeating a run creates a new run and never alters the original record. History is retained per namespace for a host-configured period or number of runs, and preview runs may have a shorter retention than executions. Definition versions referenced by retained runs are not deleted.
+
+### FR040 Connection validation and testing
+
+Validating a connection definition checks its settings locally: required fields, location and URL syntax, connector options, and the form of its credential reference. It contacts no endpoint and is reported as settings validation, never as a successful connection.
+
+Testing a connection is a separate, explicit action. It resolves the credential through the host, opens the endpoint, and performs the connector's minimal non-mutating check: for example, checking that a directory exists and is accessible, opening a JDBC connection and reading product metadata, or, for HTTP, sending a request only when the user explicitly confirms it. It reports the outcome and, where available, the product identity and version. A test reads no business records and changes nothing. Its result is a point-in-time observation; it is not stored as proof of availability and is not required before execution. Test diagnostics follow FR022 and never expose credentials.
+
+### FR041 Design-time samples
+
+While configuring a reader, binding, or stage, a user can supply a sample by uploading a file, pasting text, or choosing a built-in example. The sample is used to infer or check a schema, preview conversions and mappings, and show located errors. It is bounded by the preview limits, belongs to the design-workspace session that supplied it, and is processed by the same parsers, conversion rules, and pipeline semantics as execution. A design-time sample is never saved with definitions, drafts, bundles, or run history, and is discarded when its session ends; after a restart the user supplies it again.
+
+A sample can be reloaded for an existing binding. Unify applies the binding's captured reader contract and parameter values, including an older provider version, and keeps samples for different connections or parameter values separate. A sample that fails validation leaves the previously accepted sample in place. Reloading a sample creates no provider, changes no saved definition, and reads nothing from the configured endpoint.
+
+### FR042 Progress reporting
+
+During preview and execution, Unify reports progress to the host: the current phase and stage, completed and total stages, and records read, loaded, and produced so far per binding and stage. Progress reports are observations, not results; later phases may revise counts, and only the FR011 result is authoritative. Reports are delivered at a host-configured maximum rate, and a slow or failing progress listener cannot delay or fail the operation. A cancellation requested at any time takes effect at the next cancellation point under FR024.
+
+### FR043 Unify service and HTTP API
+
+Unify runs as a service that exposes every capability of the configuration interface (FR038) through an HTTP API described by a published OpenAPI document. The Unify user interface uses only this API; no capability exists only in the UI. Requests and responses use JSON, resources are addressed within their organisation and namespace, and every response identifies the API version.
+
+A change to a saved resource states the version or revision it was based on, and a stale change is rejected as a conflict rather than overwriting (FR025, FR037). Validation errors, denials, conflicts, missing resources, and unavailable dependencies are reported with distinct HTTP statuses and a common machine-readable problem description carrying the located issues of FR022. Lists are paged with stable ordering. The API never returns credentials, and returns business record values only in explicit preview, sample, and download responses.
+
+At start-up the service checks its configuration, the definition store, and the PostgreSQL version, and it reports readiness and liveness separately so that a deployment routes requests only to ready instances. Several instances can serve the same organisations at once and share state only through the definition store, except that a design-time sample stays with the instance whose session received it (FR041).
+
+### FR044 Sign-in and service identities
+
+Users sign in to the Unify service through their organisation's OpenID Connect identity provider; Unify stores no passwords. The UI signs in with the provider's authorization-code flow with proof key for code exchange. Other clients present access tokens issued by a configured provider, and services obtain them with client credentials.
+
+Every API request must carry a valid access token. Its signature, issuer, audience, expiry, and not-before time are verified, and a request without a valid token is rejected before any other processing. The token's subject becomes the principal recorded on saved versions, drafts, and run records (FR038). Configured claims supply the principal's display name and group memberships. Tokens are never stored in the definition store and never appear in diagnostics or logs.
+
+### FR045 Roles and permissions
+
+Unify defines these roles:
+
+| Role          | Permitted actions                                                                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Viewer        | Discover and inspect catalogue entries, definitions, connections without credentials, and run history                                              |
+| Editor        | Viewer actions; create and revise definitions, connections, and drafts; preview; supply design-time samples; test connections; export bundles       |
+| Publisher     | Editor actions; register providers, publish views, and import bundles                                                                              |
+| Operator      | Viewer actions; execute and cancel operations, and repeat runs                                                                                     |
+| Administrator | Every action within its scope, including organisations, namespaces, design workspaces, and role grants                                             |
+
+A grant gives an identity-provider group one role in one scope: an organisation, which covers all its namespaces, or a single namespace. A user holds every role granted to any of their groups. The service evaluates every request against these grants as the access policy of FR038, including catalogue filtering, binding resolution, and execution. A grant change takes effect immediately; a change of group membership takes effect with the user's next token. Administrators manage grants through the API, and every change records its principal and time. Each organisation keeps at least one Administrator grant, and the service configuration supplies the initial grants of a new installation.
+
+### FR046 Background execution
+
+Executing an operation through the service submits a job and returns at once with its run identifier; the run appears in history as queued (FR039). A bounded pool of workers runs jobs in submission order, and the service reports queued and running jobs. Any instance can run a job, but a job runs on exactly one instance. A user can follow its progress (FR042) as a live stream from any instance and cancel it under FR024. Previews run within their request, bounded by the preview limits and a configured deadline.
+
+If an instance stops while running a job, the job is not restarted automatically. Its run is marked abandoned. The destination outcome is reported as not started when publication had not begun, and otherwise as unknown, and the user may repeat the run (FR039). Unify does not schedule recurring jobs; an external scheduler calls the API.
 
 ## Quality requirements
 
@@ -715,6 +800,24 @@ The datasets are declared source or earlier-result bindings. The parameter value
 | AC56 | Edit the same namespace through two design workspaces; switch namespaces and sessions and reopen the host; recover independent unpublished drafts without persisted sample records, publish one revision, and reject a stale overwrite from the other session                                                                     | FR012, FR025, FR037                                                    |
 | AC57 | Remove a saved or explicitly discarded design workspace and verify namespace resources remain; block default or non-empty namespace deletion, delete an empty namespace and reassign references, then remove an empty organisation without affecting another organisation                                                         | FR025, FR037                                                           |
 | AC58 | Browse a catalogue containing thousands of entries through card and list views, collapse categories, filter and page results, and search for an entry outside the current page; verify complete matching discovery without reading business records                                                                               | FR034, FR037                                                           |
+| AC59 | For every use case in the shipped selection profile, run a representative operation with automatic selection, including inputs on each side of every use-case boundary; verify the selected backend and that the result records the selection mode, profile version, matched use case, source sizes with their method, budgets, and installed backends | FR011, FR030, FR031 |
+| AC60 | Request automatic selection together with an explicit backend, for a pipeline using an engine-specific extension, with one backend not installed, and with a host-supplied profile; verify the explicit choice wins, the extension pins its engine, selection uses only installed backends or fails before source reads, and the host profile's version is recorded; load an overlapping or incomplete profile and verify it is rejected before use | FR020, FR031 |
+| AC61 | Report sizes for every supported connector before reading records, including an HTTP response without a length header; verify each size and its method, that the HTTP body is staged within the input size limit and its connection released, and that a source delivering more than its reported size allows fails before publication without switching backends | FR009, FR019, FR024, FR031 |
+| AC62 | Rerun the use-case tests for a release and compare them with the shipped selection profile; verify each profile use case cites tested use cases with measured startup time, execution time, Java and native memory, temporary disk use, data shape, and engine version on each supported operating system, and that a contradicting test result blocks the release until the profile is regenerated | FR030, FR031, NFR007 |
+| AC63 | Perform each configuration, discovery, binding, preview, execution, and history action through the host interface with an explicit organisation, namespace, workspace, and principal, then deny each action through the access policy; verify recorded principals, typed validation and conflict results, policy-filtered catalogue listings and counts, and no changes after a denial | FR037, FR038 |
+| AC64 | Execute, fail, cancel, and preview pipelines; list and inspect their run history and repeat one run; verify recorded versions, backend selection, counts and diagnostics, the absence of records, samples and secrets, a new record for the repeat, and that retention removes only expired runs | FR011, FR022, FR039 |
+| AC65 | Validate valid and invalid connection settings without file or network access; test file, JDBC, and HTTP connections, including an unreachable endpoint and a rejected credential; verify settings validation and live tests are reported separately and that tests read no records and change nothing | FR022, FR036, FR040 |
+| AC66 | Upload, paste, and choose example samples for CSV, JSON, XML, JDBC, and HTTP readers; reload a sample for a binding pinned to an older provider version; verify the same parsing and errors as execution, separate samples per connection and parameter values, the last accepted sample kept after a failed reload, and no samples in definitions, drafts, bundles, or history after a restart | FR013, FR041 |
+| AC67 | Export a pipeline and its dependencies as a bundle and import it into another namespace that already has a same-named resource; verify exact contents and versions, a reported name conflict without overwriting, and no records, samples, credentials, or run history in the bundle | FR012, FR025, FR037 |
+| AC68 | Observe progress during a multi-stage execution and a preview with a slow listener and a failing listener, then cancel; verify phase, stage, and count reports, unchanged results and timing within the configured rate, and cancellation at the next cancellation point | FR024, FR042 |
+| AC69 | Select CSV header and data-record ranges that exclude a preamble and trailer, and JSON and XML record ranges; verify the selected records, skipped-record counts, range errors, and located errors by physical record position | FR014, FR015, FR016 |
+| AC70 | Apply lower- and upper-case conversion in a saved transformation; verify ASCII-only behavior, preserved null and empty values, and identical results on both backends | FR026, FR032 |
+| AC71 | Through the HTTP API alone, with a client generated from the OpenAPI document, perform every action covered by AC63; verify results identical to the library interface, distinct problem responses for validation, denial, conflict, missing, and unavailable cases, stable paging, rejected stale revisions, and readiness reported only once the definition store is available | FR038, FR043 |
+| AC72 | Call the API with no token, an expired token, a token from an unconfigured issuer, a token for another audience, and a valid token, and sign in to the UI through the identity provider; verify that rejections precede any other processing, that the token subject is recorded on saves and runs, and that no token appears in the store or logs | FR044 |
+| AC73 | Grant each role to a group at organisation and namespace scope, then perform every action as members of those groups and of none; change a grant and a group membership; verify permitted and denied actions against the role table, catalogue filtering, immediate grant changes, recorded grant changes, and that the last Administrator grant cannot be removed | FR038, FR045 |
+| AC74 | Submit more executions than the worker pool holds across two instances, follow progress from the instance not running the job, cancel one, and stop an instance mid-run; verify queued then running states, each job running exactly once, live progress, cancellation, the abandoned run with its destination outcome, and a repeat from history | FR039, FR042, FR046 |
+| AC75 | Download the prepared preview of CSV, JSON, and XML output stages; verify each file equals what the destination connector writes for those records and settings, contains only the preview records, and leaves every destination unchanged | FR013, FR014, FR015, FR016 |
+| AC76 | Import a bundle whose names clash in the target namespace, with no new names, with new names for some clashes, and with new names for all; verify the import succeeds under the new names only when every clash is renamed and is otherwise rejected whole | FR012 |
 
 ## Current implementation and target gaps
 
@@ -728,7 +831,7 @@ The existing [README](../README.md), [concepts guide](UNIFY_CONCEPTS_README.md),
 
 | ID  | Proposed baseline                                                                                                                                                        | Effect of a different decision                                                                                                                                          |
 | --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D01 | Deliver an embedded library                                                                                                                                              | A service or UI needs separate interaction, authentication, and deployment requirements                                                                                 |
+| D01 | Deliver Unify as a service with an HTTP API and its own UI (FR043), built on an embedded library that applications can also use directly (FR038) | Library-only delivery leaves every host to build its own UI, API, sign-in, permissions, and job handling |
 | D02 | Support local CSV/JSON/XML, H2/SQLite, and single-response HTTP JSON; defer NoSQL                                                                                        | Additional products and HTTP workflows need explicit contracts and compatibility environments                                                                           |
 | D03 | Preserve null, empty, and missing distinctions and use explicit defaults                                                                                                 | Legacy behavior that merges these states needs a separately named migration policy                                                                                      |
 | D04 | Complete and validate transfers before publication, allowing engine-managed memory or temporary disk; retain transactional database append and complete file publication | Publishing a stream of partially processed records, append, upsert, and schema creation need different partial-failure contracts                                        |
@@ -739,6 +842,11 @@ The existing [README](../README.md), [concepts guide](UNIFY_CONCEPTS_README.md),
 | D09 | Use the documented SQLite-style read-only SQL profile, parsed and planned through Apache Calcite, as the portable query language on both backends                        | Full native SQLite or DuckDB dialect support, recursive queries, and window functions require additional compatibility contracts                                        |
 | D10 | Separate provider catalogue, operation-scoped pipeline data, definition library, and connections; explicitly publish versioned read-only views                           | A discovery-only catalogue without view publication provides less reusable query composition; writer execution through SQL would require a separate functional contract |
 | D11 | Organisation → Namespace → resources; organisation-owned design workspaces are separate editing sessions referencing namespace resources                                 | Placing namespaces under sessions would prevent the required independent resource ownership and shared configuration                                                    |
+| D12 | Select the execution backend explicitly, through a configured default, or automatically from a versioned selection profile derived from detailed use-case testing on every metric; every source reports or stages its size before selection | Explicit-only selection leaves small-versus-large tuning to every host; automatic selection without guaranteed sizes would need run-time engine switching or history-dependent, non-repeatable choices |
+| D13 | Sign in through an external OpenID Connect identity provider; Unify stores no passwords (FR044) | Unify-managed accounts need password storage, reset, lockout, and recovery requirements |
+| D14 | Unify roles per organisation and namespace, granted to identity-provider groups (FR045) | Per-user grants or an external policy service need different administration and audit requirements |
+| D15 | Executions run as background jobs on the service; no built-in scheduler (FR046) | A scheduler needs requirements for calendars, catch-up, overlapping runs, and failure notification |
+| D16 | The production UI technology is not yet decided; the HTML mockup is the design reference | Choosing a technology affects build tooling, the generated API client, and UI test strategy |
 
 The data platform decisions are confirmed: PostgreSQL 19 stores reusable definitions, Apache Calcite parses and plans portable SQL, and SQLite and DuckDB are selectable execution backends behind common public contracts. The source/destination connector matrix is independent of these roles. Planning and execution require functional compatibility and workload qualification under FR030 through FR033. These platform choices are separate from the remaining proposed scope decisions above.
 

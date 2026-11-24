@@ -28,7 +28,10 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.StringJoiner;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 /**
  * SQLite execution engine. Datasets are STRICT tables, so SQLite itself rejects a value of the
@@ -36,11 +39,16 @@ import java.util.StringJoiner;
  * inside the single load transaction.
  *
  * <p>SQLite has no boolean or temporal storage classes. BOOLEAN is stored as INTEGER 0/1 with a
- * CHECK constraint; DATE, TIME and LOCAL_DATETIME are stored as ISO-8601 text. The dataset's Unify
- * schema restores the logical types when results are read back.</p>
+ * CHECK constraint. DATE, TIME and LOCAL_DATETIME are stored as fixed-width ISO-8601 text
+ * ({@code yyyy-MM-dd}, {@code HH:mm:ss.nnnnnnnnn}, {@code yyyy-MM-ddTHH:mm:ss.nnnnnnnnn}), so
+ * equal values always have equal text and text order is time order for years 0000 to 9999.
+ * The dataset's Unify schema restores the logical types when results are read back.</p>
  */
 public final class SqliteEngine extends JdbcEngine {
     private static final int STATEMENT_BATCH = 1000;
+    private static final DateTimeFormatter TIME_TEXT = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSSSSS");
+    private static final DateTimeFormatter DATE_TIME_TEXT =
+            DateTimeFormatter.ofPattern("uuuu-MM-dd'T'HH:mm:ss.SSSSSSSSS");
 
     private SqliteEngine(Connection connection) throws SQLException {
         super("sqlite", connection);
@@ -83,8 +91,14 @@ public final class SqliteEngine extends JdbcEngine {
     }
 
     @Override
-    protected String columnConstraint(ColumnDefinition column) {
-        return column.type() == LogicalType.BOOLEAN ? "CHECK (" + quote(column.name()) + " IN (0, 1))" : "";
+    protected String ordinalType() {
+        // STRICT tables accept only INT, INTEGER, REAL, TEXT, BLOB and ANY; INTEGER is 64-bit.
+        return "INTEGER";
+    }
+
+    @Override
+    protected String columnConstraint(ColumnDefinition column, String physicalName) {
+        return column.type() == LogicalType.BOOLEAN ? "CHECK (" + physicalName + " IN (0, 1))" : "";
     }
 
     @Override
@@ -98,15 +112,10 @@ public final class SqliteEngine extends JdbcEngine {
     }
 
     @Override
-    protected long append(String dataset, RecordSource source) throws SQLException, IOException {
+    protected long append(String table, List<String> columns, RecordSource source) throws SQLException, IOException {
         TableSchema schema = source.schema();
-        StringJoiner columns = new StringJoiner(", ");
-        StringJoiner markers = new StringJoiner(", ");
-        for (ColumnDefinition column : schema.columns()) {
-            columns.add(quote(column.name()));
-            markers.add("?");
-        }
-        String insert = "INSERT INTO " + quote(dataset) + " (" + columns + ") VALUES (" + markers + ")";
+        String insert = "INSERT INTO " + table + " (" + String.join(", ", columns) + ", " + ORDINAL
+                + ") VALUES (" + "?, ".repeat(columns.size()) + "?)";
         long rows = 0;
         int pending = 0;
         try (PreparedStatement statement = connection.prepareStatement(insert)) {
@@ -115,6 +124,7 @@ public final class SqliteEngine extends JdbcEngine {
                     for (int c = 0; c < schema.size(); c++) {
                         bind(statement, c + 1, batch.value(r, c), schema.column(c).type());
                     }
+                    statement.setLong(schema.size() + 1, rows + r + 1);
                     statement.addBatch();
                     if (++pending == STATEMENT_BATCH) {
                         statement.executeBatch();
@@ -151,10 +161,15 @@ public final class SqliteEngine extends JdbcEngine {
                 statement.setInt(index, ((Boolean) value) ? 1 : 0);
                 break;
             case DATE:
-            case TIME:
-            case LOCAL_DATETIME:
-                // ISO-8601 text; java.time's toString is the ISO local form.
+                // ISO yyyy-MM-dd, which LocalDate always prints at fixed width for years 0000-9999.
                 statement.setString(index, value.toString());
+                break;
+            case TIME:
+                // Fixed width: toString would drop zero seconds ("10:15") and vary the fraction.
+                statement.setString(index, TIME_TEXT.format((LocalTime) value));
+                break;
+            case LOCAL_DATETIME:
+                statement.setString(index, DATE_TIME_TEXT.format((LocalDateTime) value));
                 break;
             default:
                 throw new IllegalStateException("Unhandled logical type " + type);

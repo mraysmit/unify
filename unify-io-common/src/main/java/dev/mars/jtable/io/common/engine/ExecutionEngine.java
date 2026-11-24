@@ -40,8 +40,9 @@ public interface ExecutionEngine extends AutoCloseable {
 
     /**
      * Creates a dataset from the source's schema and loads every record into it as one unit: on
-     * any failure no dataset of that name is left behind. The source is read to the end but not
-     * closed; the caller owns it.
+     * any failure no dataset of that name is left behind. The dataset gets a generated engine
+     * table and column names, recorded in the returned handle, plus a record ordinal that keeps
+     * load order. The source is read to the end but not closed; the caller owns it.
      *
      * @param dataset a new dataset name, unique within this engine
      */
@@ -49,14 +50,16 @@ public interface ExecutionEngine extends AutoCloseable {
 
     /**
      * Runs a read-only query and streams its result in batches of at most {@code batchSize}
-     * records. Until Calcite validation supplies result types, the caller declares the result
-     * schema; the result's column count and labels must match it and every value must convert to
-     * the declared type, otherwise reading fails with a located error. The returned source must
-     * be closed; it owns the query's cursor.
+     * records. The SQL refers to datasets by their engine names ({@link DatasetHandle#table()},
+     * {@link DatasetHandle#column(String)}); the public API will only reach this through Calcite's
+     * translation. Until Calcite supplies result types, the caller declares the result schema.
+     * Result columns are matched to it by position: the count must match and every value must
+     * convert to the declared type, otherwise reading fails with a located error. Engine column
+     * labels are ignored. The returned source must be closed; it owns the query's cursor.
      */
     RecordSource query(String sql, TableSchema resultSchema, int batchSize) throws IOException;
 
-    /** Streams every record of a loaded dataset, using the schema recorded in its handle. */
+    /** Streams every record of a loaded dataset in load order, using the schema in its handle. */
     RecordSource scan(DatasetHandle dataset, int batchSize) throws IOException;
 
     /** Removes a dataset. Removing a dataset that does not exist does nothing. */

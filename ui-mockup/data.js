@@ -295,6 +295,25 @@ ORDER BY h.portfolio, h.isin;`;
       error:
         "Unknown dataset “InstrumentMaster”. Bind a source or use Instruments.",
     },
+    {
+      id: "DEMO-1037",
+      name: "Daily holdings enrichment",
+      status: "Abandoned",
+      kind: "Execution",
+      engine: "DuckDB",
+      mode: "Execution (simulated)",
+      principal: "demo.user",
+      date: "2026-11-21T17:05:00+08:00",
+      duration: 2410,
+      input: 12,
+      output: 0,
+      unmatched: 0,
+      version: 2,
+      destination: "Unknown",
+      stepCount: 6,
+      error:
+        "The service instance stopped during publication. The job was not restarted; repeat it from history if needed.",
+    },
   ];
   const connections = [
     {

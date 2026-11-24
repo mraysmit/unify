@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -90,16 +91,18 @@ public final class DuckDbEngine extends JdbcEngine {
     }
 
     @Override
-    protected long append(String dataset, RecordSource source) throws SQLException, IOException {
+    protected long append(String table, List<String> columns, RecordSource source) throws SQLException, IOException {
         TableSchema schema = source.schema();
         long rows = 0;
-        try (DuckDBAppender appender = connection.unwrap(DuckDBConnection.class).createAppender("main", dataset)) {
+        // The appender fills columns in table order: the generated columns, then the ordinal.
+        try (DuckDBAppender appender = connection.unwrap(DuckDBConnection.class).createAppender("main", table)) {
             for (RecordBatch batch = source.nextBatch(); batch != null; batch = source.nextBatch()) {
                 for (int r = 0; r < batch.rowCount(); r++) {
                     appender.beginRow();
                     for (int c = 0; c < schema.size(); c++) {
                         appendValue(appender, batch.value(r, c));
                     }
+                    appender.append(rows + r + 1);
                     appender.endRow();
                 }
                 rows += batch.rowCount();

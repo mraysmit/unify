@@ -4243,6 +4243,304 @@ UnifyTests.group("ui");
       published,
     );
   });
+  // ---- Design 0.14 additions: engine selection, jobs, connection tests,
+  // bundles and progress (FR012, FR031, FR039, FR040, FR042, FR046).
+
+  test("automatic engine selection records its use case, shape and sizes", async (t) => {
+    const ui = workspace(t);
+    ui.field("#engine-select", "Automatic");
+    assert.match(ui.get(".summary-items").textContent, /Automatic → SQLite \(SEL-04\)/);
+    ui.click('[data-action="run-pipeline"]');
+    await finishPreview(ui);
+    const run = ui.saved().runs[0];
+    assert.equal(run.selection.mode, "Automatic");
+    assert.equal(run.engine, "SQLite");
+    assert.equal(run.selection.useCase, "SEL-04");
+    assert.equal(run.selection.shape, "MULTI_JOIN");
+    assert.ok(run.selection.records > 0 && run.selection.records <= 10000);
+    assert.equal(run.selection.sizeMethod, "supplied-count");
+    ui.click('[data-action="navigate"][data-view="runs"]');
+    const latest = ui.get(".list-table tbody tr");
+    assert.match(latest.textContent, /Preview.*Completed.*SQLite \(auto\)/s);
+    latest.click();
+    assert.match(ui.get("[data-engine-selection]").textContent, /Automatic: SEL-04.*selected SQLite.*MULTI_JOIN/s);
+    const reload = workspace(t, ui.stored());
+    reload.click('[data-action="navigate"][data-view="workspace"]');
+    assert.equal(reload.get("#engine-select").value, "Automatic");
+  });
+
+  test("an explicit engine choice is recorded as explicit", async (t) => {
+    const ui = workspace(t);
+    ui.field("#engine-select", "DuckDB");
+    ui.click('[data-action="run-pipeline"]');
+    await finishPreview(ui);
+    assert.deepEqual(
+      [ui.saved().runs[0].selection.mode, ui.saved().runs[0].engine],
+      ["Explicit", "DuckDB"],
+    );
+  });
+
+  test("executions run as background jobs, can be repeated, and are abandoned by a restart", async (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="run-pipeline"]');
+    await finishPreview(ui);
+    ui.click('[data-action="execute-pipeline"]');
+    const submitted = ui.saved().runs[0];
+    assert.equal(submitted.kind, "Execution");
+    assert.equal(submitted.status, "Queued");
+    assert.equal(submitted.principal, "demo.user");
+    const deadline = Date.now() + 3000;
+    while (ui.saved().runs[0].status !== "Completed" && Date.now() < deadline)
+      await wait(25);
+    const finished = ui.saved().runs[0];
+    assert.equal(finished.status, "Completed");
+    assert.equal(finished.destination, "Committed (simulated)");
+    ui.click('[data-action="navigate"][data-view="runs"]');
+    ui.get(".list-table tbody tr").click();
+    ui.click('[data-action="repeat-run"]');
+    const repeat = ui.saved().runs[0];
+    assert.equal(repeat.repeatOf, finished.id);
+    assert.equal(repeat.status, "Queued");
+    // A reload stands in for the service instance stopping mid-job.
+    const restarted = workspace(t, ui.stored());
+    const abandoned = restarted.saved().runs[0];
+    assert.equal(abandoned.id, repeat.id);
+    assert.equal(abandoned.status, "Abandoned");
+    assert.equal(abandoned.destination, "Not started");
+    restarted.click('[data-action="navigate"][data-view="runs"]');
+    assert.match(restarted.get(".list-table tbody tr").textContent, /Execution.*Abandoned/s);
+    restarted.get(".list-table tbody tr").click();
+    assert.match(restarted.get('[role="dialog"]').textContent, /repeat of/);
+  });
+
+  test("the seeded history includes an abandoned execution with an unknown outcome", (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="navigate"][data-view="runs"]');
+    const row = [...ui.d.querySelectorAll(".list-table tbody tr")].find((r) =>
+      /DEMO-1037/.test(r.textContent),
+    );
+    assert.ok(row, "abandoned seed run listed");
+    assert.match(row.textContent, /Execution.*Abandoned.*Unknown/s);
+    row.click();
+    assert.equal(ui.d.querySelector('[data-action="repeat-run"]') !== null, true);
+  });
+
+  test("connection settings validation is separate from an explicit, simulated live test", (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="navigate"][data-view="sources"]');
+    ui.click('[data-action="new-source"]');
+    ui.field("#new-source-name", "Rates API");
+    ui.field("#new-source-format", "HTTP JSON");
+    ui.field("#new-source-location", "https://example.invalid/rates");
+    ui.click('[data-action="config-validate-connection"]');
+    assert.equal(ui.d.querySelector("[data-connection-test]"), null, "validation runs no test");
+    ui.click('[data-action="config-test-connection"]');
+    assert.match(ui.get("[data-connection-test]").textContent, /UNREACHABLE/);
+    ui.field("#new-source-location", "https://rates.example.com/v1");
+    ui.click('[data-action="config-test-connection"]');
+    assert.match(ui.get("[data-connection-test]").textContent, /REACHABLE.*handshake completed; no request sent/s);
+    ui.click('[data-action="config-test-connection-get"]');
+    assert.match(ui.get("[data-connection-test]").textContent, /GET returned 200; the body was not read/);
+    ui.field("#new-source-format", "JDBC");
+    assert.equal(ui.d.querySelector('[data-action="config-test-connection-get"]'), null);
+  });
+
+  test("bundle export and import reports name conflicts and imports only with new names", async (t) => {
+    const ui = workspace(t);
+    let exported = null;
+    const createObjectURL = URL.createObjectURL;
+    URL.createObjectURL = (blob) => {
+      exported = blob;
+      return "blob:captured";
+    };
+    t.after(() => {
+      URL.createObjectURL = createObjectURL;
+    });
+    ui.click('[data-action="versions"]');
+    ui.click('[data-action="export-design"]');
+    URL.createObjectURL = createObjectURL;
+    const text = await exported.text();
+    const bundle = JSON.parse(text);
+    assert.equal(bundle.bundleVersion, 1);
+    assert.ok(bundle.resources.some((r) => r.kind === "Pipeline"));
+    assert.ok(bundle.resources.some((r) => r.kind === "Provider"));
+    assert.ok(!/"rows"|"runs"/.test(text), "no records or run history in the bundle");
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    const providersBefore = ui.saved().providers.length;
+    const input = ui.get("#bundle-file");
+    Object.defineProperty(input, "files", {
+      value: [new File([text], "unify-bundle.json", { type: "application/json" })],
+    });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    const deadline = Date.now() + 3000;
+    while (!ui.d.querySelector("[data-bundle-rename]") && Date.now() < deadline) await wait(15);
+    const renames = [...ui.d.querySelectorAll("[data-bundle-rename]")];
+    assert.equal(renames.length, bundle.resources.length, "every resource clashes in its own namespace");
+    ui.click('[data-action="confirm-bundle-import"]');
+    assert.match(ui.get("#modal-error").textContent, /Nothing was imported/);
+    assert.equal(ui.saved().providers.length, providersBefore);
+    renames[0].value = renames[0].dataset.bundleRename.split(":").slice(1).join(":") + " (imported)";
+    ui.click('[data-action="confirm-bundle-import"]');
+    assert.match(ui.get("#modal-error").textContent, /Nothing was imported/, "a partial rename still rejects");
+    for (const field of ui.d.querySelectorAll("[data-bundle-rename]"))
+      field.value = field.dataset.bundleRename.split(":").slice(1).join(":") + " (imported)";
+    ui.click('[data-action="confirm-bundle-import"]');
+    const saved = ui.saved();
+    const pipeline = saved.definitions.find((d) => d.kind === "Pipeline" && / \(imported\)$/.test(d.name));
+    assert.ok(pipeline, "pipeline imported under its new name");
+    assert.equal(saved.providers.length, providersBefore + bundle.resources.filter((r) => r.kind === "Provider").length);
+    const providerIds = new Set(saved.providers.map((p) => p.id));
+    for (const binding of JSON.parse(pipeline.content).bindings)
+      if (binding.providerId) assert.ok(providerIds.has(binding.providerId), "references remapped to imported providers");
+  });
+
+  // ---- Simulated sign-in and roles (FR044, FR045).
+  const enabled = (ui, selector) => {
+    const el = ui.get(selector);
+    return !el.disabled && !el.classList.contains("denied");
+  };
+  const asRole = (ui, role) => ui.field("#role-select", role);
+
+  test("a Viewer can discover and inspect but cannot edit, preview, execute or administer", (t) => {
+    const ui = workspace(t);
+    asRole(ui, "Viewer");
+    assert.match(ui.get("[data-role-notice]").textContent, /Viewer.*Not available: editing; previewing; executing/s);
+    assert.equal(enabled(ui, '[data-action="run-pipeline"]'), false);
+    assert.equal(enabled(ui, '[data-action="execute-pipeline"]'), false);
+    assert.equal(enabled(ui, '[data-action="save-version"]'), false);
+    assert.equal(ui.get("#sql-editor").disabled, true);
+    assert.equal(ui.get("#engine-select").disabled, true);
+    assert.match(ui.get('[data-action="run-pipeline"]').title, /needs Editor, Publisher, Administrator/);
+    // Inspection still works.
+    ui.click('[data-action="navigate"][data-view="runs"]');
+    ui.get(".list-table tbody tr").click();
+    assert.ok(ui.get('[role="dialog"]'));
+    ui.click('[data-action="close-modal"]');
+    // Keyboard shortcuts are denied too, and change nothing.
+    const runsBefore = ui.saved().runs.length;
+    ui.click('[data-action="navigate"][data-view="workspace"]');
+    ui.d.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", ctrlKey: true, bubbles: true }));
+    ui.d.body.dispatchEvent(new KeyboardEvent("keydown", { key: "s", ctrlKey: true, bubbles: true }));
+    assert.equal(ui.d.querySelector('[role="dialog"]'), null);
+    assert.equal(ui.d.querySelector(".progress-strip"), null);
+    assert.match(ui.get(".toast").textContent, /Viewer role cannot do this.*Nothing was changed/);
+    assert.equal(ui.saved().runs.length, runsBefore);
+  });
+
+  test("an Editor can edit and preview but cannot execute, publish or administer", (t) => {
+    const ui = workspace(t);
+    asRole(ui, "Editor");
+    assert.equal(enabled(ui, '[data-action="run-pipeline"]'), true);
+    assert.equal(enabled(ui, '[data-action="save-version"]'), true);
+    assert.equal(ui.get("#sql-editor").disabled, false);
+    assert.equal(enabled(ui, '[data-action="execute-pipeline"]'), false);
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    assert.equal(enabled(ui, '[data-action="register-provider"]'), false);
+    assert.equal(enabled(ui, '[data-action="config-new-provider"]'), false);
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.equal(enabled(ui, '[data-action="import-bundle"]'), false);
+    assert.equal(enabled(ui, '[data-action="new-pipeline"]'), true);
+    ui.click('[data-action="manage-structure"][data-kind="organisations"]');
+    assert.ok(ui.d.querySelectorAll('[data-action="structure-new"]').length > 0);
+    for (const button of ui.d.querySelectorAll('[data-action="structure-new"]'))
+      assert.equal(button.disabled, true);
+  });
+
+  test("a Publisher can also register providers and import bundles, but not execute", (t) => {
+    const ui = workspace(t);
+    asRole(ui, "Publisher");
+    assert.equal(enabled(ui, '[data-action="execute-pipeline"]'), false);
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    assert.equal(enabled(ui, '[data-action="register-provider"]'), true);
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.equal(enabled(ui, '[data-action="import-bundle"]'), true);
+  });
+
+  test("an Operator can execute and repeat runs but cannot edit or preview", async (t) => {
+    const ui = workspace(t);
+    asRole(ui, "Operator");
+    assert.equal(enabled(ui, '[data-action="run-pipeline"]'), false);
+    assert.equal(ui.get("#sql-editor").disabled, true);
+    assert.equal(ui.get("#engine-select").disabled, false, "engine choice is execution configuration");
+    assert.equal(enabled(ui, '[data-action="execute-pipeline"]'), true);
+    ui.click('[data-action="execute-pipeline"]');
+    assert.equal(ui.saved().runs[0].kind, "Execution");
+    const deadline = Date.now() + 3000;
+    while (ui.saved().runs[0].status !== "Completed" && Date.now() < deadline) await wait(25);
+    ui.click('[data-action="navigate"][data-view="runs"]');
+    ui.get(".list-table tbody tr").click();
+    assert.equal(enabled(ui, '[data-action="repeat-run"]'), true);
+  });
+
+  test("an Administrator can use every action, including structure management", (t) => {
+    const ui = workspace(t);
+    asRole(ui, "Administrator");
+    assert.equal(ui.d.querySelector("[data-role-notice]"), null);
+    assert.equal(enabled(ui, '[data-action="run-pipeline"]'), true);
+    assert.equal(enabled(ui, '[data-action="execute-pipeline"]'), true);
+    ui.click('[data-action="manage-structure"][data-kind="organisations"]');
+    assert.equal(ui.d.querySelector('[data-action="structure-new"]').disabled, false);
+  });
+
+  test("signing out shows the sign-in page; signing in records the principal and persists the role", async (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="sign-out"]');
+    assert.match(ui.get("h1").textContent, /Sign in to Unify/);
+    assert.equal(ui.d.querySelector(".shell"), null);
+    assert.equal(ui.saved().session, null);
+    const signedOut = workspace(t, ui.stored());
+    assert.match(signedOut.get("h1").textContent, /Sign in to Unify/, "sign-out survives a reload");
+    signedOut.field("#sign-in-name", "Jane Doe");
+    signedOut.field("#sign-in-role", "Operator");
+    signedOut.click('[data-action="sign-in"]');
+    assert.match(signedOut.get("[data-session-user]").textContent, /Jane Doe/);
+    assert.equal(signedOut.get("#role-select").value, "Operator");
+    signedOut.click('[data-action="execute-pipeline"]');
+    assert.equal(signedOut.saved().runs[0].principal, "jane.doe");
+    const reloaded = workspace(t, signedOut.stored());
+    assert.equal(reloaded.get("#role-select").value, "Operator");
+    assert.match(reloaded.get("[data-session-user]").textContent, /Jane Doe/);
+  });
+
+  test(
+    "the automated demo passes every scenario on its own data and leaves saved data untouched",
+    { timeout: 120000 },
+    async (t) => {
+      let before = null;
+      try {
+        before = localStorage.getItem(STORAGE);
+      } catch (_) {
+        /* storage may be unavailable */
+      }
+      t.after(() => window.UnifyDemo.close());
+      const results = await window.UnifyDemo.run({ speed: 0.03 });
+      assert.equal(results.length, window.UnifyDemo.scenarios.length, "every scenario ran");
+      for (const r of results) {
+        assert.equal(r.error, "", `${r.title}: ${r.error}`);
+        assert.ok(r.checks.length > 0, `${r.title} made checks`);
+        for (const c of r.checks)
+          assert.ok(c.pass, `${r.title} › ${c.label}${c.note ? " (" + c.note + ")" : ""}`);
+      }
+      const published = JSON.parse(document.getElementById("demo-results").dataset.results);
+      assert.equal(published.length, results.length, "results published as data");
+      let after = null;
+      try {
+        after = localStorage.getItem(STORAGE);
+      } catch (_) {
+        /* storage may be unavailable */
+      }
+      assert.equal(after, before, "the browser's saved data is untouched");
+      assert.equal(document.querySelector(".demo-shield"), null, "the shield is removed");
+      assert.equal(document.getElementById("app").innerHTML, "", "no demo instance left running");
+    },
+  );
+
+  test("progress shows the current stage out of the total", (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="run-pipeline"]');
+    assert.match(ui.get(".progress-strip").textContent, /stage 1 of \d+/);
+    ui.click('[data-action="cancel-run"]');
+  });
 })();
 
 const requested = new URLSearchParams(location.search).get("tests");

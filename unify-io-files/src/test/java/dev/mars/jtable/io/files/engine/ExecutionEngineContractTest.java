@@ -155,17 +155,18 @@ class ExecutionEngineContractTest {
     @ValueSource(strings = {"duckdb", "sqlite"})
     void queriesStreamResultsCheckedAgainstTheDeclaredSchema(String engineName) throws IOException {
         try (ExecutionEngine engine = open(engineName)) {
-            engine.load("people", sourceOf(ALL_TYPES, sampleRows(), 10));
+            DatasetHandle people = engine.load("people", sourceOf(ALL_TYPES, sampleRows(), 10));
+            String id = people.column("id"), name = people.column("name"), active = people.column("active");
             TableSchema result = TableSchema.of(required("id", LogicalType.INT32), nullable("name", LogicalType.STRING),
                     nullable("active", LogicalType.BOOLEAN));
-            List<Object[]> rows = drain(engine.query(
-                    "SELECT id, name, active FROM people WHERE active ORDER BY id", result, 1));
+            List<Object[]> rows = drain(engine.query("SELECT " + id + ", " + name + ", " + active + " FROM "
+                    + people.table() + " WHERE " + active + " ORDER BY " + id, result, 1));
             assertEquals(2, rows.size());
             assertArrayEquals(new Object[]{1, "Alice", true}, rows.get(0));
             assertArrayEquals(new Object[]{4, "quote \" and ' marks", true}, rows.get(1));
 
             // A COUNT is a 64-bit integer in both engines; it fits INT32, so it converts.
-            List<Object[]> count = drain(engine.query("SELECT COUNT(*) AS n FROM people",
+            List<Object[]> count = drain(engine.query("SELECT COUNT(*) FROM " + people.table(),
                     TableSchema.of(required("n", LogicalType.INT32)), 10));
             assertEquals(4, count.get(0)[0]);
         }
@@ -175,17 +176,73 @@ class ExecutionEngineContractTest {
     @ValueSource(strings = {"duckdb", "sqlite"})
     void resultsThatDoNotMatchTheDeclaredSchemaFail(String engineName) throws IOException {
         try (ExecutionEngine engine = open(engineName)) {
-            engine.load("people", sourceOf(ALL_TYPES, sampleRows(), 10));
-            TableSchema wrongLabel = TableSchema.of(required("ident", LogicalType.INT32));
-            assertThrows(IOException.class, () -> engine.query("SELECT id FROM people", wrongLabel, 10));
+            DatasetHandle people = engine.load("people", sourceOf(ALL_TYPES, sampleRows(), 10));
+            String table = people.table(), id = people.column("id"), name = people.column("name");
             TableSchema wrongCount = TableSchema.of(required("id", LogicalType.INT32));
-            assertThrows(IOException.class, () -> engine.query("SELECT id, name FROM people", wrongCount, 10));
+            assertThrows(IOException.class, () -> engine.query("SELECT " + id + ", " + name + " FROM " + table, wrongCount, 10));
             // Text is never coerced into a number.
             TableSchema wrongType = TableSchema.of(nullable("name", LogicalType.INT32));
-            assertThrows(IOException.class, () -> drain(engine.query("SELECT name FROM people", wrongType, 10)));
+            assertThrows(IOException.class, () -> drain(engine.query("SELECT " + name + " FROM " + table, wrongType, 10)));
             // NULL in a column declared non-nullable is rejected.
             TableSchema notNull = TableSchema.of(required("name", LogicalType.STRING));
-            assertThrows(IOException.class, () -> drain(engine.query("SELECT name FROM people ORDER BY id", notNull, 10)));
+            assertThrows(IOException.class, () -> drain(engine.query(
+                    "SELECT " + name + " FROM " + table + " ORDER BY " + id, notNull, 10)));
+            // Loading a second dataset with the same name is refused.
+            assertThrows(IOException.class, () -> engine.load("people", sourceOf(ALL_TYPES, sampleRows(), 10)));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"duckdb", "sqlite"})
+    void namesThatDifferOnlyInCaseStayDistinct(String engineName) throws IOException {
+        // FR001: column names are case-sensitive, but both engines match identifiers case-insensitively.
+        try (ExecutionEngine engine = open(engineName)) {
+            TableSchema schema = TableSchema.of(nullable("Name", LogicalType.STRING), nullable("name", LogicalType.STRING));
+            DatasetHandle upper = engine.load("Data", sourceOf(schema, List.<Object[]>of(new Object[]{"A", "a"}), 10));
+            DatasetHandle lower = engine.load("data", sourceOf(schema, List.<Object[]>of(new Object[]{"B", "b"}), 10));
+            assertNotEquals(upper.column("Name"), upper.column("name"));
+            assertNotEquals(upper.table(), lower.table());
+            assertArrayEquals(new Object[]{"A", "a"}, drain(engine.scan(upper, 10)).get(0));
+            assertArrayEquals(new Object[]{"B", "b"}, drain(engine.scan(lower, 10)).get(0));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"duckdb", "sqlite"})
+    void scansReturnRecordsInLoadOrder(String engineName) throws IOException {
+        try (ExecutionEngine engine = open(engineName)) {
+            TableSchema schema = TableSchema.of(required("n", LogicalType.INT32));
+            List<Object[]> rows = new java.util.ArrayList<>();
+            for (int i = 0; i < 5000; i++) {
+                rows.add(new Object[]{(i * 7919) % 5000});
+            }
+            DatasetHandle handle = engine.load("shuffled", sourceOf(schema, rows, 333));
+            List<Object[]> back = drain(engine.scan(handle, 500));
+            for (int i = 0; i < rows.size(); i++) {
+                assertEquals(rows.get(i)[0], back.get(i)[0], "record " + (i + 1));
+            }
+        }
+    }
+
+    @org.junit.jupiter.api.Test
+    void sqliteStoresTemporalValuesAsFixedWidthText() throws IOException {
+        try (ExecutionEngine engine = SqliteEngine.inMemory()) {
+            TableSchema schema = TableSchema.of(nullable("at", LogicalType.TIME), nullable("stamp", LogicalType.LOCAL_DATETIME),
+                    nullable("day", LogicalType.DATE));
+            DatasetHandle handle = engine.load("times", sourceOf(schema, List.<Object[]>of(
+                    new Object[]{LocalTime.of(10, 15), LocalDateTime.of(2026, 1, 2, 3, 4), LocalDate.of(2026, 1, 2)}), 10));
+            // Read the stored text directly: zero seconds and fractions are always written out.
+            TableSchema asText = TableSchema.of(nullable("at", LogicalType.STRING), nullable("stamp", LogicalType.STRING),
+                    nullable("day", LogicalType.STRING));
+            Object[] stored = drain(engine.query("SELECT " + String.join(", ", handle.columns()) + " FROM " + handle.table(),
+                    asText, 10)).get(0);
+            assertArrayEquals(new Object[]{"10:15:00.000000000", "2026-01-02T03:04:00.000000000", "2026-01-02"}, stored);
+            // A literal written the same way matches: equality works in SQL, not just in Java.
+            List<Object[]> match = drain(engine.query("SELECT COUNT(*) FROM " + handle.table() + " WHERE "
+                    + handle.column("at") + " = '10:15:00.000000000'", TableSchema.of(required("n", LogicalType.INT32)), 10));
+            assertEquals(1, match.get(0)[0]);
+            assertArrayEquals(new Object[]{LocalTime.of(10, 15), LocalDateTime.of(2026, 1, 2, 3, 4), LocalDate.of(2026, 1, 2)},
+                    drain(engine.scan(handle, 10)).get(0));
         }
     }
 

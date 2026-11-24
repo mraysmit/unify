@@ -74,8 +74,13 @@ class LargerThanHeapSliceTest {
             nullable("amount", LogicalType.DOUBLE),
             required("trade_date", LogicalType.DATE));
 
-    private static final String FILTER = "SELECT id, account, amount, trade_date FROM trades "
-            + "WHERE active AND amount >= 900 ORDER BY id";
+    /** The filter query, written against the dataset's generated engine names. */
+    private static String filter(DatasetHandle trades) {
+        return "SELECT " + trades.column("id") + ", " + trades.column("account") + ", " + trades.column("amount")
+                + ", " + trades.column("trade_date") + " FROM " + trades.table()
+                + " WHERE " + trades.column("active") + " AND " + trades.column("amount") + " >= 900"
+                + " ORDER BY " + trades.column("id");
+    }
 
     private final List<Long> heapAfterGc = new ArrayList<>();
 
@@ -114,7 +119,7 @@ class LargerThanHeapSliceTest {
                 }
                 loadSeconds = seconds(loadStarted);
                 long queryStarted = System.nanoTime();
-                try (RecordSource result = monitored(engine.query(FILTER, RESULT, 1024));
+                try (RecordSource result = monitored(engine.query(filter(trades), RESULT, 1024));
                      CsvRecordSink sink = new CsvRecordSink(output, RESULT, CsvFormat.DEFAULT)) {
                     resultRows = RecordStreams.copy(result, sink);
                 }

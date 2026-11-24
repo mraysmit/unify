@@ -36,6 +36,10 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.StringJoiner;
 
 /**
@@ -44,9 +48,14 @@ import java.util.StringJoiner;
  * Subclasses supply the column type mapping and the bulk loader.
  */
 public abstract class JdbcEngine implements ExecutionEngine {
+    /** The engine column holding each record's 1-based load ordinal. */
+    protected static final String ORDINAL = "o";
+
     private final String name;
     private final String version;
     protected final Connection connection;
+    private final Map<String, DatasetHandle> datasets = new HashMap<>();
+    private int tables = 0;
 
     protected JdbcEngine(String name, Connection connection) throws SQLException {
         this.name = name;
@@ -57,8 +66,13 @@ public abstract class JdbcEngine implements ExecutionEngine {
     /** The engine column type for a logical type. */
     protected abstract String columnType(LogicalType type);
 
+    /** The engine column type of the record ordinal. */
+    protected String ordinalType() {
+        return "BIGINT";
+    }
+
     /** Extra constraint for a column, for example a CHECK clause; empty by default. */
-    protected String columnConstraint(ColumnDefinition column) {
+    protected String columnConstraint(ColumnDefinition column, String physicalName) {
         return "";
     }
 
@@ -69,9 +83,11 @@ public abstract class JdbcEngine implements ExecutionEngine {
 
     /**
      * Appends every record of the source to the new, empty table, inside the transaction opened
-     * by {@link #load}. Returns the number of records appended.
+     * by {@link #load}. Each record is written to the generated columns in schema order, followed
+     * by its 1-based ordinal in the {@link #ORDINAL} column. Returns the number of records.
      */
-    protected abstract long append(String dataset, RecordSource source) throws SQLException, IOException;
+    protected abstract long append(String table, List<String> columns, RecordSource source)
+            throws SQLException, IOException;
 
     /** Whether the engine represents BOOLEAN as the integers 0 and 1. */
     protected boolean numericBooleans() {
@@ -91,17 +107,27 @@ public abstract class JdbcEngine implements ExecutionEngine {
     @Override
     public DatasetHandle load(String dataset, RecordSource source) throws IOException {
         requireName(dataset);
+        if (datasets.containsKey(dataset)) {
+            throw new IOException("Dataset '" + dataset + "' already exists in " + name);
+        }
         TableSchema schema = source.schema();
+        String table = "t" + (++tables);
+        List<String> columns = new ArrayList<>(schema.size());
+        for (int i = 1; i <= schema.size(); i++) {
+            columns.add("c" + i);
+        }
         try {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try {
                 try (Statement statement = connection.createStatement()) {
-                    statement.execute(createTable(dataset, schema));
+                    statement.execute(createTable(table, columns, schema));
                 }
-                long rows = append(dataset, source);
+                long rows = append(table, columns, source);
                 connection.commit();
-                return new DatasetHandle(name, dataset, schema, rows);
+                DatasetHandle handle = new DatasetHandle(name, dataset, schema, rows, table, columns);
+                datasets.put(dataset, handle);
+                return handle;
             } catch (SQLException | IOException | RuntimeException e) {
                 try {
                     connection.rollback();
@@ -138,18 +164,24 @@ public abstract class JdbcEngine implements ExecutionEngine {
 
     @Override
     public RecordSource scan(DatasetHandle dataset, int batchSize) throws IOException {
-        StringJoiner columns = new StringJoiner(", ");
-        for (ColumnDefinition column : dataset.schema().columns()) {
-            columns.add(quote(column.name()));
+        if (datasets.get(dataset.name()) != dataset) {
+            throw new IOException("Dataset '" + dataset.name() + "' is not loaded in " + name);
         }
-        return query("SELECT " + columns + " FROM " + quote(dataset.name()), dataset.schema(), batchSize);
+        // Neither engine guarantees scan order, so every scan orders by the load ordinal.
+        return query("SELECT " + String.join(", ", dataset.columns()) + " FROM " + dataset.table()
+                + " ORDER BY " + ORDINAL, dataset.schema(), batchSize);
     }
 
     @Override
     public void drop(String dataset) throws IOException {
         requireName(dataset);
+        DatasetHandle handle = datasets.get(dataset);
+        if (handle == null) {
+            return;
+        }
         try (Statement statement = connection.createStatement()) {
-            statement.execute("DROP TABLE IF EXISTS " + quote(dataset));
+            statement.execute("DROP TABLE IF EXISTS " + handle.table());
+            datasets.remove(dataset);
         } catch (SQLException e) {
             throw new IOException("Dropping dataset '" + dataset + "' failed: " + e.getMessage(), e);
         }
@@ -169,14 +201,16 @@ public abstract class JdbcEngine implements ExecutionEngine {
         return '"' + identifier.replace("\"", "\"\"") + '"';
     }
 
-    private String createTable(String dataset, TableSchema schema) {
-        StringJoiner columns = new StringJoiner(", ", "CREATE TABLE " + quote(dataset) + " (", ")");
-        for (ColumnDefinition column : schema.columns()) {
-            String constraint = columnConstraint(column);
-            columns.add(quote(column.name()) + " " + columnType(column.type())
+    private String createTable(String table, List<String> physical, TableSchema schema) {
+        StringJoiner columns = new StringJoiner(", ", "CREATE TABLE " + table + " (", ")");
+        for (int i = 0; i < schema.size(); i++) {
+            ColumnDefinition column = schema.column(i);
+            String constraint = columnConstraint(column, physical.get(i));
+            columns.add(physical.get(i) + " " + columnType(column.type())
                     + (column.nullable() ? "" : " NOT NULL")
                     + (constraint.isEmpty() ? "" : " " + constraint));
         }
+        columns.add(ORDINAL + " " + ordinalType() + " NOT NULL");
         return columns + tableOptions();
     }
 
@@ -186,18 +220,13 @@ public abstract class JdbcEngine implements ExecutionEngine {
         }
     }
 
+    // Result columns are matched to the declared schema by position. Engine labels are ignored:
+    // engine tables use generated names, and the engines match identifiers case-insensitively.
     private static void checkResultShape(ResultSetMetaData metadata, TableSchema schema)
             throws SQLException, IOException {
         if (metadata.getColumnCount() != schema.size()) {
             throw new IOException("The query returns " + metadata.getColumnCount()
                     + " columns but the declared result schema has " + schema.size());
-        }
-        for (int i = 0; i < schema.size(); i++) {
-            String label = metadata.getColumnLabel(i + 1);
-            if (!schema.column(i).name().equals(label)) {
-                throw new IOException("Result column " + (i + 1) + " is labelled '" + label
-                        + "' but the declared result schema names it '" + schema.column(i).name() + "'");
-            }
         }
     }
 
