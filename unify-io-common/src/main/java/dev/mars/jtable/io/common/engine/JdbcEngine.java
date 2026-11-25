@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dev.mars.jtable.io.files.engine;
+package dev.mars.jtable.io.common.engine;
 
 import dev.mars.jtable.core.schema.ColumnDefinition;
 import dev.mars.jtable.core.schema.LogicalType;
@@ -89,6 +89,14 @@ public abstract class JdbcEngine implements ExecutionEngine {
     protected abstract long append(String table, List<String> columns, RecordSource source)
             throws SQLException, IOException;
 
+    /**
+     * The message for an engine failure. Engines override this to explain their own limits, for
+     * example a memory cap, in terms the caller can act on.
+     */
+    protected String explain(SQLException e) {
+        return e.getMessage();
+    }
+
     /** Whether the engine represents BOOLEAN as the integers 0 and 1. */
     protected boolean numericBooleans() {
         return false;
@@ -119,6 +127,7 @@ public abstract class JdbcEngine implements ExecutionEngine {
         try {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
+            Exception failure = null;
             try {
                 try (Statement statement = connection.createStatement()) {
                     statement.execute(createTable(table, columns, schema));
@@ -129,6 +138,7 @@ public abstract class JdbcEngine implements ExecutionEngine {
                 datasets.put(dataset, handle);
                 return handle;
             } catch (SQLException | IOException | RuntimeException e) {
+                failure = e;
                 try {
                     connection.rollback();
                 } catch (SQLException rollbackFailure) {
@@ -136,10 +146,19 @@ public abstract class JdbcEngine implements ExecutionEngine {
                 }
                 throw e;
             } finally {
-                connection.setAutoCommit(autoCommit);
+                // Restoring auto-commit can itself fail, for example when the engine has already
+                // rolled the transaction back. It must never replace the original failure.
+                try {
+                    connection.setAutoCommit(autoCommit);
+                } catch (SQLException restoreFailure) {
+                    if (failure == null) {
+                        throw restoreFailure;
+                    }
+                    failure.addSuppressed(restoreFailure);
+                }
             }
         } catch (SQLException e) {
-            throw new IOException("Loading dataset '" + dataset + "' into " + name + " failed: " + e.getMessage(), e);
+            throw new IOException("Loading dataset '" + dataset + "' into " + name + " failed: " + explain(e), e);
         }
     }
 
@@ -158,7 +177,7 @@ public abstract class JdbcEngine implements ExecutionEngine {
         } catch (SQLException | IOException e) {
             closeQuietly(statement, e);
             throw e instanceof IOException io ? io
-                    : new IOException("Query failed in " + name + ": " + e.getMessage(), e);
+                    : new IOException("Query failed in " + name + ": " + explain((SQLException) e), e);
         }
     }
 

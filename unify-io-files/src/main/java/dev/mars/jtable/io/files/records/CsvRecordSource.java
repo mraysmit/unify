@@ -16,6 +16,8 @@
 package dev.mars.jtable.io.files.records;
 
 import dev.mars.jtable.core.schema.RecordBatch;
+import dev.mars.jtable.core.schema.SchemaInference;
+import dev.mars.jtable.core.schema.SourceValue;
 import dev.mars.jtable.core.schema.TableSchema;
 import dev.mars.jtable.core.schema.ValueConversionException;
 import dev.mars.jtable.core.schema.ValueNormalizer;
@@ -27,7 +29,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Streams a CSV file as checked record batches against an explicit schema, holding at most one
@@ -41,9 +45,12 @@ import java.util.List;
 public final class CsvRecordSource implements RecordSource {
     private static final int BUFFER = 1 << 16;
 
-    private final TableSchema schema;
+    private TableSchema schema;
     private final CsvFormat format;
     private final Reader reader;
+    private List<Map<String, SourceValue>> replay = List.of();
+    private List<Long> replayLines = List.of();
+    private int replayed = 0;
     private final char[] buffer = new char[BUFFER];
     private int position = 0;
     private int limit = 0;
@@ -71,6 +78,37 @@ public final class CsvRecordSource implements RecordSource {
         }
     }
 
+    private CsvRecordSource(Path file, CsvFormat format, int sampleSize) throws IOException {
+        this.format = format;
+        this.reader = Files.newBufferedReader(file, StandardCharsets.UTF_8);
+        try {
+            skipByteOrderMark();
+            inferSchema(new SchemaInference(sampleSize));
+        } catch (IOException | RuntimeException e) {
+            reader.close();
+            throw e;
+        }
+    }
+
+    /**
+     * Opens the file and infers its schema from the first {@code sampleSize} records (FR002). The
+     * header names the columns and fixes their order; a header with no records gives nullable
+     * STRING columns. The sampled records are kept and delivered first, so nothing is read twice.
+     * After the sample, a value that does not fit the frozen schema fails its batch with a
+     * located error. A headerless file needs an explicit positional schema.
+     */
+    public static CsvRecordSource inferring(Path file, CsvFormat format, int sampleSize) throws IOException {
+        if (!format.header()) {
+            throw new IllegalArgumentException("Inference needs a header; a headerless file needs an explicit schema");
+        }
+        return new CsvRecordSource(file, format, sampleSize);
+    }
+
+    /** {@link #inferring(Path, CsvFormat, int)} with the default sample of 1,000 records. */
+    public static CsvRecordSource inferring(Path file, CsvFormat format) throws IOException {
+        return inferring(file, format, SchemaInference.DEFAULT_SAMPLE_SIZE);
+    }
+
     @Override
     public TableSchema schema() {
         return schema;
@@ -82,6 +120,19 @@ public final class CsvRecordSource implements RecordSource {
             return null;
         }
         RecordBatch.Builder builder = RecordBatch.builder(schema, format.batchSize());
+        while (replayed < replay.size() && builder.rowCount() < format.batchSize()) {
+            try {
+                builder.add(ValueNormalizer.normalizeRecord(schema, replay.get(replayed), false));
+            } catch (ValueConversionException e) {
+                throw new IOException("Line " + replayLines.get(replayed) + ": " + e.getMessage(), e);
+            }
+            replayed++;
+        }
+        if (replayed == replay.size() && !replay.isEmpty()) {
+            replay = List.of(); // release the sample once delivered
+            replayLines = List.of();
+            replayed = 0;
+        }
         while (builder.rowCount() < format.batchSize()) {
             if (!readRecord()) {
                 finished = true;
@@ -121,17 +172,56 @@ public final class CsvRecordSource implements RecordSource {
         Object[] values = new Object[fields.size()];
         try {
             for (int i = 0; i < values.length; i++) {
-                String text = fields.get(i);
-                boolean quoted = quotedFlags.get(i);
-                if (!quoted && (text.equals(format.nullToken()) || (format.emptyAsNull() && text.isEmpty()))) {
-                    text = null;
-                }
-                values[i] = ValueNormalizer.fromText(text, schema.column(i));
+                values[i] = ValueNormalizer.normalize(sourceValue(i), schema.column(i));
             }
         } catch (ValueConversionException e) {
             throw new IOException("Line " + recordLine + ": " + e.getMessage(), e);
         }
         return values;
+    }
+
+    /**
+     * The source value of field {@code i} of the current record. An unquoted null token is an
+     * explicit null, and so is an unquoted empty field when the format enables empty-as-null; a
+     * quoted field is always literal text. CSV records have a fixed width, so a field is never
+     * MISSING.
+     */
+    private SourceValue sourceValue(int i) {
+        String text = fields.get(i);
+        if (!quotedFlags.get(i) && (text.equals(format.nullToken()) || (format.emptyAsNull() && text.isEmpty()))) {
+            return SourceValue.NULL;
+        }
+        return SourceValue.text(text);
+    }
+
+    private void inferSchema(SchemaInference inference) throws IOException {
+        if (!readRecord()) {
+            throw new IOException("The file is empty: an explicit schema is required");
+        }
+        List<String> names = new ArrayList<>(fields);
+        for (String name : names) {
+            try {
+                inference.declareField(name);
+            } catch (IllegalArgumentException e) {
+                throw new IOException("Line " + recordLine + ": the header has a blank or duplicate column name", e);
+            }
+        }
+        List<Long> lines = new ArrayList<>();
+        while (!inference.isFull() && readRecord()) {
+            if (fields.size() != names.size()) {
+                throw new IOException("Line " + recordLine + ": expected " + names.size()
+                        + " fields but found " + fields.size());
+            }
+            Map<String, SourceValue> sampled = new LinkedHashMap<>();
+            for (int i = 0; i < names.size(); i++) {
+                sampled.put(names.get(i), sourceValue(i));
+            }
+            inference.add(sampled);
+            lines.add(recordLine);
+        }
+        schema = inference.freeze();
+        replay = inference.sample();
+        replayLines = lines;
     }
 
     /** Reads the next record into {@link #fields}; returns false at the end of the input. */

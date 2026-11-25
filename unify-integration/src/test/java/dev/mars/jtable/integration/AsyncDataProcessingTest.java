@@ -257,7 +257,7 @@ public class AsyncDataProcessingTest {
         config.setColumnMappings(mappings);
         
         Map<String, Object> options = new HashMap<>();
-        options.put("hasHeader", true);
+        options.put("hasHeaderRow", true);
         options.put("delimiter", ",");
         config.setOptions(options);
         
@@ -270,7 +270,11 @@ public class AsyncDataProcessingTest {
         
         // Database configuration
         MappingConfiguration dbConfig = new MappingConfiguration();
-        dbConfig.setSourceLocation("jdbc:sqlite:test_async.db");
+        // One database per file: SQLite allows a single writer per file, and concurrent first
+        // opens of a file that does not exist yet can fail with SQLITE_READONLY or SQLITE_BUSY.
+        String dbFile = "test_async_" + Paths.get(csvFile).getFileName().toString().replace(".csv", "") + ".db";
+        testFiles.add(dbFile);
+        dbConfig.setSourceLocation("jdbc:sqlite:" + dbFile);
         dbConfig.setColumnMappings(csvConfig.getColumnMappings());
         
         Map<String, Object> dbOptions = new HashMap<>();

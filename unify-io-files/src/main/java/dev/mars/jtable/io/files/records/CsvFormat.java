@@ -64,6 +64,40 @@ public final class CsvFormat {
         this.lineSeparator = lineSeparator;
     }
 
+    /**
+     * The fewest UTF-8 bytes one record of {@code schema} can occupy in this format: the
+     * narrowest form of each field, the delimiters between them and a one-byte line break. Dividing
+     * a file's size by it gives an upper bound on its record count, which is the conservative
+     * direction for engine selection.
+     */
+    public long minimumRecordWidth(dev.mars.jtable.core.schema.TableSchema schema) {
+        long width = (schema.size() - 1) + 1; // delimiters, then the line break
+        for (dev.mars.jtable.core.schema.ColumnDefinition column : schema.columns()) {
+            long field = minimumFieldWidth(column);
+            if (column.nullable()) {
+                // A null can be written as the null token, or as an empty field with empty-as-null.
+                boolean emptyIsNull = emptyAsNull || column.text().emptyAsNull();
+                field = Math.min(field, emptyIsNull ? 0 : nullToken.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+            }
+            width += field;
+        }
+        return Math.max(1, width);
+    }
+
+    private static long minimumFieldWidth(dev.mars.jtable.core.schema.ColumnDefinition column) {
+        if (column.text().pattern() != null) {
+            return 1; // a custom temporal pattern can be as short as one character
+        }
+        switch (column.type()) {
+            case STRING: return 0;
+            case BOOLEAN: return 4;          // true
+            case DATE: return 10;            // yyyy-MM-dd
+            case TIME: return 5;             // HH:mm
+            case LOCAL_DATETIME: return 16;  // yyyy-MM-ddTHH:mm
+            default: return 1;               // INT32 and DOUBLE: one digit
+        }
+    }
+
     private static boolean isLineBreak(char c) {
         return c == '\n' || c == '\r';
     }

@@ -50,8 +50,7 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- SQLite: JDBC connector and execution engine (SqliteEngine). Runtime scope because the
-             engine uses only standard JDBC; 3.37+ is needed for STRICT tables. -->
+        <!-- SQLite: JDBC driver for the legacy JDBC connector and its tests. -->
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
@@ -59,11 +58,20 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- DuckDB: execution engine (DuckDbEngine). Compile scope for the native appender API. -->
+        <!-- The engines live in their own modules (ADR-004). They are test dependencies here only:
+             the engine contract suite and the larger-than-heap proof run both engines over the
+             record connectors. unify-io-files itself ships no DuckDB driver. -->
         <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>1.5.6.0</version>
+            <groupId>dev.mars</groupId>
+            <artifactId>unify-engine-sqlite</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.mars</groupId>
+            <artifactId>unify-engine-duckdb</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- Logging -->

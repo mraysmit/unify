@@ -181,7 +181,7 @@ public class CSVToPostgreSQLDemoTest {
         config.setColumnMappings(columnMappings);
 
         Map<String, Object> options = new HashMap<>();
-        options.put("hasHeader", true);
+        options.put("hasHeaderRow", true);
         options.put("delimiter", ",");
         config.setOptions(options);
 

@@ -21,14 +21,21 @@ package dev.mars.jtable.core.schema;
  */
 public class ValueConversionException extends IllegalArgumentException {
     private final String column;
+    private final String reason;
 
     public ValueConversionException(String column, String reason) {
         super("Column '" + column + "': " + reason);
         this.column = column;
+        this.reason = reason;
     }
 
     /** The name of the column whose value was rejected. */
     public String column() {
         return column;
+    }
+
+    /** The rule that failed, without the column name. */
+    public String reason() {
+        return reason;
     }
 }

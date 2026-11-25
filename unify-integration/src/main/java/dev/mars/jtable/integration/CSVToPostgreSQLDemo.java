@@ -155,7 +155,7 @@ public class CSVToPostgreSQLDemo {
 
         // Set CSV-specific options
         Map<String, Object> options = new HashMap<>();
-        options.put("hasHeader", true);
+        options.put("hasHeaderRow", true);
         options.put("delimiter", ",");
         options.put("encoding", "UTF-8");
         config.setOptions(options);

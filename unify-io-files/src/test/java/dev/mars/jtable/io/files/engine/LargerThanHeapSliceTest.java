@@ -15,6 +15,9 @@
  */
 package dev.mars.jtable.io.files.engine;
 
+import dev.mars.jtable.engine.duckdb.DuckDbEngine;
+import dev.mars.jtable.engine.sqlite.SqliteEngine;
+
 import dev.mars.jtable.core.schema.LogicalType;
 import dev.mars.jtable.core.schema.RecordBatch;
 import dev.mars.jtable.core.schema.TableSchema;

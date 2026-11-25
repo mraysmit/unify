@@ -73,20 +73,22 @@ public class AsyncDataProcessor {
      * @return a CompletableFuture containing the loaded table
      */
     public CompletableFuture<ITable> readCSVAsync(String csvFile, MappingConfiguration config) {
-        return CompletableFuture.supplyAsync(() -> {
-            logger.info("Starting async CSV read: {}", csvFile);
-            
-            ITable table = new TableCore("AsyncCSV-" + System.currentTimeMillis());
-            
-            try {
-                csvProcessor.readFromCSV(table, csvFile, config);
-                logger.info("Completed async CSV read: {} rows from {}", table.getRowCount(), csvFile);
-                return table;
-            } catch (IOException e) {
-                logger.error("Error reading CSV file {}: {}", csvFile, e.getMessage(), e);
-                throw new RuntimeException("Failed to read CSV file: " + csvFile, e);
-            }
-        }, executorService);
+        return CompletableFuture.supplyAsync(() -> readCSV(csvFile, config), executorService);
+    }
+
+    private ITable readCSV(String csvFile, MappingConfiguration config) {
+        logger.info("Starting CSV read: {}", csvFile);
+
+        ITable table = new TableCore("AsyncCSV-" + System.currentTimeMillis());
+
+        try {
+            csvProcessor.readFromCSV(table, csvFile, config);
+            logger.info("Completed CSV read: {} rows from {}", table.getRowCount(), csvFile);
+            return table;
+        } catch (IOException e) {
+            logger.error("Error reading CSV file {}: {}", csvFile, e.getMessage(), e);
+            throw new RuntimeException("Failed to read CSV file: " + csvFile, e);
+        }
     }
     
     /**
@@ -97,25 +99,32 @@ public class AsyncDataProcessor {
      * @return a CompletableFuture indicating completion
      */
     public CompletableFuture<Void> writeDatabaseAsync(ITable table, MappingConfiguration config) {
-        return CompletableFuture.runAsync(() -> {
-            logger.info("Starting async database write for table: {}", table.getName());
-            
+        return CompletableFuture.runAsync(() -> writeDatabase(table, config), executorService);
+    }
+
+    private void writeDatabase(ITable table, MappingConfiguration config) {
+        logger.info("Starting database write for table: {}", table.getName());
+
+        try {
+            // Connect to the database the mapping writes to; db.properties is only the fallback.
+            String url = config.getSourceLocation();
+            DbConnection connection = url != null
+                    ? connectionManager.createConnection(url,
+                            (String) config.getOption("username", ""), (String) config.getOption("password", ""))
+                    : connectionManager.createSQLiteConnection(new DatabaseProperties());
             try {
-                DbConnection connection = connectionManager.createSQLiteConnection(new DatabaseProperties());
-                try {
-                    sqliteProcessor.writeToSQLiteDatabase(table, connection, config);
-                    logger.info("Completed async database write: {} rows from {}", 
-                               table.getRowCount(), table.getName());
-                } finally {
-                    if (connection.isConnected()) {
-                        connection.disconnect();
-                    }
+                sqliteProcessor.writeToSQLiteDatabase(table, connection, config);
+                logger.info("Completed database write: {} rows from {}",
+                           table.getRowCount(), table.getName());
+            } finally {
+                if (connection.isConnected()) {
+                    connection.disconnect();
                 }
-            } catch (SQLException | IOException e) {
-                logger.error("Error writing to database for table {}: {}", table.getName(), e.getMessage(), e);
-                throw new RuntimeException("Failed to write to database", e);
             }
-        }, executorService);
+        } catch (SQLException | IOException e) {
+            logger.error("Error writing to database for table {}: {}", table.getName(), e.getMessage(), e);
+            throw new RuntimeException("Failed to write to database", e);
+        }
     }
     
     /**
@@ -142,8 +151,10 @@ public class AsyncDataProcessor {
     }
     
     /**
-     * Processes a single file asynchronously with performance monitoring.
-     * 
+     * Processes a single file asynchronously with performance monitoring. The read and the write
+     * run in sequence inside one pool task: a pool task must never block waiting for another task
+     * on the same pool, because with every thread waiting, the queued work can never start.
+     *
      * @param csvFile the CSV file to process
      * @param configs array containing [csvConfig, dbConfig]
      * @return a CompletableFuture containing performance metrics
@@ -151,26 +162,15 @@ public class AsyncDataProcessor {
     private CompletableFuture<PerformanceMetrics> processFileAsync(String csvFile, MappingConfiguration[] configs) {
         return CompletableFuture.supplyAsync(() -> {
             String operationName = "Async File Processing: " + csvFile;
-            
-            return benchmark.benchmark(operationName, () -> {
-                try {
-                    // Read CSV asynchronously
-                    CompletableFuture<ITable> readFuture = readCSVAsync(csvFile, configs[0]);
-                    
-                    // Chain database write after CSV read completes
-                    CompletableFuture<Void> writeFuture = readFuture
-                        .thenCompose(table -> writeDatabaseAsync(table, configs[1]));
-                    
-                    // Wait for completion
-                    writeFuture.join();
-                    
-                    logger.info("Completed async processing of file: {}", csvFile);
-                    
-                } catch (Exception e) {
-                    logger.error("Error in async file processing for {}: {}", csvFile, e.getMessage(), e);
-                    throw new RuntimeException("Async processing failed for: " + csvFile, e);
-                }
+
+            long[] records = {0};
+            PerformanceMetrics metrics = benchmark.benchmark(operationName, () -> {
+                ITable table = readCSV(csvFile, configs[0]);
+                writeDatabase(table, configs[1]);
+                records[0] = table.getRowCount();
+                logger.info("Completed async processing of file: {}", csvFile);
             });
+            return metrics.withRecordsProcessed(records[0]);
         }, executorService);
     }
     
@@ -250,16 +250,19 @@ public class AsyncDataProcessor {
     private CompletableFuture<FileProcessingResult> processFileWithErrorHandling(
             String csvFile, MappingConfiguration[] configs) {
         
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                PerformanceMetrics metrics = processFileAsync(csvFile, configs).join();
+        // Compose rather than join: joining here would hold a pool thread while waiting for
+        // processFileAsync's task, which needs a pool thread of its own.
+        return processFileAsync(csvFile, configs).handle((metrics, failure) -> {
+            if (failure == null && metrics.isSuccessful()) {
                 return new FileProcessingResult(csvFile, true, metrics, null);
-                
-            } catch (Exception e) {
-                logger.warn("Failed to process file {}: {}", csvFile, e.getMessage());
-                return new FileProcessingResult(csvFile, false, null, e.getMessage());
             }
-        }, executorService);
+            String error = failure != null ? failure.getMessage() : metrics.getErrorMessage();
+            if (error == null) {
+                error = "Processing failed: " + csvFile;
+            }
+            logger.warn("Failed to process file {}: {}", csvFile, error);
+            return new FileProcessingResult(csvFile, false, null, error);
+        });
     }
     
     /**

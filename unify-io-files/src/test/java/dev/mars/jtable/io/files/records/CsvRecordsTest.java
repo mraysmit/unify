@@ -15,9 +15,11 @@
  */
 package dev.mars.jtable.io.files.records;
 
+import dev.mars.jtable.core.schema.ColumnDefinition;
 import dev.mars.jtable.core.schema.LogicalType;
 import dev.mars.jtable.core.schema.RecordBatch;
 import dev.mars.jtable.core.schema.TableSchema;
+import dev.mars.jtable.core.schema.TextConversion;
 import dev.mars.jtable.io.common.stream.RecordStreams;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -175,4 +177,84 @@ class CsvRecordsTest {
         }
         assertEquals("id,note,amount,day\n1,a,1.0,2026-11-24\n2,b,2.0,\\N\n", Files.readString(out));
     }
-}
+
+    // ---- Stage 2b: the full normalization pipeline and schema inference ----
+
+    private List<Object[]> drain(CsvRecordSource source) throws IOException {
+        List<Object[]> rows = new ArrayList<>();
+        for (RecordBatch b = source.nextBatch(); b != null; b = source.nextBatch()) {
+            for (int r = 0; r < b.rowCount(); r++) {
+                rows.add(b.row(r));
+            }
+        }
+        return rows;
+    }
+
+    @Test
+    void columnTextSettingsAndRulesApplyToCsvInput() throws IOException {
+        TableSchema schema = TableSchema.of(
+                ColumnDefinition.builder("qty", LogicalType.INT32).required().trim(TextConversion.Trim.BOTH)
+                        .bounds(1, 10).build(),
+                ColumnDefinition.builder("day", LogicalType.DATE).pattern("dd/MM/uuuu").build());
+        Path ok = csv("qty,day\n 3 ,25/11/2026\n");
+        assertArrayEquals(new Object[]{3, LocalDate.of(2026, 11, 25)}, readAll(ok, schema, CsvFormat.DEFAULT).get(0));
+        Path tooBig = csv("qty,day\n3,25/11/2026\n11,25/11/2026\n");
+        IOException e = assertThrows(IOException.class, () -> readAll(tooBig, schema, CsvFormat.DEFAULT));
+        assertTrue(e.getMessage().startsWith("Line 3: Column 'qty'"), e.getMessage());
+    }
+
+    @Test
+    void infersTheSchemaFromABoundedSampleAndDeliversTheSampleFirst() throws IOException {
+        StringBuilder content = new StringBuilder("id,amount,code,flag\n");
+        content.append("1,10,007,\\N\n").append("2,2.5,008,\\N\n");
+        for (int i = 3; i <= 2500; i++) {
+            content.append(i).append(',').append(i).append(",0").append(i).append(",\\N\n");
+        }
+        Path file = csv(content.toString());
+        try (CsvRecordSource source = CsvRecordSource.inferring(file, CsvFormat.DEFAULT.withBatchSize(700), 1000)) {
+            assertEquals(TableSchema.of(required("id", LogicalType.INT32), required("amount", LogicalType.DOUBLE),
+                    required("code", LogicalType.STRING), nullable("flag", LogicalType.STRING)), source.schema());
+            List<Object[]> rows = drain(source);
+            assertEquals(2500, rows.size());
+            assertArrayEquals(new Object[]{1, 10.0, "007", null}, rows.get(0));
+            assertArrayEquals(new Object[]{1000, 1000.0, "01000", null}, rows.get(999));
+            assertArrayEquals(new Object[]{2500, 2500.0, "02500", null}, rows.get(2499));
+        }
+    }
+
+    @Test
+    void aValueAfterTheSampleThatBreaksTheFrozenSchemaIsALocatedError() throws IOException {
+        Path file = csv("id,amount\n1,1\n2,2\n3,x\n");
+        try (CsvRecordSource source = CsvRecordSource.inferring(file, CsvFormat.DEFAULT, 2)) {
+            assertEquals(LogicalType.INT32, source.schema().column("amount").type());
+            IOException e = assertThrows(IOException.class, () -> drain(source));
+            assertTrue(e.getMessage().startsWith("Line 4: Column 'amount'"), e.getMessage());
+        }
+    }
+
+    @Test
+    void aHeaderAloneInfersNullableStringsAndEmptyOrHeaderlessFilesNeedASchema() throws IOException {
+        try (CsvRecordSource source = CsvRecordSource.inferring(csv("a,b\n"), CsvFormat.DEFAULT)) {
+            assertEquals(TableSchema.of(nullable("a", LogicalType.STRING), nullable("b", LogicalType.STRING)),
+                    source.schema());
+            assertNull(source.nextBatch());
+        }
+        assertThrows(IOException.class, () -> CsvRecordSource.inferring(csv(""), CsvFormat.DEFAULT));
+        assertThrows(IOException.class, () -> CsvRecordSource.inferring(csv("a,a\n1,2\n"), CsvFormat.DEFAULT));
+        assertThrows(IllegalArgumentException.class,
+                () -> CsvRecordSource.inferring(csv("1,2\n"), CsvFormat.DEFAULT.withHeader(false)));
+    }
+    @Test
+    void theMinimumRecordWidthGivesAnUpperBoundOnRecordsFromFileBytes() throws IOException {
+        TableSchema schema = TableSchema.of(required("id", LogicalType.INT32), nullable("note", LogicalType.STRING),
+                required("flag", LogicalType.BOOLEAN), nullable("day", LogicalType.DATE));
+        // id >= 1, note >= 0, flag >= 4 ("true"), day: null token \N (2 bytes); 3 delimiters; 1 line break.
+        assertEquals(1 + 0 + 4 + 2 + 3 + 1, CsvFormat.DEFAULT.minimumRecordWidth(schema));
+        assertEquals(1 + 0 + 4 + 0 + 3 + 1, CsvFormat.DEFAULT.withEmptyAsNull(true).minimumRecordWidth(schema));
+
+        Path file = csv("id,note,flag,day\n1,,true,\\N\n22,abc,false,2026-11-25\n3,,true,\\N");
+        long bytes = Files.size(file);
+        long bound = dev.mars.jtable.io.common.size.SizeEstimate.fromBytes(
+                dev.mars.jtable.io.common.size.SourceSize.fileBytes(bytes), CsvFormat.DEFAULT.minimumRecordWidth(schema)).records();
+        assertTrue(bound >= readAll(file, schema, CsvFormat.DEFAULT).size(), "the estimate must not undercount");
+    }}

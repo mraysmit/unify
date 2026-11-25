@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dev.mars.jtable.io.files.engine;
+package dev.mars.jtable.engine.duckdb;
 
 import dev.mars.jtable.core.schema.LogicalType;
 import dev.mars.jtable.core.schema.RecordBatch;
 import dev.mars.jtable.core.schema.TableSchema;
+import dev.mars.jtable.io.common.engine.JdbcEngine;
 import dev.mars.jtable.io.common.stream.RecordSource;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;

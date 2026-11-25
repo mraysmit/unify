@@ -110,13 +110,16 @@ public class PerformanceBenchmark {
         long finalMemory = getUsedMemory();
         long memoryUsed = Math.max(0, finalMemory - initialMemory);
         
-        PerformanceMetrics metrics = PerformanceMetrics.builder(operationName)
+        PerformanceMetrics.Builder builder = PerformanceMetrics.builder(operationName)
                 .startTime(startTime)
                 .endTime(endTime)
                 .memoryUsed(memoryUsed)
-                .successful(successful)
-                .error(errorMessage)
-                .build();
+                .successful(successful);
+        // error() marks the operation failed, so only record one when it really failed.
+        if (!successful) {
+            builder.error(errorMessage != null ? errorMessage : "Operation failed: " + operationName);
+        }
+        PerformanceMetrics metrics = builder.build();
         
         logger.info("Benchmark completed: {}", metrics);
         return metrics;
@@ -167,15 +170,18 @@ public class PerformanceBenchmark {
         long finalMemory = getUsedMemory();
         long memoryUsed = Math.max(0, finalMemory - initialMemory);
         
-        PerformanceMetrics metrics = PerformanceMetrics.builder(operationName)
+        PerformanceMetrics.Builder builder = PerformanceMetrics.builder(operationName)
                 .startTime(startTime)
                 .endTime(endTime)
                 .memoryUsed(memoryUsed)
                 .recordsProcessed(recordCount)
                 .bytesProcessed(byteCount)
-                .successful(successful)
-                .error(errorMessage)
-                .build();
+                .successful(successful);
+        // error() marks the operation failed, so only record one when it really failed.
+        if (!successful) {
+            builder.error(errorMessage != null ? errorMessage : "Operation failed: " + operationName);
+        }
+        PerformanceMetrics metrics = builder.build();
         
         logger.info("Data operation benchmark completed: {}", metrics);
         return metrics;

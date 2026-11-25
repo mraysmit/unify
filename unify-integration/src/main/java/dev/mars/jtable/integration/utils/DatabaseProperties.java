@@ -29,49 +29,60 @@ import java.util.Properties;
 public class DatabaseProperties {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseProperties.class);
     private static final String DEFAULT_PROPERTIES_FILE = "db.properties";
-    private static Properties properties = null;
+    /**
+     * The loaded properties. Only ever assigned a fully loaded object, so a concurrent reader
+     * sees either nothing (and loads under the lock) or a complete set, never a half-filled one.
+     */
+    private static volatile Properties properties = null;
 
     /**
      * Loads the properties from the default properties file.
      * This method is called automatically when the class is first used.
      */
     private static void loadProperties() {
-        loadProperties(DEFAULT_PROPERTIES_FILE);
+        if (properties == null) {
+            synchronized (DatabaseProperties.class) {
+                if (properties == null) {
+                    properties = read(DEFAULT_PROPERTIES_FILE);
+                }
+            }
+        }
     }
 
     /**
-     * Loads the properties from the specified properties file.
-     * 
+     * Reads the specified properties file from the classpath into a new object.
+     *
      * @param propertiesFile the name of the properties file to load
+     * @return the loaded properties
      */
-    private static void loadProperties(String propertiesFile) {
-        if (properties == null) {
-            properties = new Properties();
-            try (InputStream input = DatabaseProperties.class.getClassLoader().getResourceAsStream(propertiesFile)) {
-                if (input == null) {
-                    logger.error("Unable to find {}", propertiesFile);
-                    throw new IOException("Unable to find " + propertiesFile);
-                }
-                properties.load(input);
-                logger.debug("Successfully loaded properties from {}", propertiesFile);
-            } catch (IOException e) {
-                logger.error("Error loading properties from {}: {}", propertiesFile, e.getMessage());
-                throw new RuntimeException("Error loading properties from " + propertiesFile, e);
+    private static Properties read(String propertiesFile) {
+        Properties loaded = new Properties();
+        try (InputStream input = DatabaseProperties.class.getClassLoader().getResourceAsStream(propertiesFile)) {
+            if (input == null) {
+                logger.error("Unable to find {}", propertiesFile);
+                throw new IOException("Unable to find " + propertiesFile);
             }
+            loaded.load(input);
+            logger.debug("Successfully loaded properties from {}", propertiesFile);
+            return loaded;
+        } catch (IOException e) {
+            logger.error("Error loading properties from {}: {}", propertiesFile, e.getMessage());
+            throw new RuntimeException("Error loading properties from " + propertiesFile, e);
         }
     }
 
     /**
      * Loads the properties from the specified properties file.
      * This method can be called to explicitly load properties from a specific file.
-     * 
+     *
      * @param propertiesFile the name of the properties file to load
      * @throws IOException if the properties file cannot be loaded
      */
     public static void loadPropertiesFromFile(String propertiesFile) throws IOException {
-        // Reset properties to force reload
-        properties = null;
-        loadProperties(propertiesFile);
+        Properties loaded = read(propertiesFile);
+        synchronized (DatabaseProperties.class) {
+            properties = loaded;
+        }
     }
 
     /**

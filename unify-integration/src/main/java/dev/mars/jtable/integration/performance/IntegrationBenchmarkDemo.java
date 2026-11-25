@@ -267,7 +267,7 @@ public class IntegrationBenchmarkDemo {
         config.setColumnMappings(mappings);
         
         Map<String, Object> options = new HashMap<>();
-        options.put("hasHeader", true);
+        options.put("hasHeaderRow", true);
         options.put("delimiter", ",");
         config.setOptions(options);
         

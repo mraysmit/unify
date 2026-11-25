@@ -277,7 +277,7 @@ public class AsyncDataProcessingDemo {
         csvConfig.setColumnMappings(csvMappings);
         
         Map<String, Object> csvOptions = new HashMap<>();
-        csvOptions.put("hasHeader", true);
+        csvOptions.put("hasHeaderRow", true);
         csvOptions.put("delimiter", ",");
         csvConfig.setOptions(csvOptions);
         

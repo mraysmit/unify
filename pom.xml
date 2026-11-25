@@ -28,7 +28,12 @@
     <modules>
         <module>unify-core</module>
         <module>unify-io-common</module>
+        <module>unify-engine-sqlite</module>
+        <module>unify-engine-duckdb</module>
         <module>unify-io-files</module>
+        <module>unify-definitions</module>
+        <module>unify-pipeline</module>
+        <module>unify-host</module>
         <module>unify-coverage</module>
         <module>unify-integration</module>
     </modules>

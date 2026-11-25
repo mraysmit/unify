@@ -57,6 +57,27 @@ public class PerformanceMetrics {
     public boolean isSuccessful() { return successful; }
     public String getErrorMessage() { return errorMessage; }
 
+    /**
+     * Returns a copy of these metrics with the given record count, for operations that only
+     * know how many records they handled once they have finished.
+     *
+     * @param records the number of records processed
+     * @return a copy with the record count replaced
+     */
+    public PerformanceMetrics withRecordsProcessed(long records) {
+        Builder copy = builder(operationName)
+                .startTime(startTime)
+                .endTime(endTime)
+                .memoryUsed(memoryUsedBytes)
+                .recordsProcessed(records)
+                .bytesProcessed(bytesProcessed)
+                .successful(successful);
+        if (!successful) {
+            copy.error(errorMessage);
+        }
+        return copy.build();
+    }
+
     // Calculated metrics
     public double getDurationMillis() {
         return duration.toNanos() / 1_000_000.0;
