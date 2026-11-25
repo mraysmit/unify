@@ -198,7 +198,7 @@ An embedding application wires the store, connectors and engines itself, exactly
 | Module | Target responsibility |
 | --- | --- |
 | `unify-core` | Logical types, schema, record batches, conversion, and validation; no connector dependencies and no working-data storage. Also holds the frozen legacy table model |
-| `unify-io-common` | Record-stream, connector and execution-engine contracts with the shared `JdbcEngine` base and the `InMemoryTable` stream adapters, capabilities, credential-provider contract, lifecycle leases, configuration serialization, and the legacy-table converter |
+| `unify-io-common` | Record-stream, connector and execution-engine contracts with the shared `JdbcEngine` base, capabilities, credential-provider contract, lifecycle leases, configuration serialization, and the legacy-table converter |
 | `unify-io-files` | File, JDBC and HTTP connectors as record sources and sinks, size probes, file publication, JDBC dialects and transport, and HTTP transport |
 | `unify-engine-sqlite` | `SqliteEngine` and its loader; SQLite engine requirements |
 | `unify-engine-duckdb` | `DuckDbEngine` and its loader. Optional: a host that does not include it does not ship the DuckDB driver |
@@ -230,11 +230,10 @@ The core describes data; it does not store working datasets (ADR-001). Types mar
 | `ValueNormalizer` | The shared value rules: the full pipeline for source values (`normalize`, `normalizeRecord`), canonical text conversion for engine read-back (`fromText`), typed-value checks including rules (`checkTyped`), canonical text output | Implemented: all seven stages below |
 | `RecordBatch` | A bounded, immutable group of records checked against one schema. NULL is Java null; MISSING never reaches a batch | Implemented |
 | `SourceValue` | Explicit MISSING, NULL, or SCALAR value; source scalar may retain its original lexical token | Implemented |
-| `InMemoryTable` | The programmatic table of UC01: schema-fixed, bounded (100,000 records by default, matching the default operation limit), with whole-record append and validated cell update. It is an in-memory source and sink that is loaded into the engine like any other, not working storage; `InMemoryRecords` in `unify-io-common` adapts it to `RecordSource` and `RecordSink` | Implemented (replaces `TableSnapshot` and `MutableTable`) |
 
 Canonical Java representations are `String`, `Integer`, `Double`, `Boolean`, `LocalDate`, `LocalTime`, and `LocalDateTime`.
 
-A record is checked whole before it is added to a batch, so a rejected record leaves the batch unchanged. "Atomic" in this design means all-or-nothing within one thread: a failed operation has no partial effect. It does not imply thread safety. `InMemoryTable` applies the same rule to append and cell update, copies records on insert, exposes only read-only views, and fixes its schema once records exist; changing the columns of populated data creates a new table.
+A record is checked whole before it is added to a batch, so a rejected record leaves the batch unchanged. "Atomic" in this design means all-or-nothing within one thread: a failed operation has no partial effect. It does not imply thread safety.
 
 Use ordered column vectors and a name-to-index lookup rather than repeatedly building column lists for indexed access. Begin with ordinary operation-confined collections. Concurrent collection selection is an implementation option only after correctness and workload measurements; it does not establish thread safety.
 
@@ -1213,7 +1212,7 @@ Technical sections below are named design areas; acceptance identifiers refer to
 
 | Requirement | Implementing design areas | Acceptance coverage |
 | --- | --- | --- |
-| FR001 | Core schema model; `InMemoryTable`; public execution API | AC01 |
+| FR001 | Core schema model; public execution API. The programmatic table is not yet implemented | AC01 (no test yet) |
 | FR002 | Inference algorithm; bounded cursors | AC04 |
 | FR003 | Conversion pipeline; typed encoders and JDBC binders | AC01, AC03, AC11, AC18 |
 | FR004 | SourceValue states; normalization; format null codecs | AC03, AC11 |
@@ -1273,7 +1272,7 @@ Technical sections below are named design areas; acceptance identifiers refer to
 | --- | --- | --- |
 | 1 | Confirm functional scope; reconcile Java build; characterize existing compatibility | Reviewed FD decisions D01 through D06, effective build settings, executed-test inventory |
 | 2a | Schema core, strict value rules, record-stream contract, DuckDB and SQLite engines with their loaders, streaming CSV source and sink, legacy converter, larger-than-heap proof slice | Done 2026-11-24: engine contract suite on both engines; ADR-001 evidence |
-| 2b | SourceValue, defaults, trimming and validation rules in the normalizer, inference, `InMemoryTable` as a source | Done 2026-11-25: `NormalizationPipelineTest` (AC03 and stage order), `SchemaInferenceTest` (AC04), `InMemoryTableTest` (AC01), `InMemoryRecordsTest`; the CSV source uses the full pipeline and offers `CsvRecordSource.inferring` (header, bounded sample, freeze, replay) |
+| 2b | SourceValue, defaults, trimming and validation rules in the normalizer, inference | Done 2026-11-25: `NormalizationPipelineTest` (AC03 and stage order), `SchemaInferenceTest` (AC04); the CSV source uses the full pipeline and offers `CsvRecordSource.inferring` (header, bounded sample, freeze, replay) |
 | 2c | SQLite engine requirements (fixed-width temporal text, memory cap, minimum-version check), optional DuckDB packaging | Done 2026-11-25: engine modules split; `SqliteEngineTest` (version rule, bundled version, cap enforcement and recovery, DuckDB driver absent), `DuckDbEngineTest`; the engine contract suite and larger-than-heap proof pass on both engines from `unify-io-files` |
 | 2d | Size probes for file, JDBC and supplied sources; selector, profile format and validator; `EngineSelection` recording; the use-case test catalogue and the profile derived from it | Done 2026-11-25 except the evidenced profile: `SizeProbesTest`; `SelectionProfileTest` (decision rule, derivation, JSON round trip, rejection of overlapping, incomplete, unevidenced, contradicted, out-of-range and malformed profiles, AC60; release gate, AC62); `EngineSelectorTest` (one generated case on each side of every boundary, AC59; explicit, extension, installed-engine, host-profile, budget and source-change rules, AC60). The use-case harness and the first evidenced profile follow 3e, because tested use cases must run the full portable pipeline; until then no profile ships and automatic selection fails with "needs a selection profile". Remaining exit evidence: TD09 (the harness and evidenced profile) and TD10 for HTTP (staging follows in stage 6, AC61) |
 | 3a | Module split (ADR-004), host configuration API skeleton with `HostContext`, `AccessPolicy` and typed results; PostgreSQL definition store; structure, drafts and stale-draft conflicts; provider catalogue search | AC33, AC34, AC55 to AC58, AC63 |

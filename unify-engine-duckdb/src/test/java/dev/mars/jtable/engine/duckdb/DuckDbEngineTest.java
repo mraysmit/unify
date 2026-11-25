@@ -15,12 +15,10 @@
  */
 package dev.mars.jtable.engine.duckdb;
 
-import dev.mars.jtable.core.schema.InMemoryTable;
 import dev.mars.jtable.core.schema.LogicalType;
 import dev.mars.jtable.core.schema.RecordBatch;
 import dev.mars.jtable.core.schema.TableSchema;
 import dev.mars.jtable.io.common.engine.DatasetHandle;
-import dev.mars.jtable.io.common.stream.InMemoryRecords;
 import dev.mars.jtable.io.common.stream.RecordSource;
 import org.junit.jupiter.api.Test;
 
@@ -35,14 +33,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class DuckDbEngineTest {
 
     @Test
-    void loadsAndScansAnInMemoryTableInOrder() throws IOException {
+    void loadsAndScansRecordsInOrder() throws IOException {
         TableSchema schema = TableSchema.of(required("id", LogicalType.INT32), nullable("day", LogicalType.DATE));
-        InMemoryTable table = new InMemoryTable(schema);
-        table.append(2, LocalDate.of(2026, 11, 25));
-        table.append(1, null);
+        RecordBatch input = RecordBatch.builder(schema, 2)
+                .add(2, LocalDate.of(2026, 11, 25))
+                .add(1, null)
+                .build();
         try (DuckDbEngine engine = DuckDbEngine.inMemory()) {
             assertEquals("duckdb", engine.name());
-            DatasetHandle handle = engine.load("t", InMemoryRecords.source(table));
+            DatasetHandle handle = engine.load("t", sourceOf(input));
             try (RecordSource scan = engine.scan(handle, 10)) {
                 RecordBatch batch = scan.nextBatch();
                 assertEquals(2, batch.rowCount());
@@ -51,5 +50,30 @@ class DuckDbEngineTest {
                 assertNull(scan.nextBatch());
             }
         }
+    }
+
+    /** A source that delivers one batch. */
+    private static RecordSource sourceOf(RecordBatch batch) {
+        return new RecordSource() {
+            private boolean delivered;
+
+            @Override
+            public TableSchema schema() {
+                return batch.schema();
+            }
+
+            @Override
+            public RecordBatch nextBatch() {
+                if (delivered) {
+                    return null;
+                }
+                delivered = true;
+                return batch;
+            }
+
+            @Override
+            public void close() {
+            }
+        };
     }
 }

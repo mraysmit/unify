@@ -16,6 +16,11 @@ each start uses a fresh in-memory store, so mockup configuration saved in
 this browser is never read or changed.
 */
 
+// Internal row metadata uses symbol keys (see UnifyRow in index.html).
+const LINEAGE = Symbol.for("unify.lineage"),
+  AGGREGATE = Symbol.for("unify.aggregate"),
+  CONTRIBUTORS = Symbol.for("unify.contributors");
+
 const UnifyTests = (() => {
   const tests = [];
   let currentGroup = "logic";
@@ -383,7 +388,7 @@ UnifyTests.group("logic");
     assert.equal(missing.length, 2);
     assert.ok(
       missing.every(
-        (row) => row._lineage.Instruments === null && row._lineage.Holdings > 0,
+        (row) => row[LINEAGE].Instruments === null && row[LINEAGE].Holdings > 0,
       ),
     );
     const holding = D.holdings.find((h) => h.currency === "GBP");
@@ -420,7 +425,7 @@ UnifyTests.group("logic");
       assert.equal(r.input, count);
       assert.equal(r.rows.length, count);
       assert.equal(r.unmatched, 0);
-      assert.deepEqual(Object.keys(r.rows[0]._lineage), [lineage]);
+      assert.deepEqual(Object.keys(r.rows[0][LINEAGE]), [lineage]);
       assert.ok(Object.values(r.rows[0]).some((value) => value !== null));
     }
     assert.equal(
@@ -610,7 +615,7 @@ UnifyTests.group("logic");
     assert.equal(result.rows[0].portfolio, "Fund");
     assert.equal(result.rows[0].Units, 12);
     assert.equal(result.rows[0].Price, 3.5);
-    assert.deepEqual(result.rows[0]._lineage, { "positions.csv": 2 });
+    assert.deepEqual(result.rows[0][LINEAGE], { "positions.csv": 2 });
     assert.equal(result.issues[0].record, 3);
     assert.equal(result.issues[0].field, "Units");
     assert.throws(() => CSV.convert("2147483648", { type: "INT32" }), /range/);
@@ -686,7 +691,7 @@ UnifyTests.group("logic");
 // Configuration processing
 (() => {
   const html = pageHtml;
-  const root = { DOMParser: window.DOMParser };
+  const root = { DOMParser: window.DOMParser, UnifyRow: window.UnifyRow };
   for (const id of ["unify-csv", "unify-config", "unify-config-query"]) {
     const source = html.match(
       new RegExp('<script id="' + id + '">([\\s\\S]*?)<\\/script>'),
@@ -1105,6 +1110,80 @@ UnifyTests.group("logic");
       /not unique/,
     );
   });
+  test("functional design 0.15: equality joins, right-join order, any column name, exact big integers and double division", () => {
+    const people = C.good(
+      [
+        { name: "id", type: "INT32", nullable: false },
+        { name: "Full Name", type: "STRING", nullable: false },
+      ],
+      [
+        { id: 1, "Full Name": "Ann" },
+        { id: 2, "Full Name": "Bo" },
+      ],
+    );
+    const orders = C.good(
+      [
+        { name: "person", type: "INT32", nullable: false },
+        { name: "__proto__", type: "STRING", nullable: false },
+      ],
+      [
+        { person: 2, ["__proto__"]: "second" },
+        { person: 9, ["__proto__"]: "orphan" },
+        { person: 1, ["__proto__"]: "first" },
+      ].map((row) =>
+        Object.defineProperty(
+          { person: row.person },
+          "__proto__",
+          { value: row["__proto__"], enumerable: true, writable: true, configurable: true },
+        ),
+      ),
+    );
+    const resolve = (name) => ({ People: people, Orders: orders })[name];
+    // FR032: join conditions are equality key pairs only.
+    assert.throws(
+      () => C.query("SELECT * FROM People p JOIN Orders o ON p.id < o.person", resolve),
+      /equality key pairs/,
+    );
+    assert.throws(
+      () => C.query("SELECT * FROM People p JOIN Orders o ON p.id = p.id", resolve),
+      /equality key pairs/,
+    );
+    // FR028: a right join traverses right records in order.
+    const right = C.join(people, orders, {
+      joinType: "RIGHT",
+      cardinality: "many-to-many",
+      keys: [{ left: "id", right: "person" }],
+      projection: [
+        { side: "left", field: "Full Name", name: "Full Name" },
+        { side: "right", field: "__proto__", name: "__proto__" },
+      ],
+    });
+    assert.deepEqual(
+      right.rows.map((row) => [row["Full Name"], Object.getOwnPropertyDescriptor(row, "__proto__").value]),
+      [["Bo", "second"], [null, "orphan"], ["Ann", "first"]],
+    );
+    const sqlRight = C.query(
+      'SELECT p."Full Name" AS who, o.person FROM People p RIGHT JOIN Orders o ON p.id = o.person',
+      resolve,
+    );
+    assert.deepEqual(sqlRight.rows.map((row) => row.person), [2, 9, 1]);
+    // FR001: any nonblank, case-sensitive column name, including internal-looking ones.
+    const mapped = C.map(people, [
+      { source: "Full Name", name: "constructor", type: "STRING", nullable: false },
+      { source: "id", name: "ID", type: "INT32", nullable: false },
+      { source: "id", name: "id", type: "INT32", nullable: false },
+    ]);
+    assert.equal(mapped.ok, true);
+    assert.equal(Object.getOwnPropertyDescriptor(mapped.rows[0], "constructor").value, "Ann");
+    assert.throws(() => C.validateSchema([{ name: "  ", type: "STRING" }]), /nonblank/);
+    // FR002: integers outside INT32 stay exact strings; FR032: division returns DOUBLE.
+    const big = C.json('[{"id": 12345678901234567, "n": 5}]');
+    assert.equal(big.columns.find((c) => c.name === "id").type, "STRING");
+    assert.equal(big.rows[0].id, "12345678901234567");
+    const division = C.query("SELECT b.n / 2 AS half FROM Big b", () => big);
+    assert.equal(division.columns[0].type, "DOUBLE");
+    assert.equal(division.rows[0].half, 2.5);
+  });
   test("SQL executes real arbitrary tables, typed parameters, expressions, joins, grouping and limits", () => {
     const tables = {
       Sales: table([
@@ -1133,8 +1212,8 @@ UnifyTests.group("logic");
       result.rows.map((r) => [r.account, r.total]),
       [["a", 14]],
     );
-    assert.equal(result.rows[0]._aggregate, true);
-    assert.equal(result.rows[0]._contributors, 2);
+    assert.equal(result.rows[0][AGGREGATE], true);
+    assert.equal(result.rows[0][CONTRIBUTORS], 2);
     assert.equal(
       C.query("SELECT DISTINCT key FROM Sales ORDER BY key", resolve).rows
         .length,
@@ -1397,8 +1476,8 @@ UnifyTests.group("logic");
       { source: "total", name: "total", type: "STRING", nullable: false },
     ]);
     assert.equal(mapped.rows[0].total, "3");
-    assert.equal(mapped.rows[0]._aggregate, true);
-    assert.equal(mapped.rows[0]._contributors, 2);
+    assert.equal(mapped.rows[0][AGGREGATE], true);
+    assert.equal(mapped.rows[0][CONTRIBUTORS], 2);
   });
 })();
 
@@ -1886,6 +1965,8 @@ UnifyTests.group("ui");
     const ui = workspace(t);
     ui.click('[data-action="provider-detail"][data-id="instruments-reader"]');
     ui.click('[data-action="bind-provider"]');
+    // Readers carry no connection (FR034); the binding chooses one.
+    ui.field("#config-connection", "reference-files");
     ui.field("#binding-name", "Instruments");
     ui.click('[data-action="confirm-binding"]');
     assert.match(ui.get(".config-error").textContent, /unique/);
@@ -2293,6 +2374,16 @@ UnifyTests.group("ui");
     ui.field("#new-source-location", "jdbc:sqlite:sample.db");
     ui.click('[data-action="confirm-source"]');
   }
+  // Readers carry no connection (FR034): a JDBC connection for a later
+  // binding is created on the Connections page before the reader.
+  function addJdbcConnection(ui) {
+    ui.click('[data-action="navigate"][data-view="sources"]');
+    ui.click('[data-action="new-source"]');
+    ui.field("#new-source-format", "JDBC");
+    ui.field("#new-source-name", "Local JDBC");
+    ui.field("#new-source-location", "jdbc:sqlite:sample.db");
+    ui.click('[data-action="confirm-source"]');
+  }
 
   test("changing the source cannot silently reuse the original normalization fixture", async (t) => {
     const ui = workspace(t);
@@ -2375,8 +2466,8 @@ UnifyTests.group("ui");
   });
   test("JDBC source configuration checks query parameters and retains recorded sample context", (t) => {
     const ui = workspace(t);
+    addJdbcConnection(ui);
     newReader(ui, "JDBC", "Warehouse.RecordedPositions");
-    createJdbcConnection(ui);
     ui.field('[data-config-setting="readMode"]', "query");
     ui.click('[data-action="config-example"]');
     ui.click('[data-action="config-analyze"]');
@@ -2675,11 +2766,11 @@ UnifyTests.group("ui");
           ui.click('[data-action="csv-preview"]');
           ui.click('[data-action="csv-save"]');
         } else {
+          if (format === "JDBC") addJdbcConnection(ui);
           newReader(ui, format, name);
           ui.field('[data-config-field="fileName"]', fileName);
           ui.field("#config-source-text", body, "input");
           if (format === "JDBC") {
-            createJdbcConnection(ui);
             ui.field('[data-config-setting="readMode"]', "query");
             ui.click('[data-action="config-add-param"]');
             ui.field(
@@ -3049,8 +3140,8 @@ UnifyTests.group("ui");
 
   test("recorded JDBC samples remain distinct for bindings with different query parameters", async (t) => {
     const ui = workspace(t);
+    addJdbcConnection(ui);
     newReader(ui, "JDBC", "Warehouse.ParameterSamples");
-    createJdbcConnection(ui);
     ui.field('[data-config-setting="readMode"]', "query");
     ui.click('[data-action="config-add-param"]');
     ui.field('[data-config-list="parameters"][data-key="name"]', "minimum");
@@ -3390,9 +3481,9 @@ UnifyTests.group("ui");
         " invocation values before validation",
       async (t) => {
         const ui = workspace(t);
+        if (format === "JDBC") addJdbcConnection(ui);
         newReader(ui, format, "Recorded.Required" + format.replace(/\W/g, ""));
         if (format === "JDBC") {
-          createJdbcConnection(ui);
           ui.field('[data-config-setting="readMode"]', "query");
           ui.click('[data-action="config-add-param"]');
           ui.field(
@@ -3701,8 +3792,8 @@ UnifyTests.group("ui");
         /Files\.Holdings|Daily holdings enrichment|Reference files/,
       );
     }
+    addJdbcConnection(ui);
     newReader(ui, "JDBC", "Readers.Prices");
-    createJdbcConnection(ui);
     ui.click('[data-action="config-example"]');
     ui.click('[data-action="config-analyze"]');
     ui.click('[data-action="config-save"]');
@@ -3717,8 +3808,8 @@ UnifyTests.group("ui");
       ),
       false,
     );
+    addJdbcConnection(ui);
     newReader(ui, "JDBC", "Readers.Prices");
-    createJdbcConnection(ui);
     ui.click('[data-action="config-example"]');
     ui.click('[data-action="config-analyze"]');
     ui.click('[data-action="config-save"]');
@@ -4145,8 +4236,8 @@ UnifyTests.group("ui");
       }),
     );
     assert.equal(ui.d.querySelector('[role="dialog"]'), null);
+    addJdbcConnection(ui);
     newReader(ui, "JDBC", "Readers.First");
-    createJdbcConnection(ui);
     ui.click('[data-action="config-example"]');
     ui.field(
       '[data-config-field="raw"]',
@@ -4267,6 +4358,103 @@ UnifyTests.group("ui");
     const reload = workspace(t, ui.stored());
     reload.click('[data-action="navigate"][data-view="workspace"]');
     assert.equal(reload.get("#engine-select").value, "Automatic");
+  });
+
+  test("functional design 0.15: the engine choice is saved with the pipeline and survives a reload", (t) => {
+    const ui = workspace(t);
+    ui.field("#engine-select", "SQLite");
+    assert.match(ui.get("h1").parentElement.textContent, /Unsaved changes/);
+    ui.click('[data-action="save-version"]');
+    ui.click('[data-action="confirm-save"]');
+    const saved = ui.saved();
+    const pipeline = saved.definitions.find((d) => d.id === saved.pipelineId);
+    assert.equal(JSON.parse(pipeline.content).engine, "SQLite");
+    const reload = workspace(t, ui.stored());
+    assert.equal(reload.get("#engine-select").value, "SQLite");
+  });
+
+  test("functional design 0.15: readers carry no connection; bindings choose one", (t) => {
+    const ui = workspace(t);
+    newReader(ui, "JSON", "Files.NoConnection");
+    assert.equal(ui.d.querySelector("#config-connection"), null);
+    ui.field('[data-config-field="fileName"]', "rows.json");
+    ui.field("#config-source-text", '[{"code":"A"}]', "input");
+    ui.click('[data-action="config-analyze"]');
+    ui.click('[data-action="config-save"]');
+    const provider = ui.saved().providers.find((p) => p.name === "Files.NoConnection");
+    assert.ok(provider, "reader saved without a connection");
+    assert.equal(Object.hasOwn(provider, "defaultConnection"), false);
+    assert.equal(Object.hasOwn(provider.sourceConfiguration, "connectionId"), false);
+    ui.click('[data-action="provider-detail"][data-id="' + provider.id + '"]');
+    ui.click('[data-action="bind-provider"]');
+    ui.field("#config-connection", "reference-files");
+    ui.click('[data-action="confirm-binding"]');
+    ui.click('[data-action="save-version"]');
+    ui.click('[data-action="confirm-save"]');
+    const binding = ui.saved().bindings.find((b) => b.providerId === provider.id);
+    assert.equal(binding.connectionId, "reference-files");
+  });
+
+  test("functional design 0.15: a new pipeline asks to save or discard unsaved changes", (t) => {
+    const ui = workspace(t);
+    const pipelines = () =>
+      ui.saved().definitions.filter((d) => d.kind === "Pipeline").length;
+    const before = pipelines();
+    ui.field("#panel-stage-name", "Calculate exposure (edited)");
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    ui.click('[data-action="new-pipeline"]');
+    assert.match(ui.get('[role="dialog"]').textContent, /Save or discard your changes/);
+    ui.click('[data-action="discard-pipeline-draft"]');
+    assert.match(ui.get("h1").textContent, /Configure pipeline/);
+    ui.click('[data-action="config-back"]');
+    assert.equal(ui.get("#panel-stage-name").value, "Calculate exposure");
+    ui.field("#panel-stage-name", "Calculate exposure (kept)");
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    ui.click('[data-action="new-pipeline"]');
+    ui.click('[data-action="save-version"]');
+    ui.click('[data-action="confirm-save"]');
+    assert.match(ui.get("h1").textContent, /Configure pipeline/);
+    assert.equal(pipelines(), before, "no extra pipeline definition is stored");
+  });
+
+  test("functional design 0.15: renaming a result rewrites later SQL through the parser and shows it", async (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="select-stage"][data-id="normalize"]');
+    ui.field("#panel-stage-output", "CleanHoldings");
+    const dialog = ui.get('[role="dialog"]').textContent;
+    assert.match(dialog, /Queries updated/);
+    assert.match(dialog, /FROM CleanHoldings AS h/);
+    ui.click('[data-action="close-modal"]');
+    ui.click('[data-action="select-stage"][data-id="query"]');
+    const sql = ui.get("#sql-editor").value;
+    assert.match(sql, /FROM CleanHoldings AS h/);
+    assert.doesNotMatch(sql, /NormalizedHoldings/);
+    ui.click('[data-action="preview-stage"]');
+    await finishPreview(ui);
+    assert.equal(ui.rows() > 0, true);
+  });
+
+  test("functional design 0.15: join defaults suggest editable prefixed names for collisions", (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="select-stage"][data-id="join"]');
+    ui.click('[data-action="config-stage"]');
+    ui.click('[data-action="config-section"][data-section="fields"]');
+    const names = [
+      ...ui.d.querySelectorAll('[data-config-list="projection"][data-key="name"]'),
+    ].map((input) => input.value);
+    assert.ok(names.includes("right_isin"));
+    assert.ok(names.includes("name"));
+    assert.equal(names.includes("instrument"), false);
+  });
+
+  test("functional design 0.15: catalogue names are unique regardless of letter case", (t) => {
+    const ui = workspace(t);
+    newReader(ui, "JSON", "files.holdings");
+    ui.field('[data-config-field="fileName"]', "rows.json");
+    ui.field("#config-source-text", '[{"code":"A"}]', "input");
+    ui.click('[data-action="config-analyze"]');
+    ui.click('[data-action="config-save"]');
+    assert.match(ui.get(".config-error").textContent, /already exists/);
   });
 
   test("an explicit engine choice is recorded as explicit", async (t) => {

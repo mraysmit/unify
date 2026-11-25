@@ -15,12 +15,10 @@
  */
 package dev.mars.jtable.engine.sqlite;
 
-import dev.mars.jtable.core.schema.InMemoryTable;
 import dev.mars.jtable.core.schema.LogicalType;
 import dev.mars.jtable.core.schema.RecordBatch;
 import dev.mars.jtable.core.schema.TableSchema;
 import dev.mars.jtable.io.common.engine.DatasetHandle;
-import dev.mars.jtable.io.common.stream.InMemoryRecords;
 import dev.mars.jtable.io.common.stream.RecordSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,13 +35,33 @@ class SqliteEngineTest {
     private static final TableSchema SCHEMA =
             TableSchema.of(required("id", LogicalType.INT32), required("text", LogicalType.STRING));
 
-    private static InMemoryTable rows(int count, int textLength) {
-        InMemoryTable table = new InMemoryTable(SCHEMA, Math.max(1, count));
+    /** A source of {@code count} records with ids 1..count, delivered in batches of 1,024. */
+    private static RecordSource rows(int count, int textLength) {
         String text = "x".repeat(textLength);
-        for (int i = 1; i <= count; i++) {
-            table.append(i, text);
-        }
-        return table;
+        return new RecordSource() {
+            private int next = 1;
+
+            @Override
+            public TableSchema schema() {
+                return SCHEMA;
+            }
+
+            @Override
+            public RecordBatch nextBatch() {
+                if (next > count) {
+                    return null;
+                }
+                RecordBatch.Builder builder = RecordBatch.builder(SCHEMA, 1024);
+                while (next <= count && builder.rowCount() < 1024) {
+                    builder.add(next++, text);
+                }
+                return builder.build();
+            }
+
+            @Override
+            public void close() {
+            }
+        };
     }
 
     @ParameterizedTest
@@ -81,11 +99,11 @@ class SqliteEngineTest {
         try (SqliteEngine engine = SqliteEngine.inMemory(1024 * 1024)) {
             // About 4 MB of text against a 1 MiB cap.
             IOException e = assertThrows(IOException.class,
-                    () -> engine.load("big", InMemoryRecords.source(rows(20_000, 200))));
+                    () -> engine.load("big", rows(20_000, 200)));
             assertTrue(e.getMessage().contains("memory cap"), e.getMessage());
 
             // The failed load was rolled back; a small dataset still fits.
-            DatasetHandle small = engine.load("small", InMemoryRecords.source(rows(10, 10)));
+            DatasetHandle small = engine.load("small", rows(10, 10));
             assertEquals(10, small.rowCount());
             try (RecordSource scan = engine.scan(small, 100)) {
                 RecordBatch batch = scan.nextBatch();

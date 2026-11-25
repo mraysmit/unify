@@ -368,7 +368,6 @@ ORDER BY h.portfolio, h.isin;`;
         ),
       ],
       fixtureId: "holdings",
-      defaultConnection: "positions-files",
       description: "Read typed holdings using the declared input schema.",
       documentation: "Reader contract with a fixed five-column result.",
       dependencies: [
@@ -400,7 +399,6 @@ ORDER BY h.portfolio, h.isin;`;
         ),
       ],
       fixtureId: "instruments",
-      defaultConnection: "reference-files",
       description: "Read instrument names and asset classifications by ISIN.",
       documentation: "Fixed-schema instrument reference reader.",
       dependencies: [],
@@ -425,7 +423,6 @@ ORDER BY h.portfolio, h.isin;`;
         ),
       ],
       fixtureId: "fx",
-      defaultConnection: "rates-service",
       description: "Read currency conversion rates from a configured endpoint.",
       documentation:
         "The endpoint comes from a connection reference, not SQL text.",
@@ -474,7 +471,6 @@ ORDER BY h.portfolio, h.isin;`;
           "Destination filename. Publication mode is chosen in the output stage.",
         ),
       ],
-      defaultConnection: "positions-files",
       description: "Publish a prepared result as a complete CSV file.",
       documentation:
         "Used only through an explicit output stage. It cannot be queried in SELECT.",
@@ -571,6 +567,11 @@ ORDER BY h.portfolio, h.isin;`;
       available: true,
     },
   ];
+  const sampleConnections = {
+    holdings: "positions-files",
+    instruments: "reference-files",
+    fx: "rates-service",
+  };
   const initialBindings = sources.map((source) => {
     const provider = providers.find((p) => p.fixtureId === source.id);
     return {
@@ -580,7 +581,8 @@ ORDER BY h.portfolio, h.isin;`;
       providerId: provider.id,
       providerVersion: provider.version,
       providerSnapshot: provider,
-      connectionId: provider.defaultConnection,
+      // Readers carry no connection (FR034); each binding selects one.
+      connectionId: sampleConnections[source.id],
       parameters: Object.fromEntries(
         provider.parameters.map((p) => [p.name, p.defaultValue]),
       ),

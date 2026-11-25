@@ -15,8 +15,9 @@
  */
 package dev.mars.jtable.io.common.size;
 
-import dev.mars.jtable.core.schema.InMemoryTable;
+import dev.mars.jtable.core.model.ITable;
 import dev.mars.jtable.core.schema.LogicalType;
+import dev.mars.jtable.core.table.TableCore;
 import dev.mars.jtable.core.schema.TableSchema;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -27,6 +28,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static dev.mars.jtable.core.schema.ColumnDefinition.nullable;
@@ -73,9 +75,10 @@ class SizeProbesTest {
 
     @Test
     void aSuppliedTableReportsItsRecordCount() {
-        InMemoryTable table = new InMemoryTable(TableSchema.of(required("id", LogicalType.INT32)));
-        table.append(1);
-        table.append(2);
+        ITable table = new TableCore();
+        table.setColumns(new LinkedHashMap<>(Map.of("id", "int")));
+        table.addRow(Map.of("id", "1"));
+        table.addRow(Map.of("id", "2"));
         assertEquals(SourceSize.suppliedCount(2), SizeProbes.supplied(table));
     }
 

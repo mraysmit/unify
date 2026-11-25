@@ -1,10 +1,10 @@
 © Mark Andrew Ray-Smith Cityline Ltd 2025\
-Version 0.14
+Version 0.15
 
 # Unify Functional Design
 
 Status: Draft for review  
-Date: 2026-11-23
+Date: 2026-11-25
 
 Companion: [Unify Technical Design](TECHNICAL_DESIGN.md)
 
@@ -61,7 +61,7 @@ These are usage roles. In the Unify service, permissions come from Unify roles g
 - SQLite and DuckDB as selectable execution backends behind common pipeline and data contracts, qualified against the same functional baseline.
 - Reusable configuration, validation before execution, and a preview that does not write to a destination.
 - Explicit operation results, rejection reporting, cancellation, and bounded resource use.
-- The Unify service: an HTTP API described by OpenAPI, and a user interface built only on that API.
+- The Unify service: an HTTP API described by OpenAPI, and a user interface built only on that API (FR047).
 - Sign-in through an external OpenID Connect identity provider, and Unify roles granted to identity-provider groups.
 - Background execution of operations, with live progress, cancellation, and run history.
 - An embedded library offering the same capabilities to applications that use Unify directly.
@@ -344,13 +344,15 @@ Configuration validation performs no destination mutation. Preview reads up to a
 
 For joins, preview has a per-source sample limit and a separate final-result limit, each defaulting to 100 records within the overall operation budgets. It reports which source samples were capped. Missing matches, apparent uniqueness, and sample join cardinality are provisional when any contributing source is capped; preview must not present them as complete-source conclusions.
 
+A user can also export the displayed preview result as CSV for inspection. The export holds only the preview records, is identified as a preview, and writes nothing to a destination.
+
 A user can preview the final pipeline result or a named intermediate stage. Preview executes the dependencies needed for that sample and reports stage schemas, samples, and diagnostics within the same operation budgets. It does not publish intermediate or final data to a destination. Capped-source qualifications carry through every dependent stage.
 
 From a preview of a file output stage, a user can download the prepared sample encoded exactly as that stage's connector and format settings would write it (FR014, FR015, FR016). The download contains only the bounded preview records, is identified as a preview sample, and writes nothing to the destination. A JDBC output has no file encoding; its preview shows the prepared rows only.
 
 ### FR014 CSV behavior
 
-CSV supports explicit header presence, delimiter, quote character, encoding, and output record separator. Defaults are a header, comma delimiter, double quote, UTF-8 encoding, and LF output separators. Quoted delimiters, escaped quotes, quoted line breaks, non-ASCII characters, and trailing empty fields must be handled. Duplicate headers, inconsistent record widths, and unterminated quotes are errors. Empty physical records are not silently discarded.
+CSV supports explicit header presence, delimiter, quote character, encoding, and output record separator. Defaults are a header, comma delimiter, double quote, UTF-8 encoding, and LF output separators. Quoted delimiters, escaped quotes, quoted line breaks, non-ASCII characters, and trailing empty fields must be handled. Duplicate headers, empty header names, inconsistent record widths, and unterminated quotes are errors. A header with an empty name requires headerless input with positional mapping. A leading byte-order mark is not part of the first field. Empty physical records are not silently discarded: a blank data record is an error unless the reader is explicitly configured to skip blank records, in which case each skipped record is counted and reported.
 
 Empty fields represent empty strings by default. A caller requiring null must configure a null token. An unquoted token represents null; a quoted token represents literal text, and a writer must preserve this distinction. Without a null token, export of null fails before publication. Headerless input requires positional mapping or an explicit positional schema. Whitespace and leading zeros must not disappear through parsing.
 
@@ -360,7 +362,7 @@ A reader can select the header record by position and the range of data records 
 
 JSON input is an array of flat objects, at the document root or under one configured object member. Each array entry must be an object, and selected fields must be scalar or null. Duplicate object members are errors. Missing members use FR004. Selected nested values fail; explicitly unselected nested fields may be ignored. The library does not flatten or stringify nested values implicitly. A configured record range selects array entries by first and last position, with the same skipped-record reporting and range errors as FR014.
 
-Output contains an array of objects with selected fields in mapping order and native JSON scalar values. Dates and times are strings in their configured output format. Null remains JSON null. Array order is preserved. An empty array requires an explicit schema for import.
+Output contains an array of objects with selected fields in mapping order and native JSON scalar values. Dates and times are strings in their configured output format. Null remains JSON null. Array order is preserved. Output can be written indented or compact; both carry the same values. An empty array requires an explicit schema for import.
 
 ### FR016 XML behavior
 
@@ -370,7 +372,7 @@ Output preserves the configured root, row, column order, namespace identities, e
 
 ### FR017 JDBC reads
 
-A caller can read an existing table or provide one read-only query with bound value parameters. Result metadata supplies source names and types; an explicit schema or mapping can refine conversion. Duplicate result labels require explicit disambiguating aliases. Null remains null. Unify must not rewrite arbitrary query text or promise consistent ordering or a snapshot stronger than the configured database isolation provides. A query with no rows remains a valid result when its schema is known.
+A caller can read an existing table or provide one read-only query with bound value parameters. Result metadata supplies source names and types; an explicit schema or mapping can refine conversion. Duplicate result labels require explicit disambiguating aliases. Null remains null. Unify must not rewrite arbitrary query text or promise consistent ordering or a snapshot stronger than the configured database isolation provides. A query with no rows remains a valid result when its schema is known. A query must contain exactly one `?` placeholder for each declared parameter. A configured record range selects result rows by first and last position, with the same skipped-record reporting and range errors as FR014.
 
 This source-native query uses the external product's dialect. A portable SQL query stage under FR032 instead queries the logical datasets made available to the selected execution backend. Selecting a different execution backend does not change an external source query's dialect.
 
@@ -378,13 +380,13 @@ This source-native query uses the external product's dialect. A portable SQL que
 
 Baseline writes append to an existing, compatible table. Destination metadata must be checked before inserting, including selected column types and omitted required columns. All inserts in one operation use one transaction. A constraint, conversion, transport, or cancellation error before commit rolls back all inserts. The default write performs no table creation, replacement, update, or deletion. Unsupported transaction guarantees are rejected before insertion.
 
-If commit cannot be confirmed, the destination outcome is unknown. If rollback cannot be confirmed, it is also unknown. Unify does not automatically retry writes or claim exactly-once delivery across invocations. Unselected generated or defaulted database columns remain the database's responsibility.
+If commit cannot be confirmed, the destination outcome is unknown. If rollback cannot be confirmed, it is also unknown. Unify does not automatically retry writes or claim exactly-once delivery across invocations. Unselected generated or defaulted database columns remain the database's responsibility. Mapping a value to a column that the database generates is a configuration error.
 
 ### FR019 HTTP JSON reads
 
 A caller supplies an HTTP or HTTPS endpoint, GET parameters, permitted headers, and any credential reference. HTTPS is the default requirement for non-loopback endpoints; allowing cleartext requires an explicit setting. One response is read within configured connection, read, overall-duration, and size limits. Non-success status, unexpected content type, malformed content, and authentication failures fail the operation. A successful response with no body is an error; an empty JSON array follows FR015. Because an HTTP response cannot reliably report its size in advance, the body is staged to temporary storage within the size limit before execution-backend selection (FR031), then decoded from the staged copy; the connection is released once staging completes.
 
-Automatic redirects and retries are disabled in the baseline. Endpoint credentials must not be forwarded to another location. Response parsing uses the JSON behavior in FR015. Pagination, token acquisition, HTTP mutation, and XML or CSV response parsing are deferred.
+Automatic redirects and retries are disabled in the baseline. Endpoint credentials must not be forwarded to another location. Authentication uses the credential reference only: user information in the URL, and Authorization, Proxy-Authorization, or Cookie entries among the permitted headers, fail validation. Header names and values are validated, and timeouts must be positive. Response parsing uses the JSON behavior in FR015. Pagination, token acquisition, HTTP mutation, and XML or CSV response parsing are deferred.
 
 ### FR020 Connector and backend capability reporting
 
@@ -422,7 +424,7 @@ Users must be able to save, find, list, load, and revise input, intermediate, an
 
 Each stored definition has a stable identifier, human-readable name, definition kind, version, and optional description within its owning organisation and namespace under FR037. Users can locate definitions by name, kind, or identifier and select a particular version. The host supplies ownership context and access policy; design workspace identifiers identify editing sessions, not resource owners. PostgreSQL 19 is a fixed platform requirement for the definition store, while its database structure is a technical design decision. Provider registrations and published views under FR034 and FR035 follow these same durability and versioning rules.
 
-A saved version is immutable. Revising it creates a new version while retaining prior versions needed by saved operations. Updating a schema, mapping, transformation, join plan, stage, or pipeline must not silently update dependent definitions or jobs. A conflicting concurrent revision is reported rather than overwriting another user's changes. Failed saves leave previously saved versions intact.
+A saved version is immutable. Revising it creates a new version while retaining prior versions needed by saved operations. A new version can carry a note describing the change. Users can see which saved definitions and pipelines reference a definition. Updating a schema, mapping, transformation, join plan, stage, or pipeline must not silently update dependent definitions or jobs. A conflicting concurrent revision is reported rather than overwriting another user's changes. Failed saves leave previously saved versions intact.
 
 Reusable definitions may reference one another using exact identifiers and versions. An operation resolves its complete set of definitions and validates their references and declared contracts before reading source data, then uses those versions for its entire execution. Compatibility checks that depend on inferred source schemas complete before the consuming stage executes. Missing references, unavailable storage, incompatible versions, and inconsistent schema/mapping dependencies fail explicitly; Unify must not substitute a latest version, infer a replacement for a selected schema, or drop transformation steps. Resolved definitions remain stable if definition-store contents change while an operation is running.
 
@@ -471,7 +473,7 @@ One-to-one requires unique non-null key tuples on both inputs; one-to-many requi
 
 Outer joins fill fields from an absent side with explicit null. The joined schema makes these fields nullable unless a stricter resulting schema is explicitly selected, in which case ordinary validation applies. Null padding is not a missing source field and must not trigger a missing-field default. With an empty input, each join type follows the same unmatched-record rules, using the known schemas to define its result.
 
-Fields remain qualified by their input or result aliases until explicit projection assigns unique result names. Colliding names and choosing or merging equivalent key columns require explicit selection or renaming; a field must not overwrite another silently.
+Fields remain qualified by their input or result aliases until explicit projection assigns unique result names. Colliding names and choosing or merging equivalent key columns require explicit selection or renaming; a field must not overwrite another silently. A configuration editor may pre-fill the projection with every field and suggest a visible, editable prefixed name for each colliding right-side field. Because the suggested names are shown and can be changed, saving the projection is an explicit selection.
 
 Declarative inner, left outer, and full outer joins traverse left records in encounter order and, for each, emit right matches in encounter order. Full outer joins append unmatched right records in right encounter order. Right outer joins traverse right records and emit their left matches in left encounter order. This order is repeatable for the same observed source order; an unordered database query does not acquire a stronger ordering guarantee through a join. SQL-authored joins retain the same matching rules but their query result order is governed by FR032.
 
@@ -539,11 +541,11 @@ The proposed baseline is a versioned Unify SQL profile using SQLite-style SELECT
 | Query composition | Read-only subqueries, non-recursive WITH clauses, and UNION ALL with matching column counts and logical types, using explicit conversions where needed |
 | Parameters        | Positional question-mark placeholders with declared types and separately bound runtime values                                                          |
 
-The profile is deliberately explicit about semantic differences. Unify logical types and strict conversions apply: invalid casts, overflow, non-finite results, and division by zero are query errors rather than permissive conversion to zero, infinity, or an implicit default. Numeric strings require explicit conversion for numeric expressions. Integer arithmetic returns an integer unless an explicit conversion or mixed numeric expression requires a double; integer division truncates toward zero. Arithmetic overflow does not silently change the result type. Supported CAST names map to the seven logical types in FR003 rather than exposing arbitrary engine-native types.
+The profile is deliberately explicit about semantic differences. Unify logical types and strict conversions apply: invalid casts, overflow, non-finite results, and division by zero are query errors rather than permissive conversion to zero, infinity, or an implicit default. Numeric strings require explicit conversion for numeric expressions. Integer addition, subtraction, and multiplication return an integer unless an explicit conversion or mixed numeric expression requires a double. Division always returns a double, so `5 / 2` is `2.5`. Arithmetic overflow does not silently change the result type. Supported CAST names map to the seven logical types in FR003 rather than exposing arbitrary engine-native types; INTEGER and INT, REAL, VARCHAR and TEXT, and BOOL are accepted as aliases of INT32, DOUBLE, STRING, and BOOLEAN.
 
 COUNT returns a supported integer and fails if its value exceeds the supported range; AVG returns a double; MIN/MAX preserve their argument type; and SUM preserves the selected numeric type with overflow checking. COUNT on an empty input returns zero, while SUM, AVG, MIN, and MAX return null. GROUP BY and DISTINCT treat null grouping values as belonging to the same group or duplicate class; this does not change the rule that null join keys do not match.
 
-Every selected non-aggregate expression in a grouped query must be included in its grouping contract; permissive selection of an arbitrary ungrouped column is excluded. This prevents backend-dependent aggregate results.
+Every selected non-aggregate expression in a grouped query must be included in its grouping contract; permissive selection of an arbitrary ungrouped column is excluded. This prevents backend-dependent aggregate results. Aggregates are not allowed in WHERE, join conditions, or GROUP BY, and cannot be nested. HAVING and ORDER BY may refer to select-list aliases. A computed select item needs an AS alias.
 
 Identifiers resolve against declared Unify dataset and column names, retaining the case-sensitive contract of FR001; double quotes delimit identifiers when needed, and single quotes delimit text literals. Comparisons use the declared logical types without implicit text-to-number or boolean coercion. Text comparison is case-sensitive. LOWER/UPPER initially change ASCII letters only, TRIM removes ordinary space characters at either end, and LENGTH counts Unicode code points. Locale-specific collations and broader text functions require an explicit extension. CASE branches must resolve to a compatible result type. Concatenation propagates null; COALESCE and NULLIF are explicit query transformations, not automatic application of missing-field defaults.
 
@@ -571,11 +573,11 @@ Public interfaces and persisted definitions remain Unify contracts. Callers need
 
 ### FR034 Discoverable provider contracts
 
-The host can register, find, list, inspect, and revise providers independently of operation execution. A registration exposes a stable identifier, category-qualified logical name, immutable version, description, documentation, supported operation, connector or view kind, parameter declarations, result-contract mode, and exact dependency references. Discovery can filter by name, kind, and read/write capability. Host-provided access and availability determine which entries may be discovered or used; the library introduces no separate user-account system.
+The host can register, find, list, inspect, and revise providers independently of operation execution. A registration exposes a stable identifier, category-qualified logical name, immutable version, description, documentation, supported operation, connector or view kind, parameter declarations, result-contract mode, and exact dependency references. Discovery can filter by name, kind, connector, and read/write capability. Host-provided access and availability determine which entries may be discovered or used; the library introduces no separate user-account system.
 
 Registrations expose only connector capabilities already supported by this functional design or read-only views under FR035. Registration cannot enable unsupported products, unsupported write modes, arbitrary executable scripts, or unapproved native SQL functions. A write-capable registration is selectable only through an explicit output operation; selecting it from the catalogue cannot make it a readable SQL dataset or execute it as a side effect of SELECT.
 
-Parameter metadata distinguishes scalar values from connection references and identifies each parameter's name, logical type, required status, description, and any explicitly saved non-secret default. Missing required values, unsupported options, invalid values, and incompatible connection capabilities fail binding validation. Credentials are supplied by reference through the host and are never stored as parameter defaults.
+A provider registration names no connection; each binding or output configuration selects a compatible connection. Parameter metadata distinguishes scalar values from connection references and identifies each parameter's name, logical type, required status, description, and any explicitly saved non-secret default. Missing required values, unsupported options, invalid values, and incompatible connection capabilities fail binding validation. Credentials are supplied by reference through the host and are never stored as parameter defaults.
 
 A fixed-schema provider exposes its output columns, logical types, nullability, and descriptions. A provider whose schema depends on the selected resource reports that fact rather than inventing columns. Its binding must select a schema or explicitly request bounded inference; the resulting schema is resolved and validated before any consuming stage executes. Discovery and metadata inspection do not read business records or trigger inference. A configured preview may read sample data under FR013 and the operation budgets.
 
@@ -603,17 +605,17 @@ Read-only views cannot conceal writer operations. Output-provider bindings consu
 
 ### FR037 Organisation, namespace, and design workspace separation
 
-The configuration ownership hierarchy is Organisation → Namespace → resources. Each namespace has exactly one owning organisation. Catalogue registrations, published views, connections, reusable definitions, saved pipelines, execution settings, and run history belong to a namespace. Each organisation starts with a namespace named `default`. Resource names are unique within their applicable kind and namespace; the same name may exist in another namespace or organisation. Catalogue categories such as Files and Outputs group entries inside a namespace and do not create additional owning scopes.
+The configuration ownership hierarchy is Organisation → Namespace → resources. Each namespace has exactly one owning organisation. Catalogue registrations, published views, connections, reusable definitions, saved pipelines, execution settings, and run history belong to a namespace. Each organisation starts with a namespace named `default` and one empty design workspace. Organisation names are unique; namespace and design workspace names are unique within their organisation; each has 1 to 100 characters. Resource names are unique within their applicable kind and namespace. These structure and resource names are compared ignoring letter case and displayed as entered; column, dataset, and SQL identifiers remain case-sensitive (FR001, FR032); the same name may exist in another namespace or organisation. Catalogue categories such as Files and Outputs group entries inside a namespace and do not create additional owning scopes.
 
-A design workspace is a configuration session owned by one organisation. It selects and references that organisation's namespace resources and holds working configuration drafts. It owns no namespace or saved resource. Different design workspaces can reference the same namespace and maintain separate drafts. A session may switch between namespaces within its organisation while retaining a separate draft context for each. Creating a new organisation or namespace creates no copied catalogue entries, saved definitions, sample business data, or run history. Existing unscoped configuration migrates into an initial organisation's default namespace with its saved references preserved.
+A design workspace is a configuration session owned by one organisation. It selects and references that organisation's namespace resources and holds working configuration drafts. It owns no namespace or saved resource. Different design workspaces can reference the same namespace and maintain separate drafts. A session may switch between namespaces within its organisation while retaining a separate draft context for each. The first time a session opens a namespace, its draft starts from a saved pipeline of that namespace, or from an empty design. Selecting another organisation selects one of its design workspaces and that workspace's last namespace, or `default`. Creating a new organisation or namespace creates no copied catalogue entries, saved definitions, sample business data, or run history. Existing unscoped configuration migrates into an initial organisation's default namespace with its saved references preserved.
 
 The host must make the selected organisation and namespace explicit throughout configuration, discovery, binding, preview, save, and history. Changing context must not silently move, copy, or resolve resources from another namespace. Definition and provider references resolve within their owning namespace, with no fallback to a same-named global object or another organisation's resource. An operation or saved pipeline carries its ownership context. Selecting a design workspace or namespace owned by a different organisation is rejected. SQL continues to use explicitly declared logical dataset bindings under FR032 and FR036.
 
-Applying stage, binding, and output changes updates the session's pipeline draft. Saving a reusable resource writes to its owning namespace, and saving a pipeline publishes the session draft as a saved pipeline revision there. Unsaved configuration must be recoverable when switching sessions or namespaces and after reopening a session, separately from published configuration. Runtime sample records and credentials remain outside persisted drafts. A revision saved by another session must cause an explicit conflict if a stale editor attempts to overwrite it; it must not be replaced silently.
+Applying stage, binding, and output changes updates the session's pipeline draft. Saving a reusable resource writes to its owning namespace, and saving a pipeline publishes the session draft as a saved pipeline revision there. Unsaved configuration must be recoverable when switching sessions or namespaces and after reopening a session, separately from published configuration. Runtime sample records and credentials remain outside persisted drafts. A revision saved by another session must cause an explicit conflict if a stale editor attempts to overwrite it; it must not be replaced silently. Starting a new pipeline while the session draft has unsaved changes asks the user to save them as a new version or discard them; nothing is saved implicitly.
 
 Host management must support creating, listing, selecting, renaming, and describing organisations, namespaces, and design workspaces. An owning organisation cannot be changed by a rename or context switch. Deleting a design workspace removes only its session and drafts after an explicit discard or save decision; all saved namespace resources remain. Deletion of a non-default namespace requires it to contain no resources or pending drafts; referencing sessions then select default. The default namespace cannot be renamed or deleted independently. An organisation can be removed only when its namespaces contain no resources or pending drafts; its empty child structures and sessions are then removed. Keep at least one organisation and one design workspace per organisation.
 
-The Unify UI should preserve both card and list catalogue views, with collapsible categories, entry counts, filters, and bounded pages. Searching must cover all matching entries, including collapsed categories and entries outside the current page. Metadata discovery must not read business records. Pagination size and storage representation are implementation decisions.
+The Unify UI should preserve both card and list catalogue views, with collapsible categories, entry counts, capability and connector filters, and bounded pages in stable name order. Categories are the prefix of each entry's category-qualified name. Searching must cover all matching entries, including collapsed categories and entries outside the current page, and expands the categories that match. View mode, filters, page, and collapsed categories are kept per design workspace and namespace. Metadata discovery must not read business records. Pagination size and storage representation are implementation decisions.
 
 These requirements define the configuration model shared by the Unify service and the embedded library. In the service, sign-in and permissions follow FR044 and FR045; an embedding application supplies its own access policy (FR038). Logical namespace filtering alone is not a tenant security boundary.
 
@@ -631,9 +633,9 @@ Users can list runs by pipeline, status, and time, and inspect one run's stages 
 
 ### FR040 Connection validation and testing
 
-Validating a connection definition checks its settings locally: required fields, location and URL syntax, connector options, and the form of its credential reference. It contacts no endpoint and is reported as settings validation, never as a successful connection.
+Validating a connection definition checks its settings locally: required fields, location and URL syntax, connector options, and the form of its credential reference. A JDBC URL must match the selected verified product. A location that embeds a password, token, or key fails validation; a credential reference is required. Validation contacts no endpoint and is reported as settings validation, never as a successful connection. A file connection serves any file format.
 
-Testing a connection is a separate, explicit action. It resolves the credential through the host, opens the endpoint, and performs the connector's minimal non-mutating check: for example, checking that a directory exists and is accessible, opening a JDBC connection and reading product metadata, or, for HTTP, sending a request only when the user explicitly confirms it. It reports the outcome and, where available, the product identity and version. A test reads no business records and changes nothing. Its result is a point-in-time observation; it is not stored as proof of availability and is not required before execution. Test diagnostics follow FR022 and never expose credentials.
+Testing a connection is a separate, explicit action. It resolves the credential through the host, opens the endpoint, and performs the connector's minimal non-mutating check: for example, checking that a directory exists and is accessible, opening a JDBC connection and reading product metadata, or, for HTTP, completing the TLS handshake without sending a request. A GET request is sent only when the user explicitly asks for it, and its body is not read. It reports the outcome and, where available, the product identity and version. A test reads no business records and changes nothing. Its result is a point-in-time observation; it is not stored as proof of availability and is not required before execution. Test diagnostics follow FR022 and never expose credentials.
 
 ### FR041 Design-time samples
 
@@ -678,6 +680,55 @@ A grant gives an identity-provider group one role in one scope: an organisation,
 Executing an operation through the service submits a job and returns at once with its run identifier; the run appears in history as queued (FR039). A bounded pool of workers runs jobs in submission order, and the service reports queued and running jobs. Any instance can run a job, but a job runs on exactly one instance. A user can follow its progress (FR042) as a live stream from any instance and cancel it under FR024. Previews run within their request, bounded by the preview limits and a configured deadline.
 
 If an instance stops while running a job, the job is not restarted automatically. Its run is marked abandoned. The destination outcome is reported as not started when publication had not begun, and otherwise as unknown, and the user may repeat the run (FR039). Unify does not schedule recurring jobs; an external scheduler calls the API.
+
+### FR047 Configuration user interface
+
+The Unify UI provides the following behavior on top of the interface in FR038 and FR043. The HTML mockup and its document are the design reference.
+
+**Configuration workspaces**
+- Readers, connections, input bindings, definitions, stages, outputs, pipelines, and execution settings are configured in full-page workspaces.
+- A workspace's steps are settings, fields or rules, and preview with errors, and edits are kept while the user moves between them. Contract inspection and small confirmations use dialogs.
+- Any change invalidates the last configuration preview. Saving a reader, definition, stage, or output first runs its preview on the available sample, and the save is refused while that preview reports errors.
+- Changing a reader's source format starts its settings, sample, and fields afresh.
+- A connection can be created from a binding or output workspace. Saving it returns to that workspace with the new connection selected.
+
+**Workbench**
+- The workbench shows the selected pipeline's stages in order.
+- A user can add a SQL query, transformation, join, or validation stage after the selected stage, reorder stages within the source and output boundaries, and remove a stage after confirmation.
+- Renaming a stage result updates the declared inputs of later stages and the dataset references in their SQL. The references are changed through the parsed query, never by text replacement, and the changed queries are shown to the user. Saved query definitions in the library are not revised by a rename.
+- Each stage has a name, a result alias, and the values of its declared parameters. The stage view shows the applicable preview limit and invalid-record policy.
+
+**Data browser**
+- A data browser shows the catalogue and the pipeline data in scope: bound inputs with their pinned provider version and SQL alias, and earlier stage results.
+- From it, a user can insert a field reference, or a query over a binding or earlier result, into the selected SQL stage.
+
+**SQL editing**
+- SQL is edited with syntax highlighting and line numbers, in place or in an expanded editor.
+- A local check validates the query and its inputs without previewing data.
+
+**Preview results**
+- Results show:
+  - rows, sortable by column, where selecting a row shows its values and its contributing source records;
+  - the result schema with nullability and origin;
+  - issues, and lineage per contributing source;
+  - a summary of status, result name, engine, and the unchanged destination.
+- Unmatched join records and sampling limits are reported. A running preview shows its stage progress and can be cancelled.
+- While a preview runs in a session, configuration changes and context switches in that session are refused until it completes or is cancelled.
+
+**Search, shortcuts and permissions**
+- A workspace search finds pages, providers, bindings, definitions, and connections.
+- Keyboard shortcuts open search, preview the selected stage, and open Save version. Escape closes a dialog. Shortcuts follow the same permissions as the actions they invoke.
+- Actions the signed-in user's roles do not permit are shown as unavailable and name the roles that grant them. A notice lists what the user cannot do.
+
+**Empty namespaces, pipelines and history**
+- A namespace without a pipeline guides the user to create a connection, a reader, an input binding, and then a pipeline. Creating a pipeline is unavailable until an input binding exists.
+- A new pipeline starts from a copy of the current pipeline or from source and output stages only.
+- Saving a pipeline version takes a name and an optional note. The version list shows the saved versions of the pipeline.
+- Run history shows counts by status, and per run its kind, status, engine with its selection mode, result rows, start time, submitting principal, and destination outcome.
+
+**Context and preferences**
+- Switching organisation, namespace, or design workspace keeps the current page. If the target session has an unsaved full-page configuration, that configuration reopens instead.
+- The selected stage, tabs, searches, filters, and catalogue layout are kept per design workspace and namespace.
 
 ## Quality requirements
 
@@ -818,6 +869,13 @@ The datasets are declared source or earlier-result bindings. The parameter value
 | AC74 | Submit more executions than the worker pool holds across two instances, follow progress from the instance not running the job, cancel one, and stop an instance mid-run; verify queued then running states, each job running exactly once, live progress, cancellation, the abandoned run with its destination outcome, and a repeat from history | FR039, FR042, FR046 |
 | AC75 | Download the prepared preview of CSV, JSON, and XML output stages; verify each file equals what the destination connector writes for those records and settings, contains only the preview records, and leaves every destination unchanged | FR013, FR014, FR015, FR016 |
 | AC76 | Import a bundle whose names clash in the target namespace, with no new names, with new names for some clashes, and with new names for all; verify the import succeeds under the new names only when every clash is renamed and is otherwise rejected whole | FR012 |
+| AC77 | Change a reader, definition, stage, and output configuration after a successful preview; verify the preview is invalidated, that saving reruns it and is refused while it reports errors, and that a connection created from a binding workspace returns to it with the connection selected | FR040, FR047 |
+| AC78 | In the workbench, add each stage kind after a selected stage, reorder stages within the boundaries, remove one after confirmation, and rename a result; verify later declared inputs follow the rename and that changes and context switches are refused while a preview runs | FR029, FR047 |
+| AC79 | Preview a joined and an aggregated result; verify sortable rows, row detail with contributing source records, schema with nullability and origin, issues, lineage, unmatched and sampling messages, stage progress with cancellation, and a CSV export of the preview that changes no destination | FR011, FR013, FR042, FR047 |
+| AC80 | Use workspace search and each keyboard shortcut under each role; verify search covers pages, providers, bindings, definitions and connections, that unavailable actions name the roles that grant them, and that a denied shortcut changes nothing | FR045, FR047 |
+| AC81 | Open an empty namespace, follow the guidance to a first pipeline, then switch namespace and workspace and return; verify pipeline creation needs a binding, the current page is kept, and preferences are restored per design workspace and namespace | FR037, FR047 |
+| AC82 | Configure HTTP headers including Authorization and Cookie, a URL with user information, a CSV sample with a byte-order mark, a blank record and an empty header name, a JDBC record range, and indented and compact JSON output; verify each rule and that an HTTP connection test performs only the handshake unless a GET is requested | FR014, FR015, FR017, FR019, FR040 |
+| AC83 | Divide two integers on both backends; rename a stage result used by two later SQL stages; start a new pipeline with unsaved changes; save a join with suggested names for colliding fields; create resources whose names differ only in case; register a reader. Verify that division returns a double, both queries are updated through the parser and shown, the user is asked to save or discard, the suggested names can be edited before saving, the case-only duplicate is refused while columns stay case-sensitive, and the reader carries no connection | FR028, FR032, FR034, FR037, FR047 |
 
 ## Current implementation and target gaps
 

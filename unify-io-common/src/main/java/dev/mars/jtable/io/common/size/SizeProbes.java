@@ -15,7 +15,7 @@
  */
 package dev.mars.jtable.io.common.size;
 
-import dev.mars.jtable.core.schema.InMemoryTable;
+import dev.mars.jtable.core.model.ITable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -69,7 +69,7 @@ public final class SizeProbes {
     }
 
     /** The exact record count of a supplied in-memory table. */
-    public static SourceSize supplied(InMemoryTable table) {
-        return SourceSize.suppliedCount(table.rowCount());
+    public static SourceSize supplied(ITable table) {
+        return SourceSize.suppliedCount(table.getRowCount());
     }
 }

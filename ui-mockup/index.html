@@ -3711,6 +3711,31 @@ Version 1.4.0
               })[c],
           );
         const clone = (value) => JSON.parse(JSON.stringify(value));
+        // Rows are keyed by column name, and a column may have any nonblank
+        // name (FR001). Internal row metadata therefore uses symbol keys, and
+        // column values are read and written as own properties only, so names
+        // such as "__proto__" or "constructor" are ordinary columns.
+        const ROW = {
+          LINEAGE: Symbol.for("unify.lineage"),
+          AGGREGATE: Symbol.for("unify.aggregate"),
+          CONTRIBUTORS: Symbol.for("unify.contributors"),
+          get(row, name) {
+            return row != null && Object.prototype.hasOwnProperty.call(row, name)
+              ? row[name]
+              : undefined;
+          },
+          put(row, name, value) {
+            Object.defineProperty(row, name, {
+              value,
+              writable: true,
+              enumerable: true,
+              configurable: true,
+            });
+            return row;
+          },
+        };
+        root.UnifyRow = ROW;
+        const L = ROW.LINEAGE;
         function splitExpressions(text) {
           const out = [];
           let start = 0,
@@ -3876,7 +3901,7 @@ Version 1.4.0
               h,
               i: hasInstruments ? instrument : null,
               fx: hasRates ? fx : null,
-              _lineage: {
+              [L]: {
                 Holdings: h._ordinal,
                 ...(hasInstruments
                   ? { Instruments: instrument?._ordinal ?? null }
@@ -3891,14 +3916,14 @@ Version 1.4.0
               i,
               h: i,
               fx: null,
-              _lineage: { Instruments: i._ordinal },
+              [L]: { Instruments: i._ordinal },
             }));
           if (baseName === "FxRates")
             contexts = data.rates.map((fx) => ({
               fx,
               h: fx,
               i: null,
-              _lineage: { FxRates: fx._ordinal },
+              [L]: { FxRates: fx._ordinal },
             }));
           const input = contexts.length;
           const predicate = clean
@@ -4042,7 +4067,7 @@ Version 1.4.0
             });
           }
           let rows = contexts.map((context) => {
-            const row = { _lineage: context._lineage };
+            const row = { [L]: context[L] };
             for (const field of fields) {
               const values = field.factors.map((f) => get(context, f));
               row[field.name] =
@@ -4077,7 +4102,7 @@ Version 1.4.0
           const limit = clean.match(/\bLIMIT\s+(\d+)/i);
           if (limit) rows = rows.slice(0, Number(limit[1]));
           const unmatched = hasInstruments
-            ? contexts.filter((c) => c.i === null && c._lineage.Holdings).length
+            ? contexts.filter((c) => c.i === null && c[L].Holdings).length
             : 0;
           return {
             ok: true,
@@ -4117,7 +4142,7 @@ Version 1.4.0
           return [
             result.columns.map((c) => cell(c.name)).join(","),
             ...result.rows.map((row) =>
-              result.columns.map((c) => cell(row[c.name])).join(","),
+              result.columns.map((c) => cell(ROW.get(row, c.name))).join(","),
             ),
           ].join("\r\n");
         }
@@ -4151,6 +4176,7 @@ Version 1.4.0
     <script id="unify-csv">
       (function (root) {
         "use strict";
+        const ROW = root.UnifyRow;
         function fail(message, record) {
           const error = new Error(message);
           error.record = record;
@@ -4314,11 +4340,9 @@ Version 1.4.0
             skippedBlank,
           };
         }
+        // Column names are kept exactly as they arrive (FR001).
         function nameFor(source, index) {
-          let name = source.trim().replace(/[^A-Za-z0-9_]/g, "_");
-          if (!name) name = "Column" + (index + 1);
-          if (!/^[A-Za-z_]/.test(name)) name = "Column_" + name;
-          return name;
+          return source.trim() ? source : "Column" + (index + 1);
         }
         function mappingsFor(columns) {
           const used = new Set();
@@ -4415,18 +4439,10 @@ Version 1.4.0
           const names = new Set();
           const resolved = included.map((mapping) => {
             if (
-              !/^[A-Za-z_][A-Za-z0-9_]*$/.test(mapping.outputName) ||
-              [
-                "_lineage",
-                "_ordinal",
-                "__proto__",
-                "constructor",
-                "prototype",
-              ].includes(mapping.outputName)
+              typeof mapping.outputName !== "string" ||
+              !mapping.outputName.trim()
             )
-              fail(
-                "Use a simple output column name; internal names are reserved.",
-              );
+              fail("Give every output column a nonblank name.");
             if (names.has(mapping.outputName))
               fail("Duplicate output column “" + mapping.outputName + "”.");
             names.add(mapping.outputName);
@@ -4442,7 +4458,7 @@ Version 1.4.0
             issues = [];
           for (const record of selection.rows) {
             const row = {
-              _lineage: { [options.fileName || "CSV"]: record.ordinal },
+              [ROW.LINEAGE]: { [options.fileName || "CSV"]: record.ordinal },
             };
             let invalid = false;
             for (const mapping of resolved) {
@@ -4455,7 +4471,7 @@ Version 1.4.0
                   ? null
                   : cell.value;
               try {
-                row[mapping.outputName] = convert(value, mapping);
+                ROW.put(row, mapping.outputName, convert(value, mapping));
               } catch (error) {
                 invalid = true;
                 if (issues.length < 100)
@@ -4501,6 +4517,8 @@ Version 1.4.0
       (function (root) {
         "use strict";
         const CS = root.UnifyCsv;
+        const ROW = root.UnifyRow,
+          L = ROW.LINEAGE;
         const types = [
           "STRING",
           "INT32",
@@ -4600,15 +4618,8 @@ Version 1.4.0
             throw Error("Declare at least one output column.");
           const names = new Set();
           for (const field of columns) {
-            if (
-              !/^[A-Za-z_][A-Za-z0-9_]*$/.test(field.name) ||
-              ["_lineage", "__proto__", "constructor", "prototype"].includes(
-                field.name,
-              )
-            )
-              throw Error(
-                "Use a nonblank, simple column name; internal names are reserved.",
-              );
+            if (typeof field.name !== "string" || !field.name.trim())
+              throw Error("Use a nonblank column name.");
             if (names.has(field.name))
               throw Error("Duplicate output column “" + field.name + "”.");
             names.add(field.name);
@@ -4695,13 +4706,13 @@ Version 1.4.0
         function infer(rows, declared = []) {
           const names = [
             ...new Set(
-              rows.flatMap((r) =>
-                Object.keys(r).filter((k) => k !== "_lineage"),
-              ),
+              rows.flatMap((r) => Object.keys(r)),
             ),
           ];
           return names.map((name) => {
-            const values = rows.map((r) => r[name]).filter((v) => v != null);
+            const values = rows
+              .map((r) => ROW.get(r, name))
+              .filter((v) => v != null);
             let type =
               values.length && values.every((v) => typeof v === "boolean")
                 ? "BOOLEAN"
@@ -4718,7 +4729,7 @@ Version 1.4.0
             return {
               name,
               type,
-              nullable: rows.some((r) => r[name] == null),
+              nullable: rows.some((r) => ROW.get(r, name) == null),
               nested: values.some((v) => !scalar(v)),
               ...(declared.find((c) => c.name === name) || {}),
             };
@@ -4728,7 +4739,10 @@ Version 1.4.0
           if (text.length > 1048576)
             throw Error("Use a sample of at most 1 MiB.");
           // Scan object keys before JSON.parse so duplicate members never disappear.
+          // Integer literals outside the INT32 range are kept as their exact
+          // text (FR002), because a JavaScript number would round them.
           let p = 0;
+          const exactIntegers = [];
           const space = () => {
             while (/\s/.test(text[p] || "") && p < text.length) p++;
           };
@@ -4804,13 +4818,24 @@ Version 1.4.0
                 /^(?:true|false|null|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?)/,
               );
             if (!m) throw Error("Invalid JSON value.");
+            if (/^-?\d+$/.test(m[0])) {
+              const n = Number(m[0]);
+              if (n < -2147483648 || n > 2147483647)
+                exactIntegers.push([p, p + m[0].length]);
+            }
             p += m[0].length;
           }
           value();
           space();
           if (p !== text.length)
             throw Error("Unexpected text after JSON value.");
-          let data = JSON.parse(text);
+          let source = text;
+          for (const [start, end] of exactIntegers.reverse())
+            source =
+              source.slice(0, start) +
+              JSON.stringify(text.slice(start, end)) +
+              source.slice(end);
+          let data = JSON.parse(source);
           if (member) {
             if (!data || Array.isArray(data) || !own(data, member))
               throw Error("Response does not contain member “" + member + "”.");
@@ -4825,7 +4850,7 @@ Version 1.4.0
           const rows = data.map((row, index) => {
             if (!row || Array.isArray(row) || typeof row !== "object")
               throw Error("JSON record " + (index + 1) + " must be an object.");
-            return { ...row, _lineage: { JSON: index + 1 } };
+            return { ...row, [L]: { JSON: index + 1 } };
           });
           return good(infer(rows), rows);
         }
@@ -4854,7 +4879,7 @@ Version 1.4.0
           if (elements.length > 1000)
             throw Error("Use at most 1,000 sample records.");
           const rows = elements.map((element, index) => {
-            const row = { _lineage: { XML: index + 1 } };
+            const row = { [L]: { XML: index + 1 } };
             if (
               [...element.childNodes].some(
                 (n) => n.nodeType === 3 && n.textContent.trim(),
@@ -4883,9 +4908,13 @@ Version 1.4.0
                     "Selected XML children must contain scalar text.",
                 };
               else value = child.textContent;
-              row[key] = own(row, key)
-                ? { unsupported: "Repeated selected XML child “" + key + "”." }
-                : value;
+              ROW.put(
+                row,
+                key,
+                own(row, key)
+                  ? { unsupported: "Repeated selected XML child “" + key + "”." }
+                  : value,
+              );
             }
             return row;
           });
@@ -5012,10 +5041,7 @@ Version 1.4.0
           return columns.map((column, index) => ({
             include: !column.nested,
             source: column.name,
-            name:
-              column.name
-                .replace(/^\{[^}]*\}/, "")
-                .replace(/[^A-Za-z0-9_]/g, "_") || "Column" + (index + 1),
+            name: column.name.replace(/^\{[^}]*\}/, "") || "Column" + (index + 1),
             type: column.type,
             nullable: column.nullable,
             trim: false,
@@ -5084,17 +5110,17 @@ Version 1.4.0
           for (let i = 0; i < table.rows.length; i++) {
             limits(options.context);
             const original = table.rows[i],
-              row = { _lineage: copy(original._lineage || { Record: i + 1 }) };
-            if (original._aggregate) {
-              row._aggregate = true;
-              row._contributors = original._contributors;
+              row = { [L]: copy(original[L] || { Record: i + 1 }) };
+            if (original[ROW.AGGREGATE]) {
+              row[ROW.AGGREGATE] = true;
+              row[ROW.CONTRIBUTORS] = original[ROW.CONTRIBUTORS];
             }
             let bad = false;
             for (const rule of selected)
               try {
-                const value = convert(original[rule.source], rule);
+                const value = convert(ROW.get(original, rule.source), rule);
                 constraint(value, rule);
-                row[rule.name] = value;
+                ROW.put(row, rule.name, value);
               } catch (error) {
                 bad = true;
                 if (issues.length < 100)
@@ -5143,7 +5169,7 @@ Version 1.4.0
           const columns = copy(table.columns),
             rows = table.rows.map((r) => ({
               ...r,
-              _lineage: copy(r._lineage || {}),
+              [L]: copy(r[L] || {}),
             })),
             bad = new Set(),
             issues = [];
@@ -5174,7 +5200,7 @@ Version 1.4.0
             for (let i = 0; i < rows.length; i++) {
               limits(options.context);
               if (bad.has(i)) continue;
-              let value = rows[i][rule.field];
+              let value = ROW.get(rows[i], rule.field);
               try {
                 if (rule.operation === "convert")
                   value = convert(value, {
@@ -5193,7 +5219,7 @@ Version 1.4.0
                         ? value.replace(/[a-z]/g, (c) => c.toUpperCase())
                         : value.replace(/[A-Z]/g, (c) => c.toLowerCase());
                 }
-                rows[i][rule.field] = value;
+                ROW.put(rows[i], rule.field, value);
               } catch (error) {
                 bad.add(i);
                 if (issues.length < 100)
@@ -5284,7 +5310,7 @@ Version 1.4.0
           const index = (table, side) => {
             const groups = new Map();
             table.rows.forEach((row, i) => {
-              const values = config.keys.map((k) => row[k[side]]);
+              const values = config.keys.map((k) => ROW.get(row, k[side]));
               if (values.some((v) => v == null)) return;
               const key = JSON.stringify(values);
               if (!groups.has(key)) groups.set(key, []);
@@ -5331,45 +5357,65 @@ Version 1.4.0
           });
           validateSchema(columns);
           const rows = [],
-            seenRight = new Set();
-          let matchedLeft = 0,
-            unmatchedLeft = 0;
+            seenRight = new Set(),
+            seenLeft = new Set();
           const emit = (l, r) => {
             reserveGenerated(context);
-            const row = { _lineage: {} };
+            const row = { [L]: {} };
             if (l)
-              for (const [key, value] of Object.entries(l._lineage || {}))
-                row._lineage["left." + key] = value;
+              for (const [key, value] of Object.entries(l[L] || {}))
+                row[L]["left." + key] = value;
             if (r)
-              for (const [key, value] of Object.entries(r._lineage || {}))
-                row._lineage["right." + key] = value;
+              for (const [key, value] of Object.entries(r[L] || {}))
+                row[L]["right." + key] = value;
             for (const p of projected)
-              row[p.name] = (p.side === "left" ? l : r)?.[p.field] ?? null;
+              ROW.put(
+                row,
+                p.name,
+                ROW.get(p.side === "left" ? l : r, p.field) ?? null,
+              );
             rows.push(row);
             limits(context, rows);
           };
-          for (const l of left.rows) {
-            limits(context);
-            const values = config.keys.map((k) => l[k.left]);
-            const matches = values.some((v) => v == null)
-              ? []
-              : ri.get(JSON.stringify(values)) || [];
-            if (matches.length) {
-              matchedLeft++;
+          const keyOf = (row, side) => {
+            const values = config.keys.map((k) => ROW.get(row, k[side]));
+            return values.some((v) => v == null) ? null : JSON.stringify(values);
+          };
+          if (config.joinType === "RIGHT") {
+            // FR028: a right outer join traverses right records in order and
+            // emits their left matches in left encounter order.
+            right.rows.forEach((r, i) => {
+              limits(context);
+              const key = keyOf(r, "right");
+              const matches = key === null ? [] : li.get(key) || [];
+              if (matches.length) seenRight.add(i);
+              for (const j of matches) {
+                seenLeft.add(j);
+                emit(left.rows[j], r);
+              }
+              if (!matches.length) emit(null, r);
+            });
+          } else {
+            left.rows.forEach((l, j) => {
+              limits(context);
+              const key = keyOf(l, "left");
+              const matches = key === null ? [] : ri.get(key) || [];
+              if (matches.length) seenLeft.add(j);
               for (const i of matches) {
                 seenRight.add(i);
                 emit(l, right.rows[i]);
               }
-            } else {
-              unmatchedLeft++;
-              if (["LEFT", "FULL"].includes(config.joinType)) emit(l, null);
-            }
-          }
-          const unmatchedRight = right.rows.length - seenRight.size;
-          if (["RIGHT", "FULL"].includes(config.joinType))
-            right.rows.forEach((r, i) => {
-              if (!seenRight.has(i)) emit(null, r);
+              if (!matches.length && ["LEFT", "FULL"].includes(config.joinType))
+                emit(l, null);
             });
+            if (config.joinType === "FULL")
+              right.rows.forEach((r, i) => {
+                if (!seenRight.has(i)) emit(null, r);
+              });
+          }
+          const matchedLeft = seenLeft.size,
+            unmatchedLeft = left.rows.length - matchedLeft,
+            unmatchedRight = right.rows.length - seenRight.size;
           return good(columns, rows, {
             issues: [
               ...(left.issues || []),
@@ -5462,7 +5508,7 @@ Version 1.4.0
               records.push(columns.map((c) => cell(c.name)).join(delimiter));
             for (const row of table.rows)
               records.push(
-                columns.map((c) => cell(row[c.name])).join(delimiter),
+                columns.map((c) => cell(ROW.get(row, c.name))).join(delimiter),
               );
             return records.join(settings.lineEnding === "CRLF" ? "\r\n" : "\n");
           }
@@ -5470,7 +5516,7 @@ Version 1.4.0
             return JSON.stringify(
               table.rows.map((row) =>
                 Object.fromEntries(
-                  columns.map((c) => [c.name, row[c.name] ?? null]),
+                  columns.map((c) => [c.name, ROW.get(row, c.name) ?? null]),
                 ),
               ),
               null,
@@ -5500,12 +5546,12 @@ Version 1.4.0
                     ">" +
                     columns
                       .map((c) =>
-                        row[c.name] == null
+                        ROW.get(row, c.name) == null
                           ? "<" + c.name + ' xsi:nil="true"/>'
                           : "<" +
                             c.name +
                             ">" +
-                            xmlEscape(row[c.name]) +
+                            xmlEscape(ROW.get(row, c.name)) +
                             "</" +
                             c.name +
                             ">",
@@ -5551,7 +5597,10 @@ Version 1.4.0
                 );
               for (let i = 0; i < table.rows.length; i++)
                 try {
-                  const value = convert(table.rows[i][column.name], target);
+                  const value = convert(
+                    ROW.get(table.rows[i], column.name),
+                    target,
+                  );
                   constraint(value, target);
                 } catch (error) {
                   throw Error(
@@ -5585,7 +5634,9 @@ Version 1.4.0
               "BEGIN TRANSACTION\nINSERT INTO " +
               target +
               " (" +
-              columns.map((c) => '"' + c.name + '"').join(", ") +
+              columns
+                .map((c) => '"' + c.name.replace(/"/g, '""') + '"')
+                .join(", ") +
               ") VALUES (" +
               columns.map(() => "?").join(", ") +
               ");\n" +
@@ -5631,6 +5682,8 @@ Version 1.4.0
       (function (root) {
         "use strict";
         const CF = root.UnifyConfig;
+        const ROW = root.UnifyRow,
+          L = ROW.LINEAGE;
         function tokens(sql) {
           const out = [];
           let i = 0;
@@ -5674,6 +5727,7 @@ Version 1.4.0
                 type: quote === "'" ? "literal" : "identifier",
                 value: text,
                 pos: start,
+                end: i,
               });
               continue;
             }
@@ -5681,13 +5735,23 @@ Version 1.4.0
               .slice(i)
               .match(/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/);
             if (number) {
-              out.push({ type: "literal", value: Number(number[0]), pos: i });
+              out.push({
+                type: "literal",
+                value: Number(number[0]),
+                pos: i,
+                end: i + number[0].length,
+              });
               i += number[0].length;
               continue;
             }
             const word = sql.slice(i).match(/^[A-Za-z_]\w*/);
             if (word) {
-              out.push({ type: "word", value: word[0], pos: i });
+              out.push({
+                type: "word",
+                value: word[0],
+                pos: i,
+                end: i + word[0].length,
+              });
               i += word[0].length;
               continue;
             }
@@ -5695,7 +5759,12 @@ Version 1.4.0
               .slice(i)
               .match(/^(?:<=|>=|<>|!=|\|\||[(),.;?+\-*/=<>])/);
             if (op) {
-              out.push({ type: "symbol", value: op[0], pos: i });
+              out.push({
+                type: "symbol",
+                value: op[0],
+                pos: i,
+                end: i + op[0].length,
+              });
               i += op[0].length;
               continue;
             }
@@ -6017,7 +6086,7 @@ Version 1.4.0
             if (node.kind === "literal") return node.value;
             if (node.kind === "ref") {
               const ref = locate(node);
-              return row?.[ref.alias]?.[node.name] ?? null;
+              return ROW.get(row?.[ref.alias], node.name) ?? null;
             }
             if (node.kind === "star") return null;
             if (node.kind === "cast")
@@ -6235,10 +6304,38 @@ Version 1.4.0
               validateExpression(node.otherwise);
             }
           }
+          // FR032: a join condition is one or more equality key pairs, each
+          // comparing a field of the joined dataset with a field of an earlier
+          // one, combined with AND. Other conditions are outside the profile.
+          function checkEqualityKeys(node, joinAlias, prior) {
+            if (node?.kind === "binary" && node.op === "AND") {
+              checkEqualityKeys(node.left, joinAlias, prior);
+              checkEqualityKeys(node.right, joinAlias, prior);
+              return;
+            }
+            const sides =
+              node?.kind === "binary" &&
+              node.op === "=" &&
+              node.left.kind === "ref" &&
+              node.right.kind === "ref"
+                ? [locate(node.left).alias, locate(node.right).alias]
+                : null;
+            if (
+              !sides ||
+              !(
+                (sides[0] === joinAlias && prior.includes(sides[1])) ||
+                (sides[1] === joinAlias && prior.includes(sides[0]))
+              )
+            )
+              throw Error(
+                "Join conditions must be equality key pairs between the joined dataset and an earlier one, such as a.key = b.key, combined with AND.",
+              );
+          }
           for (const join of plan.joins) {
             const prior = Object.keys(metadata),
               right = table(join);
             validateExpression(join.on);
+            checkEqualityKeys(join.on, join.alias, prior);
             const output = [],
               seen = new Set();
             const emit = (row) => {
@@ -6246,31 +6343,48 @@ Version 1.4.0
               output.push(row);
               CF.limits(context, output);
             };
-            for (const left of contexts) {
-              let matched = false;
-              for (let i = 0; i < right.rows.length; i++) {
-                CF.limits(context);
-                const candidate = { ...left, [join.alias]: right.rows[i] };
-                if (evaluate(join.on, candidate) === true) {
-                  matched = true;
-                  seen.add(i);
-                  emit(candidate);
+            const nulls = Object.fromEntries(prior.map((alias) => [alias, null]));
+            if (join.type === "RIGHT") {
+              // FR028 order: traverse right records, emitting left matches in
+              // left encounter order.
+              const matchedLeft = new Set();
+              right.rows.forEach((row) => {
+                let matched = false;
+                contexts.forEach((left, j) => {
+                  CF.limits(context);
+                  const candidate = { ...left, [join.alias]: row };
+                  if (evaluate(join.on, candidate) === true) {
+                    matched = true;
+                    matchedLeft.add(j);
+                    emit(candidate);
+                  }
+                });
+                if (!matched) emit({ ...nulls, [join.alias]: row });
+              });
+              unmatched += contexts.length - matchedLeft.size;
+            } else {
+              for (const left of contexts) {
+                let matched = false;
+                for (let i = 0; i < right.rows.length; i++) {
+                  CF.limits(context);
+                  const candidate = { ...left, [join.alias]: right.rows[i] };
+                  if (evaluate(join.on, candidate) === true) {
+                    matched = true;
+                    seen.add(i);
+                    emit(candidate);
+                  }
+                }
+                if (!matched) {
+                  unmatched++;
+                  if (["LEFT", "FULL"].includes(join.type))
+                    emit({ ...left, [join.alias]: null });
                 }
               }
-              if (!matched) {
-                unmatched++;
-                if (["LEFT", "FULL"].includes(join.type))
-                  emit({ ...left, [join.alias]: null });
-              }
+              if (join.type === "FULL")
+                right.rows.forEach((row, i) => {
+                  if (!seen.has(i)) emit({ ...nulls, [join.alias]: row });
+                });
             }
-            if (["RIGHT", "FULL"].includes(join.type))
-              right.rows.forEach((row, i) => {
-                if (!seen.has(i))
-                  emit({
-                    ...Object.fromEntries(prior.map((alias) => [alias, null])),
-                    [join.alias]: row,
-                  });
-              });
             contexts = output;
           }
           if (plan.where)
@@ -6455,31 +6569,37 @@ Version 1.4.0
             const first = group[0] || {};
             if (plan.having && evaluate(plan.having, first, group) !== true)
               continue;
-            const row = { _lineage: {} };
+            const row = { [L]: {} };
             if (aggregated) {
-              row._aggregate = true;
-              row._contributors = group.length;
+              row[ROW.AGGREGATE] = true;
+              row[ROW.CONTRIBUTORS] = group.length;
             } else
               for (const [alias, data] of Object.entries(first))
-                for (const [key, value] of Object.entries(data?._lineage || {}))
-                  row._lineage[alias + "." + key] = value;
+                for (const [key, value] of Object.entries(data?.[L] || {}))
+                  row[L][alias + "." + key] = value;
             for (let i = 0; i < selected.length; i++) {
               const value = evaluate(
                 selected[i].node,
                 first,
                 aggregated ? group : undefined,
               );
-              row[selected[i].alias] = CF.convert(value, {
-                ...columns[i],
-                nullable: true,
-              });
+              ROW.put(
+                row,
+                selected[i].alias,
+                CF.convert(value, {
+                  ...columns[i],
+                  nullable: true,
+                }),
+              );
             }
             items.push({ row, group, first });
           }
           if (plan.distinct) {
             const seen = new Set();
             items = items.filter((item) => {
-              const key = JSON.stringify(columns.map((c) => item.row[c.name]));
+              const key = JSON.stringify(
+                columns.map((c) => ROW.get(item.row, c.name)),
+              );
               if (seen.has(key)) return false;
               seen.add(key);
               return true;
@@ -6529,7 +6649,7 @@ Version 1.4.0
         }
         const ownRow = (row, key) =>
           Object.prototype.hasOwnProperty.call(row, key);
-        Object.assign(CF, { query, parseQuery: parse });
+        Object.assign(CF, { query, parseQuery: parse, tokenize: tokens });
       })(typeof globalThis !== "undefined" ? globalThis : this);
     </script>
     <script id="unify-app">
@@ -6648,7 +6768,9 @@ Version 1.4.0
           C = window.UnifyCore,
           CS = window.UnifyCsv,
           CF = window.UnifyConfig,
+          ROW = window.UnifyRow,
           E = C.escapeHtml;
+        const ENGINES = ["Automatic", "SQLite", "DuckDB"];
         const STORAGE = "unify-ui-prototype-v1";
         const app = document.getElementById("app"),
           overlays = document.getElementById("overlay-root");
@@ -6712,8 +6834,9 @@ Version 1.4.0
           "snapshots",
           "operationSettings",
         ];
+        // The engine request is an execution setting saved with the pipeline
+        // (FR012), not a session preference.
         const sessionStateKeys = [
-          "engine",
           "minimumUnits",
           "selectedStage",
           "editorMode",
@@ -6756,6 +6879,7 @@ Version 1.4.0
               nullToken: "\\N",
             },
             finalResult: null,
+            engine: "DuckDB",
           };
         }
         function emptyNamespaceData() {
@@ -7118,12 +7242,16 @@ Version 1.4.0
             "finalResult",
           ])
             state[key] = C.clone(document[key] ?? emptyDesign()[key]);
+          state.engine = ENGINES.includes(document.engine)
+            ? document.engine
+            : ENGINES.includes(context.preferences?.engine)
+              ? context.preferences.engine
+              : "DuckDB";
           state.sources = C.clone(document.bindings || []).map(hydrateBinding);
           savedRevision = C.clone(context.savedRevision || emptyDesign());
           state.dirty = !!context.dirty;
           state.lastSaved = context.lastSaved || null;
           const preferences = {
-            engine: "DuckDB",
             minimumUnits: 0,
             selectedStage:
               state.stages.find((item) => item.kind === "SQL query")?.id ||
@@ -7322,9 +7450,11 @@ Version 1.4.0
           pipelineId:
             saved?.pipelineId ??
             (saved?.stages?.length === 0 ? null : "daily-holdings"),
-          engine: ["Automatic", "SQLite", "DuckDB"].includes(saved?.engine)
+          engine: ENGINES.includes(saved?.engine)
             ? saved.engine
-            : "DuckDB",
+            : ENGINES.includes(saved?._preferences?.engine)
+              ? saved._preferences.engine
+              : "DuckDB",
           sql: typeof saved?.sql === "string" ? saved.sql : D.sql,
           minimumUnits: Number.isInteger(saved?.minimumUnits)
             ? saved.minimumUnits
@@ -7387,6 +7517,7 @@ Version 1.4.0
             stages: state.stages,
             output: state.output,
             finalResult: state.finalResult,
+            engine: state.engine,
             bindings: state.sources.map(bindingRecord),
           });
         let savedRevision = C.clone(saved?._savedRevision || designSnapshot());
@@ -7683,10 +7814,10 @@ Version 1.4.0
           const rows = state.result?.rows || [],
             keys = [
               ...new Set(
-                rows.flatMap((row) => Object.keys(row._lineage || {})),
+                rows.flatMap((row) => Object.keys(row[ROW.LINEAGE] || {})),
               ),
             ];
-          return `<div class='lineage-grid'>${keys.map((name) => `<div class='lineage-node'>${icon("table")}<h3>${E(name)}</h3><p>${new Set(rows.map((row) => row._lineage?.[name]).filter((n) => n != null)).size} contributing sampled records</p></div>`).join("") || "<p>No individual source record is represented.</p>"}</div>${rows.some((row) => row._aggregate) ? '<div class="results-message">Aggregate rows represent multiple contributing records. Inspect a result row for its contributor count.</div>' : ""}<div class='table-footer'>Select a result row to inspect contributing source record numbers.</div>`;
+          return `<div class='lineage-grid'>${keys.map((name) => `<div class='lineage-node'>${icon("table")}<h3>${E(name)}</h3><p>${new Set(rows.map((row) => row[ROW.LINEAGE]?.[name]).filter((n) => n != null)).size} contributing sampled records</p></div>`).join("") || "<p>No individual source record is represented.</p>"}</div>${rows.some((row) => row[ROW.AGGREGATE]) ? '<div class="results-message">Aggregate rows represent multiple contributing records. Inspect a result row for its contributor count.</div>' : ""}<div class='table-footer'>Select a result row to inspect contributing source record numbers.</div>`;
         }
 
         function activityView() {
@@ -7796,6 +7927,27 @@ Version 1.4.0
                 "save",
                 "primary",
               );
+          } else if (m.type === "renamed-sql") {
+            title = "Queries updated for the rename";
+            description = m.oldName
+              ? `References to “${m.oldName}” now use “${m.newName}”. Saved query definitions in the library are unchanged.`
+              : "Dataset references in later queries were updated. Saved query definitions in the library are unchanged.";
+            wide = true;
+            body = m.changes
+              .map(
+                (change) =>
+                  `<h3>${E(change.stage)}${change.oldName ? ` · ${E(change.oldName)} → ${E(change.newName)}` : ""}</h3><pre class='definition-detail-code'>${E(change.sql)}</pre>`,
+              )
+              .join("");
+            footer = button("close-modal", "Done", null, "primary");
+          } else if (m.type === "unsaved-pipeline") {
+            title = "Save or discard your changes?";
+            description = `“${state.name}” has unsaved changes. A new pipeline replaces this editing session's draft.`;
+            body = `<div class='notice'>${icon("info")}Save them as a new version, or discard them and return to version ${state.version}. Nothing is saved unless you choose to.</div>`;
+            footer =
+              button("close-modal", "Cancel", null) +
+              button("discard-pipeline-draft", "Discard changes", "close", "danger") +
+              button("save-version", "Save version first", "save", "primary", "data-continue-new='true'");
           } else if (m.type === "add-stage") {
             title = "Add a transformation stage";
             description =
@@ -7940,8 +8092,8 @@ Version 1.4.0
             title = "Result row " + (m.index + 1);
             description =
               "Inspect logical values and contributing source records.";
-            body = `<div class='detail-fields'>${state.result.columns.map((c) => `<div class='detail-field'><span>${E(c.name)}</span><strong>${row[c.name] === null ? '<span class="null-value">NULL</span>' : E(row[c.name])}</strong></div>`).join("")}</div>${row._aggregate ? `<p>Aggregate result: ${row._contributors} contributing records; no single source row.</p>` : ""}<h3>Record lineage</h3>${Object.entries(
-              row._lineage || {},
+            body = `<div class='detail-fields'>${state.result.columns.map((c) => `<div class='detail-field'><span>${E(c.name)}</span><strong>${row[c.name] === null ? '<span class="null-value">NULL</span>' : E(row[c.name])}</strong></div>`).join("")}</div>${row[ROW.AGGREGATE] ? `<p>Aggregate result: ${row[ROW.CONTRIBUTORS]} contributing records; no single source row.</p>` : ""}<h3>Record lineage</h3>${Object.entries(
+              row[ROW.LINEAGE] || {},
             )
               .map(
                 ([name, ordinal]) =>
@@ -8080,6 +8232,80 @@ Version 1.4.0
             state.stages.find((stage) => stage.id === state.modal?.stageId) ||
             selected()
           );
+        }
+        // FR047: renaming a stage result rewrites dataset references in later
+        // SQL through the parsed query, never by text replacement. A reference
+        // without an explicit alias keeps the old name as its alias, so
+        // qualified field references in the query stay valid.
+        function renameDatasetReferences(sql, oldName, newName) {
+          let tokens;
+          try {
+            tokens = CF.tokenize(sql);
+          } catch (_) {
+            return sql;
+          }
+          const quoteName = (name) =>
+            /^[A-Za-z_]\w*$/.test(name)
+              ? name
+              : '"' + name.replace(/"/g, '""') + '"';
+          const clauses = new Set([
+            "ON", "INNER", "LEFT", "RIGHT", "FULL", "OUTER", "JOIN", "WHERE",
+            "GROUP", "HAVING", "ORDER", "LIMIT", "UNION",
+          ]);
+          const edits = [];
+          tokens.forEach((token, i) => {
+            const previous = tokens[i - 1];
+            if (
+              previous?.type !== "word" ||
+              !["FROM", "JOIN"].includes(String(previous.value).toUpperCase()) ||
+              !["word", "identifier"].includes(token.type) ||
+              token.value !== oldName
+            )
+              return;
+            const next = tokens[i + 1];
+            const aliased =
+              next &&
+              (next.type === "identifier" ||
+                (next.type === "word" &&
+                  (String(next.value).toUpperCase() === "AS" ||
+                    !clauses.has(String(next.value).toUpperCase()))));
+            edits.push([
+              token.pos,
+              token.end,
+              quoteName(newName) + (aliased ? "" : " AS " + quoteName(oldName)),
+            ]);
+          });
+          for (const [start, end, text] of edits.reverse())
+            sql = sql.slice(0, start) + text + sql.slice(end);
+          return sql;
+        }
+        function applyResultRename(stages, index, oldName, newName) {
+          const changed = [];
+          if (!oldName || oldName === newName) return changed;
+          for (const stage of stages.slice(index + 1)) {
+            for (const key of [
+              "input",
+              "leftInput",
+              "rightInput",
+              "leftDataset",
+              "rightDataset",
+              "right",
+            ])
+              if (stage[key] === oldName) stage[key] = newName;
+            if (Array.isArray(stage.inputs))
+              stage.inputs = stage.inputs.map((name) =>
+                name === oldName ? newName : name,
+              );
+            if (stage.kind !== "SQL query") continue;
+            const live = stages === state.stages && stage.id === "query";
+            const before = live ? state.sql : stage.sql || "";
+            const after = renameDatasetReferences(before, oldName, newName);
+            if (after === before) continue;
+            stage.sql = after;
+            if (live) state.sql = after;
+            changed.push({ stage: stage.name, sql: after });
+          }
+          return changed;
         }
         function queryForStage(stage) {
           if (stage.kind === "Source") {
@@ -8220,14 +8446,14 @@ Version 1.4.0
           const nameOf = (r) => renames[r.kind + ":" + r.name] || r.name,
             exists = (kind, name) =>
               kind === "Pipeline"
-                ? state.definitions.some((d) => d.kind === "Pipeline" && d.name === name)
+                ? state.definitions.some((d) => d.kind === "Pipeline" && d.name.toLowerCase() === name.toLowerCase())
                 : kind === "Provider"
-                  ? state.providers.some((p) => p.name === name)
-                  : state.connections.some((c) => c.name === name),
+                  ? state.providers.some((p) => p.name.toLowerCase() === name.toLowerCase())
+                  : state.connections.some((c) => c.name.toLowerCase() === name.toLowerCase()),
             seen = new Set();
           return bundle.resources
             .filter((r) => {
-              const key = r.kind + ":" + nameOf(r),
+              const key = r.kind + ":" + nameOf(r).toLowerCase(),
                 duplicate = seen.has(key);
               seen.add(key);
               return duplicate || exists(r.kind, nameOf(r));
@@ -8587,7 +8813,10 @@ Version 1.4.0
             return;
           }
           if (action === "save-version") {
-            if (state.stages.length) openModal("save-version");
+            if (state.stages.length)
+              openModal("save-version", {
+                continueNew: node?.dataset.continueNew === "true",
+              });
             else toast("Create or open a pipeline first.", "warning");
             return;
           }
@@ -8642,7 +8871,13 @@ Version 1.4.0
             const source = state.sources.find(
                 (s) => s.id === node.dataset.source,
               ),
-              ref = source.alias + "." + node.dataset.field;
+              field = node.dataset.field,
+              ref =
+                source.alias +
+                "." +
+                (/^[A-Za-z_]\w*$/.test(field)
+                  ? field
+                  : '"' + field.replace(/"/g, '""') + '"');
             state.sql = state.sql.replace(/\s+FROM\b/i, `, ${ref}\nFROM`);
             state.selectedStage =
               state.stages.find((s) => s.kind === "SQL query")?.id ||
@@ -8886,6 +9121,7 @@ Version 1.4.0
             }
             savedRevision.note = note;
             const stored = persist();
+            const continueNew = !!state.modal?.continueNew;
             closeModal();
             render();
             toast(
@@ -8895,6 +9131,7 @@ Version 1.4.0
                     " saved locally. Prior runs keep their original version."
                 : "Version created for this session; export it to keep a copy.",
             );
+            if (continueNew) openConfiguration("pipeline", { isNew: true });
             return;
           }
           if (action === "confirm-definition") {
@@ -9289,11 +9526,12 @@ Version 1.4.0
             markDirty();
             render();
           } else if (el.id === "engine-select") {
+            if (!ENGINES.includes(el.value)) return;
             state.engine = el.value;
-            persist();
+            markDirty();
             render();
             toast(
-              "Execution engine changed. Pipeline definitions are unchanged.",
+              "Execution engine changed. It is saved with the pipeline's execution settings; the portable rules are unchanged.",
             );
           } else if (el.name === "minimum-units") {
             const parameter = minimumParameter(selected());
@@ -9342,15 +9580,16 @@ Version 1.4.0
             }
             const old = selected().output;
             selected().output = name;
-            state.stages.forEach((s) => {
-              if (s.input === old) s.input = name;
-            });
-            state.sql = state.sql.replace(
-              new RegExp("\\b" + old + "\\b", "g"),
+            const changes = applyResultRename(
+              state.stages,
+              state.stages.indexOf(selected()),
+              old,
               name,
             );
             markDirty();
-            if (!state.modal) render();
+            if (changes.length)
+              openModal("renamed-sql", { changes, oldName: old, newName: name });
+            else if (!state.modal) render();
           } else if (el.id === "output-format") {
             state.output.format = el.value;
             if (
@@ -9697,7 +9936,6 @@ ${state.expanded[s.id] ? `<div class='tree-columns'>${s.schema.map((f) => `<butt
               (p.format === "CSV" && c.connector === "CSV"),
           );
           const preferred =
-            compatible.find((c) => c.id === p.defaultConnection)?.id ||
             compatible[0]?.id;
           const stem =
             p.kind === "View"
@@ -10176,7 +10414,7 @@ ${isWriter ? `<label class='form-label'>Publication mode<select id='binding-mode
               );
               return true;
             }
-            const existing = state.providers.find((p) => p.name === name);
+            const existing = state.providers.find((p) => p.name.toLowerCase() === name.toLowerCase());
             if (existing && existing.kind !== "View") {
               modalError("That name belongs to a non-view provider.");
               return true;
@@ -10461,7 +10699,7 @@ ${isWriter ? `<label class='form-label'>Publication mode<select id='binding-mode
               .slice(0, 50)
               .map(
                 (row) =>
-                  `<tr><td>${Object.values(row._lineage)[0]}</td>${result.columns.map((c) => `<td>${row[c.name] === null ? `<span class='null-value'>NULL</span>` : E(row[c.name])}</td>`).join("")}</tr>`,
+                  `<tr><td>${Object.values(row[ROW.LINEAGE])[0]}</td>${result.columns.map((c) => `<td>${row[c.name] === null ? `<span class='null-value'>NULL</span>` : E(row[c.name])}</td>`).join("")}</tr>`,
               )
               .join("") ||
             `<tr><td colspan='${result.columns.length + 1}'>No valid mapped records.</td></tr>`
@@ -10793,7 +11031,7 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
               render();
               return true;
             }
-            if (state.providers.some((p) => p.name === e.name)) {
+            if (state.providers.some((p) => p.name.toLowerCase() === e.name.toLowerCase())) {
               e.error =
                 "That catalogue name already exists. Choose a new name for this CSV mapping.";
               e.step = 1;
@@ -10840,9 +11078,6 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                   description: "Source filename for this mapping.",
                 },
               ],
-              defaultConnection: state.connections.find(
-                (c) => c.connector === "CSV",
-              )?.id,
               description:
                 e.description ||
                 "CSV reader with configured records and column mapping.",
@@ -11148,6 +11383,9 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
             const config = provider.csvMapping;
             const sample =
               state.csvSamples[runtimeSampleKey(provider, binding)] ||
+              state.csvSamples[
+                runtimeSampleKey(provider, { ...binding, connectionId: null })
+              ] ||
               state.csvSamples[provider.id] ||
               (config.sampleKey === "example"
                 ? { text: D.csvExample.text, fileName: config.fileName }
@@ -11159,8 +11397,8 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                   ". Its mapping is saved; file contents are not stored.",
               );
             if (
-              (sample.connectionId || provider.defaultConnection) !==
-              binding.connectionId
+              sample.connectionId &&
+              sample.connectionId !== binding.connectionId
             )
               throw Error(
                 "Supply a CSV sample for the selected connection using Reload sample.",
@@ -11224,6 +11462,9 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
             const configuration = provider.sourceConfiguration;
             const sample =
               state.providerSamples[runtimeSampleKey(provider, binding)] ||
+              state.providerSamples[
+                runtimeSampleKey(provider, { ...binding, connectionId: null })
+              ] ||
               state.providerSamples[provider.id + "@" + provider.version] ||
               (configuration.sampleKey
                 ? D.configurationSamples[configuration.sampleKey]
@@ -11236,8 +11477,8 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
               );
             const settings = C.clone(configuration.settings);
             if (
-              (sample.connectionId || provider.defaultConnection) !==
-              binding.connectionId
+              sample.connectionId &&
+              sample.connectionId !== binding.connectionId
             )
               throw Error(
                 "Supply a sample for the selected connection using Reload sample.",
@@ -11330,7 +11571,6 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                 "Configure this provider and load a source sample before previewing it.",
               );
             if (
-              binding.connectionId !== provider.defaultConnection ||
               provider.parameters.some(
                 (p) => binding.parameters[p.name] !== p.defaultValue,
               )
@@ -11340,7 +11580,7 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
               );
             const rows = fixture.rows.map((row) => ({
               ...row,
-              _lineage: { [binding.name]: row._ordinal },
+              [ROW.LINEAGE]: { [binding.name]: row._ordinal },
             }));
             result = sourcePreviewBudget(
               CF.good(C.clone(binding.schema || fixture.schema), rows),
@@ -11525,9 +11765,10 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
               include: true,
             })),
             ...right.columns.map((c) => {
+              // FR028: a colliding right-side name gets a visible, editable
+              // suggested prefix; nothing is renamed silently.
               let name = c.name;
-              if (name === "name" && used.has("portfolio")) name = "instrument";
-              else if (used.has(name)) name = "right_" + name;
+              while (used.has(name)) name = "right_" + name;
               used.add(name);
               return { side: "right", field: c.name, name, include: true };
             }),
@@ -11759,12 +12000,6 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                 ...(saved?.settings || {}),
               },
               fields: C.clone(saved?.mapping || []),
-              connectionId:
-                saved?.connectionId ||
-                p?.defaultConnection ||
-                state.connections.find((c) => compatibleConnection(c, format))
-                  ?.id ||
-                "",
               fileName:
                 saved?.fileName ||
                 p?.parameters.find((p) => p.name === "file")?.defaultValue ||
@@ -11927,6 +12162,9 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                   nullToken: "\\N",
                 },
               );
+              editor.engine = ENGINES.includes(snapshot?.engine)
+                ? snapshot.engine
+                : state.engine;
               const query = editor.stages.find((s) => s.id === "query");
               if (query) query.sql = snapshot?.sql || query.sql || D.sql;
               seedStageConfigurations(editor.stages);
@@ -12054,7 +12292,6 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                   id: options.provider.id,
                   version: options.provider.version,
                 },
-                connectionId: options.provider.defaultConnection,
                 name:
                   options.provider.parameters.find((p) => p.name === "file")
                     ?.defaultValue || editor.settings.name,
@@ -12122,7 +12359,6 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
                     : "src"),
               connectionId:
                 existing?.connectionId ||
-                p.defaultConnection ||
                 state.connections.find((c) => compatibleConnection(c, p.format))
                   ?.id ||
                 "",
@@ -12327,7 +12563,7 @@ ${destination ? ["generated", "hasDefault"].map((key) => `<td><input type='check
           const e = state.configEditor,
             s = e.settings;
           if (e.kind === "provider")
-            return `<div class='config-grid'>${configSelect("Source format", "format", e.format, ["JSON", "XML", "JDBC", "HTTP JSON"], true)}${configInput("Catalogue name", "name", e.name, { top: true, id: "provider-name" })}${configConnectionSelect(e.format, e.connectionId)}<div class='config-align-bottom'>${button("config-new-connection", "Configure connection", "database")}</div>${configInput("Source/result filename", "fileName", e.fileName, { top: true })}${configInput("Description", "description", e.description, { top: true })}</div>
+            return `<div class='config-grid'>${configSelect("Source format", "format", e.format, ["JSON", "XML", "JDBC", "HTTP JSON"], true)}${configInput("Catalogue name", "name", e.name, { top: true, id: "provider-name" })}${configInput("Source/result filename", "fileName", e.fileName, { top: true })}${configInput("Description", "description", e.description, { top: true })}</div>
 ${
   e.format === "JSON"
     ? configInput("Array member (blank for root array)", "member", s.member)
@@ -13065,8 +13301,6 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               const parent = e.returnTo;
               parent.connectionId = connection.id;
               parent.settings.connectionId = connection.id;
-              if (parent.format === "HTTP JSON")
-                parent.settings.endpoint = connection.location;
               state.configEditor = parent;
               render();
             } else navigate("sources");
@@ -13110,20 +13344,11 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               );
             if (
               state.providers.some(
-                (p) => p.id !== e.providerId && p.name === e.name,
+                (p) => p.id !== e.providerId && p.name.toLowerCase() === e.name.toLowerCase(),
               )
             )
               throw Error(
                 "That catalogue name already exists. Choose a new name.",
-              );
-            if (
-              !state.connections.some(
-                (c) =>
-                  c.id === e.connectionId && compatibleConnection(c, e.format),
-              )
-            )
-              throw Error(
-                "Choose or configure a compatible connection before saving the provider.",
               );
             const settings = C.clone(e.settings);
             delete settings.schemaId;
@@ -13169,7 +13394,6 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               schemaMode: "Declared",
               columns: e.preview.columns,
               parameters,
-              defaultConnection: e.connectionId,
               description:
                 e.description ||
                 e.format + " reader with configured field mapping.",
@@ -13179,7 +13403,6 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               available: true,
               sourceConfiguration: {
                 fileName: e.fileName,
-                connectionId: e.connectionId,
                 settings,
                 mapping: normalizedFields(e.fields),
                 sampleKey:
@@ -13189,7 +13412,6 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               },
             };
             state.providerSamples[provider.id + "@" + provider.version] = {
-              connectionId: e.connectionId,
               text: e.raw,
               fileName: e.fileName,
               captureParameters: e.parameters.map((p) => ({
@@ -13235,15 +13457,23 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             return;
           }
           if (e.kind === "pipeline") {
-            if (e.isNew && state.stages.length && state.pipelineId)
-              state.definitions.push({
-                id: uniqueId("pipeline-snapshot-"),
-                name: state.name,
-                kind: "Pipeline",
-                version: state.version,
-                description: "Saved pipeline configuration.",
-                icon: "workflow",
-                content: JSON.stringify(designSnapshot(), null, 2),
+            const renameChanges = [];
+            if (!e.isNew)
+              e.stages.forEach((stage, i) => {
+                const before = state.stages.find((s) => s.id === stage.id);
+                if (before && before.output !== stage.output)
+                  renameChanges.push(
+                    ...applyResultRename(
+                      e.stages,
+                      i,
+                      before.output,
+                      stage.output,
+                    ).map((change) => ({
+                      ...change,
+                      oldName: before.output,
+                      newName: stage.output,
+                    })),
+                  );
               });
             state.name = e.name;
             state.stages = C.clone(e.stages);
@@ -13251,6 +13481,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               hydrateBinding,
             );
             state.output = C.clone(e.outputSettings || state.output);
+            if (ENGINES.includes(e.engine)) state.engine = e.engine;
             state.finalResult = e.settings.finalResult;
             const output = state.stages.find((s) => s.kind === "Output");
             if (output) output.input = e.settings.finalResult;
@@ -13297,6 +13528,8 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             }
             navigate("workspace");
             toast("Pipeline inputs and final result configured.");
+            if (renameChanges.length)
+              openModal("renamed-sql", { changes: renameChanges });
             return;
           }
           if (e.stageId) {
@@ -13341,13 +13574,21 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
                   state.minimumUnits = Number(parameter.value);
               }
             }
-            if (oldOutput !== stage.output)
-              for (const next of state.stages)
-                for (const key of ["input", "leftInput", "rightInput"])
-                  if (next[key] === oldOutput) next[key] = stage.output;
+            const changes = applyResultRename(
+              state.stages,
+              state.stages.indexOf(stage),
+              oldOutput,
+              stage.output,
+            );
             markDirty();
             navigate("workspace");
             toast("Stage configuration saved.");
+            if (changes.length)
+              openModal("renamed-sql", {
+                changes,
+                oldName: oldOutput,
+                newName: stage.output,
+              });
             return;
           }
           if (e.kind === "schema") {
@@ -13398,7 +13639,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
                 throw Error(
                   "Use a category and view name such as Views.MyQuery.",
                 );
-              const prior = state.providers.find((p) => p.name === e.name);
+              const prior = state.providers.find((p) => p.name.toLowerCase() === e.name.toLowerCase());
               if (prior && prior.kind !== "View")
                 throw Error("That name belongs to a reader or writer.");
             }
@@ -13419,7 +13660,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
                 throw Error(
                   "Use a category and view name such as Views.MyQuery.",
                 );
-              const prior = state.providers.find((p) => p.name === e.name);
+              const prior = state.providers.find((p) => p.name.toLowerCase() === e.name.toLowerCase());
               if (prior && prior.kind !== "View")
                 throw Error("That name belongs to a reader or writer.");
               const provider = {
@@ -13545,7 +13786,31 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             return true;
           }
           if (action === "new-pipeline") {
+            // FR037: unsaved changes are saved or discarded on request, never
+            // stored implicitly.
+            if (state.stages.length && state.dirty) openModal("unsaved-pipeline");
+            else openConfiguration("pipeline", { isNew: true });
+            return true;
+          }
+          if (action === "discard-pipeline-draft") {
+            const saved = C.clone(savedRevision);
+            for (const key of [
+              "name",
+              "version",
+              "pipelineId",
+              "sql",
+              "stages",
+              "output",
+              "finalResult",
+            ])
+              state[key] = C.clone(saved[key] ?? emptyDesign()[key]);
+            if (ENGINES.includes(saved.engine)) state.engine = saved.engine;
+            state.sources = C.clone(saved.bindings || []).map(hydrateBinding);
+            state.dirty = false;
+            seedStageConfigurations();
+            persist();
             openConfiguration("pipeline", { isNew: true });
+            toast("Unsaved changes discarded.", "info");
             return true;
           }
           if (action === "config-binding") {
@@ -13938,9 +14203,6 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               e.rawTable = null;
               e.fields = [];
               e.parameters = [];
-              e.connectionId =
-                state.connections.find((c) => compatibleConnection(c, value))
-                  ?.id || "";
               rerender = true;
             }
             if (top === "input") {
@@ -13952,10 +14214,6 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             if (top === "connectionId") {
               if (e.kind === "binding" || e.kind === "output")
                 e.settings.connectionId = value;
-              if (e.kind === "provider" && e.format === "HTTP JSON")
-                e.settings.endpoint =
-                  state.connections.find((c) => c.id === value)?.location ||
-                  e.settings.endpoint;
             }
           }
           if (setting) {
@@ -14122,7 +14380,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             providerId: provider.id,
             providerVersion: provider.version,
             providerSnapshot: C.clone(provider),
-            connectionId: provider.defaultConnection,
+            connectionId: null,
             schema: C.clone(provider.columns),
             parameters: Object.fromEntries(
               editor.parameters.map((parameter, index) => [
@@ -14216,7 +14474,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             provider.csvMapping?.mappings ||
             provider.sourceConfiguration.mapping;
           return `<h2>${E(provider.name)}</h2><p>Load records for this existing reader contract. Its parsing settings, field mapping, and pipeline bindings are retained. Sample contents stay in this tab.</p>
-<div class='detail-fields'><div class='detail-field'><span>Connection</span><strong>${E(state.connections.find((connection) => connection.id === binding.connectionId)?.name || binding.connectionId)}</strong></div><div class='detail-field'><span>Expected filename</span><strong>${E(editor.fileName || "Recorded result/response")}</strong></div></div>
+<div class='detail-fields'><div class='detail-field'><span>Connection</span><strong>${E(state.connections.find((connection) => connection.id === binding.connectionId)?.name || "Any connection (reader sample)")}</strong></div><div class='detail-field'><span>Expected filename</span><strong>${E(editor.fileName || "Recorded result/response")}</strong></div></div>
 ${
   editor.bindingId
     ? `<h3>Bound parameters</h3>${Object.entries(binding.parameters)
@@ -14367,7 +14625,11 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           const samples = provider.csvMapping
             ? state.csvSamples
             : state.providerSamples;
-          const exact = samples[runtimeSampleKey(provider, binding)];
+          // A sample reloaded for the reader itself has no connection and
+          // serves any binding with the same parameter values.
+          const exact =
+            samples[runtimeSampleKey(provider, binding)] ||
+            samples[runtimeSampleKey(provider, { ...binding, connectionId: null })];
           if (exact) return exact;
           const base =
             samples[
@@ -14377,8 +14639,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             ];
           if (
             !base ||
-            (base.connectionId || provider.defaultConnection) !==
-              binding.connectionId
+            (base.connectionId && base.connectionId !== binding.connectionId)
           )
             return null;
           if (
