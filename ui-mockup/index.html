@@ -21,6 +21,7 @@ Version 1.4.0
         --ink: #1b2d47;
         --muted: #68778b;
         --line: #e1e7ef;
+        --panel-line: #9aa9be;
         --soft: #f4f7fb;
         --white: #fff;
         --blue: #2c60ce;
@@ -554,7 +555,7 @@ Version 1.4.0
       }
       .card {
         background: #fff;
-        border: 1px solid var(--line);
+        border: 2px solid var(--panel-line);
         border-radius: var(--radius);
       }
       .card-heading {
@@ -2375,7 +2376,7 @@ Version 1.4.0
         font-size: 12px;
       }
       @media (max-width: 720px) {
-        .breadcrumb > span:first-child {
+        .context-switch > span {
           display: none;
         }
         .global-header {
@@ -2466,6 +2467,35 @@ Version 1.4.0
       }
       .explorer .provider-group {
         padding: 14px 10px 0;
+      }
+      .browser-group > summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        list-style: none;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        padding: 4px 4px 6px;
+        border-radius: 5px;
+      }
+      .browser-group > summary::-webkit-details-marker {
+        display: none;
+      }
+      .browser-group > summary:hover {
+        background: var(--soft);
+      }
+      .browser-group > summary strong {
+        flex: 1;
+        overflow-wrap: anywhere;
+      }
+      .browser-group > summary > .icon {
+        width: 15px;
+        height: 15px;
+      }
+      .browser-group:not([open]) > summary > .icon:last-child {
+        transform: rotate(-90deg);
       }
       .provider-tree-item {
         display: flex;
@@ -3242,26 +3272,71 @@ Version 1.4.0
         }
       }
 
-      .context-bar {
-        display: flex;
-        align-items: end;
-        gap: 16px;
-        padding: 12px 28px;
-        background: #fff;
-        border-bottom: 1px solid var(--line);
-        flex-wrap: wrap;
+      /* Context switcher: the header shows the current context; its menu
+         holds the organisation, namespace and workspace selectors. */
+      .global-header {
+        position: relative;
       }
-      .context-bar label {
+      .context-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        padding: 4px 9px;
+        border: 1px solid #34496a;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--nav-muted);
+        font: inherit;
+        cursor: pointer;
+      }
+      .context-switch:hover:not(:disabled),
+      .context-switch[aria-expanded="true"] {
+        border-color: #5a7092;
+        color: #fff;
+      }
+      .context-switch:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+      .context-switch .icon {
+        width: 15px;
+        height: 15px;
+      }
+      .context-switch > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .context-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 25px;
+        z-index: 60;
+        width: min(340px, calc(100vw - 32px));
+        display: grid;
+        gap: 12px;
+        padding: 14px;
+        background: #fff;
+        color: var(--ink);
+        border: 2px solid var(--panel-line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+      .context-menu[hidden] {
+        display: none;
+      }
+      .context-menu h2 {
+        font-size: 14px;
+      }
+      .context-menu label {
         display: grid;
         gap: 5px;
         font-size: 11px;
         color: var(--muted);
         font-weight: 600;
-        min-width: 160px;
-        max-width: 260px;
-        flex: 1;
       }
-      .context-bar select {
+      .context-menu select {
         width: 100%;
         font-size: 13px;
         color: var(--ink);
@@ -3270,10 +3345,13 @@ Version 1.4.0
         padding: 8px;
         background: #fff;
       }
-      .context-divider {
-        height: 40px;
-        border-left: 1px solid var(--line);
-        margin: 0 6px;
+      .context-menu hr {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 0;
+      }
+      .context-menu .btn {
+        justify-self: start;
       }
       .structure-main,
       .scope-empty {
@@ -3316,6 +3394,77 @@ Version 1.4.0
         flex-wrap: wrap;
         min-width: 230px;
       }
+      .structure-tree,
+      .structure-tree ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .structure-tree ul {
+        margin-left: 14px;
+        padding-left: 16px;
+        border-left: 2px solid var(--line);
+      }
+      .structure-tree > li + li {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+      }
+      .tree-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 6px;
+        border-radius: 6px;
+      }
+      .tree-row:hover {
+        background: var(--soft);
+      }
+      .tree-row:not(:has(.tree-toggle)) {
+        padding-left: 44px;
+      }
+      .tree-toggle .icon {
+        transition: transform 0.15s;
+      }
+      .tree-toggle[aria-expanded="false"] .icon {
+        transform: rotate(-90deg);
+      }
+      .tree-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+      }
+      .tree-label > .icon {
+        width: 16px;
+        height: 16px;
+        margin-top: 2px;
+        color: var(--blue);
+        flex-shrink: 0;
+      }
+      .tree-label strong {
+        margin-right: 6px;
+      }
+      .tree-label small {
+        display: block;
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      .tree-organisation .tree-label strong {
+        font-size: 15px;
+      }
+      .tree-branch .tree-label strong {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .tree-empty {
+        padding: 5px 6px 5px 44px;
+        font-size: 12px;
+        color: var(--muted);
+      }
       .structure-reason {
         display: block;
         width: 100%;
@@ -3352,9 +3501,9 @@ Version 1.4.0
       }
       .catalogue-category {
         grid-column: 1/-1;
-        border: 1px solid var(--line);
+        border: 2px solid #9aa9be;
         border-radius: 10px;
-        margin: 12px 0;
+        margin: 8px 0;
         background: #fff;
         overflow: hidden;
       }
@@ -3364,7 +3513,7 @@ Version 1.4.0
         gap: 12px;
         cursor: pointer;
         list-style: none;
-        padding: 18px 20px;
+        padding: 10px 14px;
         background: var(--soft);
       }
       .catalogue-category > summary::-webkit-details-marker {
@@ -3378,16 +3527,40 @@ Version 1.4.0
         transform: rotate(-90deg);
       }
       .catalogue-category-content {
-        padding: 18px;
+        padding: 12px;
       }
       .catalogue-cards {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
       }
       .catalogue-cards .provider-card {
-        border: 1px solid var(--line);
+        border: 2px solid #9aa9be;
         box-shadow: none;
+        padding: 13px 14px;
+      }
+      /* Tighter catalogue cards: more entries per screen. */
+      .catalogue-cards .provider-card-top {
+        margin-bottom: 9px;
+      }
+      .catalogue-cards .provider-card h3 {
+        font-size: 15px;
+        margin-bottom: 5px;
+      }
+      .catalogue-cards .provider-card p {
+        font-size: 13px;
+        line-height: 1.45;
+        min-height: 38px;
+      }
+      .catalogue-cards .provider-meta {
+        margin-top: 9px;
+      }
+      .catalogue-cards .provider-contract {
+        gap: 3px;
+        margin: 9px 0;
+      }
+      .catalogue-cards .provider-card .btn + .btn {
+        margin-top: 6px;
       }
       .catalogue-category .config-scroll {
         margin: 0;
@@ -3404,6 +3577,30 @@ Version 1.4.0
         color: var(--muted);
         margin: 6px 0;
         max-width: 400px;
+      }
+      .connection-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .source-list td {
+        vertical-align: middle;
+      }
+      .source-list td:first-child {
+        min-width: 220px;
+      }
+      .source-list td:first-child small {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin: 4px 0;
+        max-width: 400px;
+        white-space: normal;
+      }
+      .source-list .config-scroll {
+        margin: 0;
+        background: #fff;
       }
       .catalogue-name {
         border: 0;
@@ -3439,16 +3636,8 @@ Version 1.4.0
         margin: 0;
       }
       @media (max-width: 900px) {
-        .context-bar {
-          padding: 12px 16px;
-          gap: 10px;
-        }
-        .context-divider {
-          display: none;
-        }
-        .context-bar label {
-          min-width: 150px;
-          max-width: none;
+        .context-menu {
+          left: 16px;
         }
         .structure-main {
           padding: 16px;
@@ -3677,6 +3866,219 @@ Version 1.4.0
         inset: 0;
         z-index: 2147482000;
         cursor: progress;
+      }
+      /* Prominent panel borders and compact spacing on every page except
+         the workbench, whose spacing is unchanged. Last in the sheet so it
+         also wins over the responsive rules above. */
+      .stat-box,
+      .catalogue-category,
+      .catalogue-cards .provider-card {
+        border: 2px solid var(--panel-line);
+      }
+      .page:not(:has(.workbench)) {
+        padding: 14px 18px 12px;
+      }
+      .page:not(:has(.workbench)) .page-heading {
+        margin-bottom: 12px;
+      }
+      .page:not(:has(.workbench)) .page-heading p {
+        margin-top: 3px;
+      }
+      .page:not(:has(.workbench)) .card-heading {
+        padding: 10px 14px;
+      }
+      .page:not(:has(.workbench)) .section-toolbar {
+        margin-bottom: 10px;
+      }
+      .page:not(:has(.workbench)) th {
+        padding: 7px 10px;
+      }
+      .page:not(:has(.workbench)) td {
+        padding: 6px 10px;
+      }
+      .content-note {
+        padding: 8px 0;
+        line-height: 1.5;
+      }
+      /* Pipelines and Run history counts. */
+      .stat-grid {
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .stat-box {
+        padding: 10px 14px;
+      }
+      .stat-box p {
+        margin-bottom: 4px;
+      }
+      .stat-box strong {
+        font-size: 22px;
+      }
+      /* Definition library and Connections cards. */
+      .definition-grid {
+        gap: 10px;
+      }
+      .definition-card {
+        padding: 13px 14px 11px;
+      }
+      .definition-top {
+        margin-bottom: 10px;
+      }
+      .source-card {
+        padding: 13px 14px;
+      }
+      .source-card-head {
+        margin-bottom: 10px;
+      }
+      .source-card p {
+        line-height: 1.45;
+        min-height: 38px;
+      }
+      .source-card .key-value {
+        margin-top: 8px;
+      }
+      .source-card .btn {
+        margin-top: 12px;
+      }
+      /* CSV reader. */
+      .csv-workspace {
+        gap: 14px;
+      }
+      .csv-step-nav {
+        gap: 5px;
+      }
+      .csv-step {
+        padding: 10px 11px;
+      }
+      .csv-step strong {
+        font-size: 15px;
+        margin: 2px 0 4px;
+      }
+      .csv-step small {
+        line-height: 1.45;
+      }
+      .csv-main {
+        gap: 12px;
+      }
+      .csv-section {
+        padding: 15px;
+      }
+      .csv-section-heading {
+        gap: 14px;
+        margin-bottom: 12px;
+      }
+      .csv-section-heading h2 {
+        font-size: 18px;
+      }
+      .csv-section-heading p {
+        font-size: 14px;
+        line-height: 1.5;
+        margin-top: 4px;
+      }
+      /* Full-page configuration. */
+      .config-workspace {
+        gap: 14px;
+      }
+      .config-navigation {
+        gap: 5px;
+      }
+      .config-navigation button {
+        padding: 9px 11px;
+      }
+      .config-main {
+        padding: 16px;
+      }
+      .config-main h2 {
+        margin: 0 0 10px;
+      }
+      .config-main p {
+        line-height: 1.5;
+      }
+      .config-grid {
+        gap: 12px;
+        margin: 12px 0;
+      }
+      .config-main .form-label {
+        margin-bottom: 10px;
+      }
+      .config-footer {
+        margin: 14px 0 8px;
+        padding-top: 12px;
+      }
+      .config-scroll {
+        margin: 10px 0;
+      }
+      .config-main pre {
+        padding: 10px;
+      }
+      .config-counts {
+        gap: 8px;
+        margin: 12px 0;
+      }
+      .config-counts div {
+        padding: 8px 10px;
+      }
+      .config-input-scope {
+        padding: 10px;
+        gap: 10px;
+      }
+      /* Organisation structure and empty namespace. */
+      .structure-main,
+      .scope-empty {
+        padding: 16px;
+      }
+      .structure-main h2,
+      .scope-empty h2 {
+        font-size: 18px;
+        margin: 0 0 10px;
+      }
+      .structure-main p,
+      .scope-empty p {
+        line-height: 1.5;
+      }
+      .management-nav {
+        margin: 0 0 12px;
+      }
+      /* Top bar: the header shares the sidebar's navy. */
+      .global-header {
+        background: var(--nav);
+        border-bottom-color: #2b4161;
+      }
+      .breadcrumb,
+      .session-user,
+      .prototype-badge {
+        color: var(--nav-muted);
+      }
+      .breadcrumb strong,
+      .session-user strong {
+        color: #fff;
+      }
+      .breadcrumb .icon {
+        color: #7088a8;
+      }
+      .global-header .btn.subtle {
+        color: var(--nav-muted);
+      }
+      .global-header .btn.subtle:hover {
+        background: #1f3555;
+        color: #fff;
+      }
+      .command-button {
+        background: #1b2f4e;
+        border-color: #34496a;
+        color: var(--nav-muted);
+      }
+      .command-button:hover {
+        border-color: #5a7092;
+        color: #fff;
+      }
+      .global-header .keycap {
+        background: transparent;
+        border-color: #4a5f80;
+        color: var(--nav-muted);
+      }
+      .prototype-badge:before {
+        background: #5b6f8e;
       }
     </style>
   </head>
@@ -6700,13 +7102,13 @@ Version 1.4.0
           cancel: "cancelling runs",
         };
         const READ_ACTIONS = new Set([
-          "backdrop-close", "catalog-mobile", "catalogue-mode", "catalogue-page", "close-modal",
+          "backdrop-close", "catalog-mobile", "catalogue-mode", "catalogue-page", "close-modal", "connection-mode", "context-menu",
           "command", "config-back", "config-section", "connection-detail", "definition",
           "editor-mode", "explorer-tab", "guide", "inspect-stage-result", "library-filter",
           "manage-structure", "navigate", "open-provider-directory", "open-workspace",
           "provider-detail", "provider-filter", "provider-section", "result-tab", "row-detail",
           "run-detail", "select-stage", "show-issues", "sort-result", "source-detail",
-          "source-toggle", "structure-cancel", "structure-open", "versions", "sign-in", "sign-out",
+          "source-toggle", "structure-cancel", "structure-open", "structure-tree-toggle", "versions", "sign-in", "sign-out",
         ]);
         const ACTION_PERMISSIONS = {
           preview: ["run-pipeline", "preview-stage", "config-preview", "csv-preview", "validate-query"],
@@ -6793,6 +7195,7 @@ Version 1.4.0
           table: "M3 4h18v16H3z M3 10h18 M9 10v10 M15 10v10",
           code: "m8 7-5 5 5 5 M16 7l5 5-5 5 M14 4l-4 16",
           sliders: "M4 6h16 M4 12h16 M4 18h16 M8 3v6 M16 9v6 M10 15v6",
+          menu: "M4 6h16 M4 12h16 M4 18h16",
           join: "M8 4H3v6h5z M21 14h-5v6h5z M8 7h4v10h4 M12 12h6V4",
           shield: "m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6z m-4 9 3 3 5-6",
           upload: "M12 16V3 m-5 5 5-5 5 5 M4 15v6h16v-6",
@@ -6852,6 +7255,8 @@ Version 1.4.0
           "catalogueConnector",
           "catalogueCollapsed",
           "cataloguePages",
+          "browserCollapsed",
+          "connectionMode",
         ];
         let structureCounter = 0;
         const runtimeScopeData = new Map();
@@ -7270,6 +7675,8 @@ Version 1.4.0
             catalogueConnector: "All",
             catalogueCollapsed: {},
             cataloguePages: {},
+            browserCollapsed: {},
+            connectionMode: "cards",
             ...context.preferences,
           };
           for (const key of sessionStateKeys)
@@ -7426,6 +7833,9 @@ Version 1.4.0
           catalogueCollapsed: saved?._preferences?.catalogueCollapsed || {},
           catalogueSearchCollapsed: {},
           cataloguePages: saved?._preferences?.cataloguePages || {},
+          browserCollapsed: saved?._preferences?.browserCollapsed || {},
+          browserSearchCollapsed: {},
+          connectionMode: saved?._preferences?.connectionMode || "cards",
           configEditor: null,
           providerSamples: {},
           operationSettings:
@@ -7608,7 +8018,8 @@ Version 1.4.0
             catalog: "Definition library",
             runs: "Run history",
           }[state.view];
-          return `${contextControls()}<header class='global-header'><div class='breadcrumb'><span>${E(activeOrganisation().name)} / ${E(activeNamespace().name)}</span>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div><div class='global-actions'><span class='session-user' data-session-user>Signed in as <strong>${E(state.session.name)}</strong><label class='role-switch'><span>Role</span><select id='role-select' aria-label='Role (simulated sign-in)'>${ROLES.map((role) => `<option ${state.session.role === role ? "selected" : ""}>${role}</option>`).join("")}</select></label>${button("sign-out", "Sign out", null, "small subtle")}</span><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>${roleNotice()}`;
+          const context = `${activeOrganisation().name} / ${activeNamespace().name} / ${activeDesignWorkspace().name}`;
+          return `<header class='global-header'><div class='breadcrumb'><button type='button' class='context-switch' data-action='context-menu' aria-haspopup='dialog' aria-expanded='false' aria-controls='context-menu' aria-label='Context: ${E(context)}. Change organisation, namespace or design workspace' title='Change organisation, namespace or design workspace' ${state.running || state.hierarchyEditor ? "disabled" : ""}>${icon("menu")}<span>${E(context)}</span></button>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div>${contextControls()}<div class='global-actions'><span class='session-user' data-session-user>Signed in as <strong>${E(state.session.name)}</strong><label class='role-switch'><span>Role</span><select id='role-select' aria-label='Role (simulated sign-in)'>${ROLES.map((role) => `<option ${state.session.role === role ? "selected" : ""}>${role}</option>`).join("")}</select></label>${button("sign-out", "Sign out", null, "small subtle")}</span><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>${roleNotice()}`;
         }
         function roleNotice() {
           const missing = ["edit", "preview", "execute", "publish", "administer"].filter(
@@ -9356,9 +9767,32 @@ Version 1.4.0
           }
         }
         let eventTarget = null;
+        // The context menu closes on an outside click, Escape, or any
+        // render (a completed switch re-renders the page).
+        function setContextMenu(open) {
+          const menu = document.getElementById("context-menu"),
+            toggle = document.querySelector(".context-switch");
+          if (!menu || !toggle) return;
+          menu.hidden = !open;
+          toggle.setAttribute("aria-expanded", String(open));
+          if (open) menu.querySelector("select:not(:disabled)")?.focus();
+        }
+        listen(document, "click", (event) => {
+          const menu = document.getElementById("context-menu");
+          if (
+            menu &&
+            !menu.hidden &&
+            !event.target.closest("#context-menu, .context-switch")
+          )
+            setContextMenu(false);
+        });
         listen(document, "click", (event) => {
           const node = event.target.closest("[data-action]");
           if (!node || node.disabled) return;
+          if (node.dataset.action === "context-menu") {
+            setContextMenu(document.getElementById("context-menu")?.hidden);
+            return;
+          }
           if (node.dataset.action === "sign-in") {
             const name =
               document.getElementById("sign-in-name").value.trim() || "Demo User";
@@ -9444,6 +9878,7 @@ Version 1.4.0
             }
           } else if (el.dataset.browserSearch === "true") {
             state.sourceSearch = el.value;
+            state.browserSearchCollapsed = {};
             el
               .closest(".explorer")
               .querySelector("[data-browser-items]").innerHTML =
@@ -9625,6 +10060,15 @@ Version 1.4.0
           }
         });
         listen(document, "keydown", (event) => {
+          if (
+            event.key === "Escape" &&
+            document.getElementById("context-menu")?.hidden === false
+          ) {
+            event.preventDefault();
+            setContextMenu(false);
+            document.querySelector(".context-switch")?.focus();
+            return;
+          }
           if (event.key === "Escape" && state.modal) {
             event.preventDefault();
             closeModal();
@@ -9777,6 +10221,23 @@ Version 1.4.0
               ),
             ),
           ].sort();
+          // The data browser's categories collapse like the catalogue's:
+          // while searching, every category opens unless collapsed during
+          // that search; a collapsed category renders none of its entries.
+          if (compact)
+            return groups
+              .map((group) => {
+                const entries = providers.filter(
+                    (p) =>
+                      (p.name.split(".").slice(0, -1).join(".") ||
+                        "Providers") === group,
+                  ),
+                  collapsed = search
+                    ? state.browserSearchCollapsed[group]
+                    : state.browserCollapsed[group];
+                return `<details class='provider-group browser-group' data-browser-group='${E(group)}' data-namespace='${E(scopeModel.activeNamespaceId)}' ${collapsed ? "" : "open"}><summary>${icon("folder")}<strong>${E(group)}</strong>${badge(String(entries.length), "outline")}${icon("down")}</summary>${collapsed ? "" : `<div class='browser-group-items'>${entries.map((p) => `<button class='provider-tree-item' data-action='provider-detail' data-id='${E(p.id)}'>${icon(p.kind === "View" ? "code" : p.kind === "Writer" ? "upload" : "database")}<span><strong>${E(p.name.split(".").at(-1))}</strong><small>${E(p.kind)} · v${p.version}${p.available ? "" : " · unavailable"}</small></span>${p.kind === "Writer" ? badge("Write", "amber") : ""}</button>`).join("")}</div>`}</details>`;
+              })
+              .join("");
           return groups
             .map(
               (group) =>
@@ -9851,17 +10312,21 @@ ${state.expanded[s.id] ? `<div class='tree-columns'>${s.schema.map((f) => `<butt
 
         function sourcesPage() {
           return `${heading("Connections", "Manage endpoint settings and credential references independently of provider contracts.", button("new-source", "New connection", "plus", "primary"))}
-<div class='section-toolbar'><span class='secondary'>${state.connections.length} example connections · no live systems connected</span><div class='search-field'>${icon("search")}<input id='sources-filter' value='${E(state.sourceFilter)}' placeholder='Search connections…' aria-label='Search connections'></div></div><div class='source-grid' id='source-grid'>${sourceCards()}</div>
+<div class='section-toolbar'><span class='secondary'>${state.connections.length} example connections · no live systems connected</span><div class='connection-tools'><div class='catalogue-view-switch' aria-label='Connections view'>${["cards", "list"].map((mode) => button("connection-mode", mode === "cards" ? "Cards" : "List", mode === "cards" ? "grid" : "table", "small " + (state.connectionMode === mode ? "primary" : ""), `data-mode='${mode}' aria-pressed='${state.connectionMode === mode}'`)).join("")}</div><div class='search-field'>${icon("search")}<input id='sources-filter' value='${E(state.sourceFilter)}' placeholder='Search connections…' aria-label='Search connections'></div></div></div><div class='${state.connectionMode === "list" ? "source-list" : "source-grid"}' id='source-grid'>${sourceCards()}</div>
 <p class='content-note'>${icon("info")}Connection definitions contain endpoint metadata and credential references. Data records and processing rules belong to their own scopes.</p>`;
         }
         function sourceCards() {
+          const connections = state.connections.filter((c) =>
+            `${c.name} ${c.connector}`
+              .toLowerCase()
+              .includes(state.sourceFilter.toLowerCase()),
+          );
+          if (state.connectionMode === "list")
+            return connections.length
+              ? `<div class='config-scroll'><table aria-label='Connections'><thead><tr><th>Name</th><th>Connector</th><th>Endpoint</th><th>Credential reference</th><th>Actions</th></tr></thead><tbody>${connections.map((c) => `<tr><td><button class='catalogue-name' data-action='connection-detail' data-id='${E(c.id)}'>${E(c.name)}</button><small>${E(c.description)}</small></td><td>${badge(c.connector, "outline")}</td><td class='mono'>${E(c.location)}</td><td>${E(c.credentialRef || "None")}</td><td>${button("connection-detail", "Inspect", "eye", "small subtle", `data-id='${E(c.id)}'`)}</td></tr>`).join("")}</tbody></table></div>`
+              : `<div class='empty-state'><p>No matching connections.</p></div>`;
           return (
-            state.connections
-              .filter((c) =>
-                `${c.name} ${c.connector}`
-                  .toLowerCase()
-                  .includes(state.sourceFilter.toLowerCase()),
-              )
+            connections
               .map(
                 (c) =>
                   `<article class='card source-card connection-card'><div class='source-card-head'><span class='type-tile'>${icon("database")}</span>${badge(c.connector, "outline")}</div><h3>${E(c.name)}</h3><p>${E(c.description)}</p><div class='key-value'><span>Endpoint</span><strong class='mono'>${E(c.location)}</strong></div><div class='key-value'><span>Credential reference</span><strong>${E(c.credentialRef || "None")}</strong></div>${button("connection-detail", "Inspect connection", "eye", "", `data-id='${E(c.id)}'`)}</article>`,
@@ -14682,7 +15147,8 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
         function contextControls() {
           const disabled =
             state.running || state.hierarchyEditor ? "disabled" : "";
-          return `<div class='context-bar' aria-label='Organisation and editing context'><label>Organisation<select id='scope-organisation' ${disabled}>${scopeModel.organisations.map((item) => `<option value='${E(item.id)}' ${item.id === scopeModel.activeOrganisationId ? "selected" : ""}>${E(item.name)}</option>`).join("")}</select></label><label>Namespace · owns resources<select id='scope-namespace' ${disabled}>${scopeModel.namespaces
+          // Kept in the page while closed, so the selectors always exist.
+          return `<div class='context-menu' id='context-menu' role='dialog' aria-label='Organisation and editing context' hidden><h2>Change context</h2><label>Organisation<select id='scope-organisation' ${disabled}>${scopeModel.organisations.map((item) => `<option value='${E(item.id)}' ${item.id === scopeModel.activeOrganisationId ? "selected" : ""}>${E(item.name)}</option>`).join("")}</select></label><label>Namespace · owns resources<select id='scope-namespace' ${disabled}>${scopeModel.namespaces
             .filter(
               (item) => item.organisationId === scopeModel.activeOrganisationId,
             )
@@ -14692,7 +15158,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             )
             .join(
               "",
-            )}</select></label><span class='context-divider'></span><label>Design workspace · editing session<select id='scope-workspace' ${disabled}>${scopeModel.workspaces
+            )}</select></label><hr><label>Design workspace · editing session<select id='scope-workspace' ${disabled}>${scopeModel.workspaces
             .filter(
               (item) => item.organisationId === scopeModel.activeOrganisationId,
             )
@@ -14773,13 +15239,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             }[kind];
           let body = "";
           if (state.hierarchyEditor) body = structureForm();
-          else if (kind === "organisations")
-            body = `<table class='list-table' aria-label='Organisations'><thead><tr><th>Name</th><th>Namespaces</th><th>Design workspaces</th><th>Actions</th></tr></thead><tbody>${scopeModel.organisations
-              .map((item) => {
-                const issue = deletionIssue(kind, item.id);
-                return `<tr><td><strong>${E(item.name)}</strong>${item.id === scopeModel.activeOrganisationId ? badge("Current", "blue") : ""}<small>${E(item.description || "")}</small></td><td>${scopeModel.namespaces.filter((ns) => ns.organisationId === item.id).length}</td><td>${scopeModel.workspaces.filter((workspace) => workspace.organisationId === item.id).length}</td><td>${structureRowActions(kind, item, !issue, issue)}</td></tr>`;
-              })
-              .join("")}</tbody></table>`;
+          else if (kind === "organisations") body = structureTree();
           else if (kind === "namespaces")
             body = `<p>Owned by <strong>${E(activeOrganisation().name)}</strong>. Catalogue entries, connections, definitions, pipelines, execution settings, and run history belong to their namespace.</p><table class='list-table' aria-label='Namespaces'><thead><tr><th>Name</th><th>Resources</th><th>Editing sessions</th><th>Actions</th></tr></thead><tbody>${scopeModel.namespaces
               .filter(
@@ -14807,6 +15267,61 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               })
               .join("")}</tbody></table>`;
           return `${heading("Manage " + (kind === "workspaces" ? "design workspaces" : kind), "Organisation → Namespace → resources. Design workspaces manage editing sessions.", state.hierarchyEditor ? "" : button("structure-new", "New " + singular, "plus", "primary", `data-kind='${kind}'`))}${managementNav()}<section class='card structure-main'>${state.hierarchyError ? `<div class='config-error' role='alert'>${E(state.hierarchyError)}</div>` : ""}${state.hierarchyDelete ? structureDeleteReview() : body}</section>`;
+        }
+        // Organisations as a tree. Namespaces and design workspaces are both
+        // owned by the organisation, so they are sibling branches; a
+        // workspace only references the namespace it has selected.
+        function structureTree() {
+          const collapsed = (state.structureTreeCollapsed ||= {}),
+            toggle = (key, label) =>
+              `<button type='button' class='icon-btn tree-toggle' data-action='structure-tree-toggle' data-key='${E(key)}' aria-label='${collapsed[key] ? "Expand" : "Collapse"} ${E(label)}' aria-expanded='${!collapsed[key]}'>${icon("down")}</button>`,
+            row = (kind, item, iconName, current, meta) => {
+              const issue = deletionIssue(kind, item.id);
+              return `<span class='tree-label'>${icon(iconName)}<span><strong>${E(item.name)}</strong>${current ? badge("Current", "blue") : ""}<small>${E(meta)}${item.description ? " · " + E(item.description) : ""}</small></span></span>${structureRowActions(kind, item, !issue, issue)}`;
+            };
+          return `<ul class='structure-tree' role='tree' aria-label='Organisations'>${scopeModel.organisations
+            .map((org) => {
+              const namespaces = scopeModel.namespaces.filter(
+                  (ns) => ns.organisationId === org.id,
+                ),
+                workspaces = scopeModel.workspaces.filter(
+                  (ws) => ws.organisationId === org.id,
+                ),
+                orgKey = "org:" + org.id,
+                nsKey = "ns:" + org.id,
+                wsKey = "ws:" + org.id,
+                branch = (key, label, iconName, items) =>
+                  `<li role='treeitem' aria-expanded='${!collapsed[key]}'><div class='tree-row tree-branch'>${toggle(key, label)}<span class='tree-label'>${icon(iconName)}<span><strong>${label}</strong>${badge(String(items.length), "outline")}</span></span></div>${collapsed[key] ? "" : `<ul role='group'>${items.join("") || `<li class='tree-empty'>None</li>`}</ul>`}</li>`;
+              return `<li role='treeitem' aria-expanded='${!collapsed[orgKey]}'><div class='tree-row tree-organisation'>${toggle(orgKey, org.name)}${row("organisations", org, "grid", org.id === scopeModel.activeOrganisationId, `${namespaces.length} namespaces · ${workspaces.length} design workspaces`)}</div>${
+                collapsed[orgKey]
+                  ? ""
+                  : `<ul role='group'>${branch(
+                      nsKey,
+                      "Namespaces",
+                      "folder",
+                      namespaces.map((ns) => {
+                        const counts = namespaceCounts(ns.id),
+                          referencing = workspaces.filter(
+                            (ws) =>
+                              scopeModel.sessions[ws.id]?.namespaceId === ns.id,
+                          ).length;
+                        return `<li role='treeitem'><div class='tree-row'>${row("namespaces", ns, "database", ns.id === scopeModel.activeNamespaceId, `${counts.providers} catalogue · ${counts.connections} connections · ${counts.definitions} definitions · ${counts.runs} runs · ${referencing} design workspaces referencing`)}</div></li>`;
+                      }),
+                    )}${branch(
+                      wsKey,
+                      "Design workspaces",
+                      "code",
+                      workspaces.map((ws) => {
+                        const namespace = scopeModel.namespaces.find(
+                          (ns) =>
+                            ns.id === scopeModel.sessions[ws.id]?.namespaceId,
+                        );
+                        return `<li role='treeitem'><div class='tree-row'>${row("workspaces", ws, "workflow", ws.id === scopeModel.activeWorkspaceId, `Selected namespace: ${namespace?.name || "default"} · ${workspacePending(ws.id)} unsaved`)}</div></li>`;
+                      }),
+                    )}</ul>`
+              }</li>`;
+            })
+            .join("")}</ul>`;
         }
         function structureForm() {
           const editor = state.hierarchyEditor,
@@ -15066,11 +15581,18 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               "structure-confirm-delete",
               "structure-save",
               "structure-cancel",
+              "structure-tree-toggle",
             ].includes(action)
           )
             return false;
           state.hierarchyError = "";
           try {
+            if (action === "structure-tree-toggle") {
+              const collapsed = (state.structureTreeCollapsed ||= {});
+              collapsed[node.dataset.key] = !collapsed[node.dataset.key];
+              render();
+              return true;
+            }
             if (action === "manage-structure") {
               captureScopedState();
               state.hierarchyPage = node?.dataset.kind || "organisations";
@@ -15105,10 +15627,20 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               return true;
             }
             if (action === "structure-open") {
+              // The tree lists every organisation's namespaces and
+              // workspaces, so opening one also switches to its owner.
+              const owner = scopeModel[kind]?.find(
+                  (item) => item.id === id,
+                )?.organisationId,
+                organisationId =
+                  owner && owner !== scopeModel.activeOrganisationId
+                    ? owner
+                    : undefined;
               if (kind === "organisations") switchScope({ organisationId: id });
-              else if (kind === "namespaces") switchScope({ namespaceId: id });
+              else if (kind === "namespaces")
+                switchScope({ organisationId, namespaceId: id });
               else {
-                switchScope({ workspaceId: id });
+                switchScope({ organisationId, workspaceId: id });
                 const context = sessionRecord();
                 state.view = ["configuration", "csv"].includes(context.view)
                   ? context.view
@@ -15221,6 +15753,12 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             render();
             return true;
           }
+          if (action === "connection-mode") {
+            state.connectionMode = node.dataset.mode;
+            persist();
+            render();
+            return true;
+          }
           if (action === "catalogue-page") {
             state.cataloguePages[node.dataset.group] = Math.max(
               1,
@@ -15255,6 +15793,31 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               document.getElementById("provider-directory").innerHTML =
                 providerList(state.providerSearch);
             } else panel.querySelector(".catalogue-category-content")?.remove();
+          },
+          true,
+        );
+        listen(document,
+          "toggle",
+          (event) => {
+            const panel = event.target;
+            if (
+              !panel.matches?.("details[data-browser-group]") ||
+              !panel.isConnected ||
+              panel.dataset.namespace !== scopeModel.activeNamespaceId
+            )
+              return;
+            const group = panel.dataset.browserGroup,
+              collection = state.sourceSearch
+                ? state.browserSearchCollapsed
+                : state.browserCollapsed,
+              next = !panel.open;
+            if (!!collection[group] === next) return;
+            collection[group] = next;
+            persist();
+            if (panel.open) {
+              const items = panel.closest("[data-browser-items]");
+              if (items) items.innerHTML = explorerItems();
+            } else panel.querySelector(".browser-group-items")?.remove();
           },
           true,
         );
@@ -15450,6 +16013,13 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           e.value = value;
           e.dispatchEvent(new Event("change", { bubbles: true }));
           await wait(380);
+        }
+        // The context selectors sit in the header's context menu: open it,
+        // then choose.
+        async function switchContext(target, value, what) {
+          if ($("#context-menu")?.hidden)
+            await click(".context-switch", "Context menu");
+          await choose(target, value, what);
         }
         async function say(text) {
           caption(text);
@@ -15777,7 +16347,10 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
                 [...$("#scope-namespace").options].find((o) => o.textContent === name)?.value;
               check("The namespace is created", () => !!namespace("Sandbox"));
               await say("Switch to it: its catalogue and connections are empty.");
-              await choose("#scope-namespace", namespace("Sandbox"), "Namespace");
+              await switchContext("#scope-namespace", namespace("Sandbox"), "Namespace");
+              check("The header shows the new context", () =>
+                /Sandbox/.test($(".context-switch").textContent),
+              );
               await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
               check("Its catalogue is empty", () =>
                 /No catalogue entries in this namespace/.test($("#provider-directory").textContent),
@@ -15785,7 +16358,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               await click('[data-action="navigate"][data-view="sources"]', "Connections");
               check("It has no connections", () => /^0 /.test($(".section-toolbar .secondary").textContent));
               await say("Switch back to default: its resources are untouched.");
-              await choose("#scope-namespace", namespace("default"), "Namespace");
+              await switchContext("#scope-namespace", namespace("default"), "Namespace");
               await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
               check("The default namespace keeps its catalogue", () =>
                 /Files\.Holdings/.test($("#provider-directory").textContent),
@@ -15807,17 +16380,17 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               const first = $("#scope-workspace").value;
               check("The second design workspace exists", () => !!workspace("Review"));
               await say("Open the pipeline in Review and edit it, without saving.");
-              await choose("#scope-workspace", workspace("Review"), "Design workspace");
+              await switchContext("#scope-workspace", workspace("Review"), "Design workspace");
               await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
               await type("#panel-stage-name", "Calculate exposure (review)", "Stage name");
               await say("Meanwhile, the first workspace saves a new version.");
-              await choose("#scope-workspace", first, "Design workspace");
+              await switchContext("#scope-workspace", first, "Design workspace");
               await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
               await type("#panel-stage-name", "Calculate exposure (first)", "Stage name");
               await click('[data-action="save-version"]', "Save version");
               await click('[data-action="confirm-save"]', "Save the new version");
               await say("Back in Review, saving the stale draft is refused instead of overwriting the new version.");
-              await choose("#scope-workspace", workspace("Review"), "Design workspace");
+              await switchContext("#scope-workspace", workspace("Review"), "Design workspace");
               await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
               await click('[data-action="save-version"]', "Save version");
               await click('[data-action="confirm-save"]', "Save the new version");
