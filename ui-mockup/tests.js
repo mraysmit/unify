@@ -4723,6 +4723,44 @@ UnifyTests.group("ui");
     },
   );
 
+  test(
+    "the demo waits for a running execution, then reopens the page's app from its own saved state",
+    { timeout: 60000 },
+    async (t) => {
+      const store = memoryStorage();
+      let page = window.UnifyApp.start({
+        storage: store,
+        jobTiming: { running: 20000, publishing: 20000, completed: 20000 },
+      });
+      window.UnifyApp.page = page;
+      t.after(() => {
+        window.UnifyApp.page?.stop();
+        window.UnifyApp.page = null;
+        window.UnifyDemo.close();
+      });
+      document.querySelector('[data-action="execute-pipeline"]').click();
+      assert.equal(page.hasActiveJobs(), true);
+      const blocked = await window.UnifyDemo.run({ ids: ["catalogue"], speed: 0.03 });
+      assert.deepEqual(blocked, []);
+      assert.match(document.getElementById("demo-caption").textContent, /Wait for your execution/);
+      assert.equal(window.UnifyApp.page, page, "the page's app keeps running");
+      page.stop();
+      page = window.UnifyApp.start({ storage: store });
+      window.UnifyApp.page = page;
+      document.querySelector('[data-action="navigate"][data-view="runs"]').click();
+      const results = await window.UnifyDemo.run({ ids: ["catalogue"], speed: 0.03 });
+      assert.equal(results.length, 1);
+      assert.equal(results[0].error, "");
+      assert.notEqual(window.UnifyApp.page, page, "a fresh page app was started");
+      assert.equal(window.UnifyApp.page.options.storage, store, "with the page's own storage");
+      assert.match(
+        document.querySelector(".global-header").textContent,
+        /Run history/,
+        "reopened on the page that was open",
+      );
+    },
+  );
+
   test("progress shows the current stage out of the total", (t) => {
     const ui = workspace(t);
     ui.click('[data-action="run-pipeline"]');

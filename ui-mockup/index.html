@@ -8385,6 +8385,15 @@ Version 1.4.0
         // Background execution jobs (FR046), simulated: queued, running, then
         // completed. A page reload stands in for a stopped service instance.
         const jobTimers = new Set();
+        // Milliseconds after submission at which a simulated job starts
+        // running, starts publishing and completes. The demo passes slower,
+        // speed-scaled timings so each state can be seen.
+        const jobTiming = {
+          running: 250,
+          publishing: 500,
+          completed: 750,
+          ...(options.jobTiming || {}),
+        };
         function jobStep(fn, ms) {
           const timer = setTimeout(() => {
             jobTimers.delete(timer);
@@ -8410,15 +8419,15 @@ Version 1.4.0
           jobStep(() => {
             run.status = "Running";
             run.phase = "loading";
-          }, 250);
+          }, jobTiming.running);
           jobStep(() => {
             run.phase = "publishing";
-          }, 500);
+          }, jobTiming.publishing);
           jobStep(() => {
             run.status = "Completed";
             run.phase = "done";
             run.destination = "Committed (simulated)";
-          }, 750);
+          }, jobTiming.completed);
           return run;
         }
         // Configuration bundles (FR012): the pipeline plus the providers and
@@ -15262,8 +15271,13 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
         listen(window, "beforeunload", persist);
         render();
         return {
+          options,
           save() {
             if (!stopped) persist();
+          },
+          // True while a simulated execution is still queued or running.
+          hasActiveJobs() {
+            return jobTimers.size > 0;
           },
           stop() {
             stopped = true;
@@ -15326,28 +15340,64 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             if (!demo.paused) left -= 40;
           } while (left > 0 || demo.paused);
         }
+        // Timeouts count only time that is not paused.
         async function until(test, what, ms = 6000) {
-          const t0 = Date.now();
+          let waited = 0;
           while (!test()) {
             if (demo.stop) throw STOP;
-            if (Date.now() - t0 > ms) throw new Error("Timed out waiting for " + what);
+            if (waited > ms) throw new Error("Timed out waiting for " + what);
             await new Promise((r) => setTimeout(r, 40));
+            if (!demo.paused) waited += 40;
           }
         }
         const shown = (e) => !!e && e.isConnected && e.getClientRects().length > 0;
         async function find(target, what) {
-          const t0 = Date.now();
+          let waited = 0;
           for (;;) {
             if (demo.stop) throw STOP;
             const e = typeof target === "function" ? target() : $(target);
             if (shown(e)) return e;
-            if (Date.now() - t0 > 5000) throw new Error("Couldn't find " + (what || target));
+            if (waited > 5000) throw new Error("Couldn't find " + (what || target));
             await new Promise((r) => setTimeout(r, 60));
+            if (!demo.paused) waited += 60;
           }
         }
         function caption(text) {
           $("#demo-caption", panel).textContent = text;
           $(".demo-bubble", pointer).textContent = text;
+        }
+        // Each action names itself in the pointer's bubble; the panel caption
+        // keeps the narration.
+        function bubble(text) {
+          $(".demo-bubble", pointer).textContent = text;
+        }
+        // Simulated execution timings for the demo's own app instance, slow
+        // enough at Normal speed to see Queued and Running in Run history.
+        function jobTimingFor(speed) {
+          const step = Math.max(600, 3000 * speed);
+          return { running: step, publishing: 2 * step, completed: 3 * step };
+        }
+        // Captures a download instead of saving a file.
+        async function captureDownload(action) {
+          const createObjectURL = URL.createObjectURL,
+            anchorClick = HTMLAnchorElement.prototype.click;
+          let blob = null,
+            name = "";
+          URL.createObjectURL = (b) => {
+            blob = b;
+            return "blob:unify-demo";
+          };
+          HTMLAnchorElement.prototype.click = function () {
+            if (this.download) name = this.download;
+            else anchorClick.call(this);
+          };
+          try {
+            await action();
+          } finally {
+            URL.createObjectURL = createObjectURL;
+            HTMLAnchorElement.prototype.click = anchorClick;
+          }
+          return { name, text: blob ? await blob.text() : "" };
         }
         async function point(e) {
           e.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -15366,6 +15416,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
         }
         async function click(target, what) {
           const e = await find(target, what);
+          bubble("Click: " + (what || e.textContent.trim() || "control"));
           await point(e);
           pointer.classList.remove("clicking");
           void pointer.offsetWidth;
@@ -15377,6 +15428,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
         // event, as a user finishing a field would.
         async function type(target, text, what) {
           const e = await find(target, what);
+          bubble("Type " + (what ? what + ": " : "") + text);
           await point(e);
           e.focus();
           e.value = "";
@@ -15390,6 +15442,10 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
         }
         async function choose(target, value, what) {
           const e = await find(target, what);
+          const label = e.options
+            ? [...e.options].find((o) => o.value === value)?.textContent || value
+            : value;
+          bubble("Choose " + (what ? what + ": " : "") + label);
           await point(e);
           e.value = value;
           e.dispatchEvent(new Event("change", { bubbles: true }));
@@ -15431,6 +15487,130 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             },
           },
           {
+            id: "reader",
+            title: "Configure a reader from a sample",
+            run: async () => {
+              await say("A reader describes how to read a source. Start a new JSON reader from the catalogue.");
+              await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
+              await click('[data-action="config-new-provider"]', "New source provider");
+              await choose('[data-config-field="format"]', "JSON", "Source format");
+              await type("#provider-name", "Files.DemoRates", "Catalogue name");
+              await say("Load a sample: it shapes the fields and is checked by the same rules as a real read.");
+              await click('[data-action="config-example"]', "Load example");
+              await click('[data-action="config-analyze"]', "Read sample and map fields");
+              check("The sample's fields are mapped", () => $$(".config-fields tbody tr").length > 0);
+              await click('[data-action="config-section"][data-section="preview"]', "Preview and errors");
+              check("The configured preview passes", () => /Configured preview passed/.test($(".config-main").textContent));
+              await say("Save it. The reader carries no connection: each binding chooses one.");
+              await click('[data-action="config-save"]', "Save configuration");
+              const reader = () => saved()?.providers?.find((p) => p.name === "Files.DemoRates");
+              check("The reader is in the catalogue", () => !!reader() && /Files\.DemoRates/.test($("#provider-directory").textContent));
+              check("The reader names no connection", () =>
+                !("defaultConnection" in reader()) && !("connectionId" in reader().sourceConfiguration),
+              );
+            },
+          },
+          {
+            id: "bind",
+            title: "Bind a reader and preview its data",
+            run: async () => {
+              await say("Catalogue entries become pipeline data only through an explicit binding.");
+              await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
+              await click('[data-action="provider-detail"][data-id="instruments-reader"]', "Inspect contract");
+              await click('[data-action="bind-provider"]', "Add to pipeline");
+              await say("The binding names the dataset and its SQL alias, and chooses the connection to read through.");
+              await type("#binding-name", "DemoInstruments", "Logical dataset name");
+              await type("#binding-alias", "di", "SQL alias");
+              await choose("#config-connection", "reference-files", "Connection");
+              await click('[data-action="confirm-binding"]', "Save binding");
+              check("Pipeline data shows the binding with its pinned version", () =>
+                /DemoInstruments.*pinned v\d/s.test($("#explorer-items").textContent),
+              );
+              await say("Query the binding and preview it on its sample. Nothing is written anywhere.");
+              await click(() => $$('[data-action="use-source"]').at(-1), "Query binding");
+              await click('[data-action="preview-stage"]', "Preview stage");
+              await previewDone();
+              check("The preview shows the ten instruments", () => rows() === 10);
+              check("The destination is unchanged", () => /Destination unchanged/.test($(".results-summary").textContent));
+            },
+          },
+          {
+            id: "join-sql",
+            title: "Join datasets and edit the query",
+            run: async () => {
+              await say("Configure the join stage: key pairs, join type and output fields.");
+              await click('[data-action="select-stage"][data-id="join"]', "Join instruments");
+              await click('[data-action="config-stage"]', "Configure stage");
+              await click('[data-action="config-section"][data-section="fields"]', "Fields and mapping");
+              check("A colliding right-side field gets an editable suggested name", () =>
+                $$('[data-config-list="projection"][data-key="name"]').some((input) => input.value === "right_isin"),
+              );
+              await click('[data-action="config-section"][data-section="preview"]', "Preview and errors");
+              check("Match counts are shown, including the two unmatched holdings", () =>
+                /unmatchedLeft\s*2/.test($(".config-counts").textContent),
+              );
+              await click('[data-action="config-save"]', "Save configuration");
+              await say("In the SQL stage, insert a field from the data browser, then check the query.");
+              await click('[data-action="select-stage"][data-id="query"]', "Calculate exposure");
+              await click('[data-action="explorer-tab"][data-tab="pipeline"]', "Pipeline data");
+              if (!$('[data-action="insert-field"][data-source="holdings"]'))
+                await click('[data-action="source-toggle"][data-id="holdings"]', "Holdings");
+              await click('[data-action="insert-field"][data-source="holdings"][data-field="price"]', "price");
+              check("The field reference is inserted", () => /h\.price/.test($("#sql-editor").value));
+              await click('[data-action="validate-query"]', "Check query");
+              check("The local checks pass", () => /checks passed/.test($("#query-status").textContent));
+              await say("Rename an earlier result: later queries are updated through the parser, and the changes are shown.");
+              await click('[data-action="select-stage"][data-id="normalize"]', "Normalize fields");
+              await type("#panel-stage-output", "CleanHoldings", "Result alias");
+              check("The updated query is shown", () => {
+                const text = $('[role="dialog"]').textContent;
+                return /Queries updated/.test(text) && /FROM CleanHoldings AS h/.test(text);
+              });
+              await click('[data-action="close-modal"]', "Done");
+            },
+          },
+          {
+            id: "output",
+            title: "Prepare output and download a preview sample",
+            run: async () => {
+              await say("Configure the output: choose a format and preview exactly what would be written.");
+              await click('[data-action="select-stage"][data-id="output"]', "Publish output");
+              await click('[data-action="config-output"]', "Configure output");
+              await choose('[data-config-setting="format"]', "JSON", "Output format");
+              await click('[data-action="config-section"][data-section="preview"]', "Preview and errors");
+              check("The serialized JSON is shown", () => /^\s*\[/.test($(".config-serialized").textContent));
+              const runsBefore = saved().runs.length;
+              await say("Download the prepared sample. It is named as a preview and changes no destination.");
+              const file = await captureDownload(() =>
+                click('[data-action="config-download"]', "Download prepared JSON"),
+              );
+              check("The download is named as a preview sample", () => file.name.startsWith("preview-"));
+              check("It holds the prepared records", () => {
+                const records = JSON.parse(file.text);
+                return Array.isArray(records) && records.length > 0;
+              });
+              check("No execution was started", () => saved().runs.length === runsBefore);
+            },
+          },
+          {
+            id: "discard",
+            title: "Save or discard before starting a new pipeline",
+            run: async () => {
+              await say("Edit the pipeline, then start a new one: Unify asks what to do with the unsaved changes.");
+              await type("#panel-stage-name", "Calculate exposure (draft)", "Stage name");
+              check("The pipeline shows unsaved changes", () => /Unsaved changes/.test($(".page-heading").textContent));
+              await click('[data-action="navigate"][data-view="pipelines"]', "Pipelines");
+              await click('[data-action="new-pipeline"]', "New pipeline");
+              check("Unify asks to save or discard", () =>
+                /Save or discard your changes/.test($('[role="dialog"]').textContent),
+              );
+              await click('[data-action="discard-pipeline-draft"]', "Discard changes");
+              check("The new pipeline opens", () => /Configure pipeline/.test($("h1").textContent));
+              await click('[data-action="config-back"]', "Back to workspace");
+              check("The discarded edit is gone", () => $("#panel-stage-name").value === "Calculate exposure");
+            },
+          },
+          {
             id: "engine",
             title: "Let Unify choose the engine",
             run: async () => {
@@ -15456,15 +15636,15 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             run: async () => {
               await say("Executing submits a background job: it is queued, runs, then completes.");
               await click('[data-action="execute-pipeline"]', "Execute");
-              check("The job is submitted and recorded as an execution", () =>
-                saved().runs[0].kind === "Execution" && ["Queued", "Running", "Completed"].includes(saved().runs[0].status),
-              );
+              check("The job is submitted and recorded as an execution", () => saved().runs[0].kind === "Execution");
               await click('[data-action="navigate"][data-view="runs"]', "Run history");
-              await until(() => saved().runs[0].status === "Completed", "the job to complete");
-              await wait(300);
-              check("Run history shows the completed execution", () =>
-                /Execution.*Completed/s.test($(".list-table tbody tr").textContent),
-              );
+              const latest = () => $(".list-table tbody tr")?.textContent || "";
+              check("Run history shows it queued", () => /Execution.*Queued/s.test(latest()));
+              await say("A worker picks it up: the run is now Running.");
+              await until(() => /Execution.*Running/s.test(latest()), "the job to start running", 20000);
+              check("Run history shows it running", () => /Execution.*Running/s.test(latest()));
+              await until(() => /Execution.*Completed/s.test(latest()), "the job to complete", 20000);
+              check("Run history shows the completed execution", () => /Execution.*Completed/s.test(latest()));
               await say("A finished execution can be repeated from history.");
               await click(".list-table tbody tr", "the execution");
               await click('[data-action="repeat-run"]', "Repeat run");
@@ -15519,17 +15699,31 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               check("A Viewer cannot preview or execute", () =>
                 $('[data-action="run-pipeline"]').disabled && $('[data-action="execute-pipeline"]').disabled,
               );
+              check("A Viewer cannot save a version", () => $('[data-action="save-version"]').disabled);
               check("A notice says what is not available", () => /Not available/.test($("[data-role-notice]").textContent));
               await say("An Operator runs pipelines but does not edit or preview them.");
               await choose("#role-select", "Operator", "Role");
               check("An Operator can execute but not preview", () =>
                 !$('[data-action="execute-pipeline"]').disabled && $('[data-action="run-pipeline"]').disabled,
               );
+              check("An Operator cannot edit: Save version, Add stage and Configure stage are unavailable", () =>
+                ['save-version', 'add-stage', 'config-stage'].every((a) => $(`[data-action="${a}"]`).disabled),
+              );
               await say("An Editor builds and previews, but does not execute.");
               await choose("#role-select", "Editor", "Role");
               check("An Editor can preview but not execute", () =>
                 !$('[data-action="run-pipeline"]').disabled && $('[data-action="execute-pipeline"]').disabled,
               );
+              await say("A Publisher also registers providers and imports bundles, but does not execute.");
+              await choose("#role-select", "Publisher", "Role");
+              check("A Publisher can preview but not execute", () =>
+                !$('[data-action="run-pipeline"]').disabled && $('[data-action="execute-pipeline"]').disabled,
+              );
+              await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
+              check("A Publisher can register a new source provider", () => !$('[data-action="config-new-provider"]').disabled);
+              await click('[data-action="navigate"][data-view="pipelines"]', "Pipelines");
+              check("A Publisher can import a bundle", () => !$('[data-action="import-bundle"]').disabled);
+              await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
               await choose("#role-select", "Administrator", "Role");
               check("An Administrator can do both", () =>
                 !$('[data-action="run-pipeline"]').disabled && !$('[data-action="execute-pipeline"]').disabled,
@@ -15542,24 +15736,9 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             run: async () => {
               await say("Export the pipeline with the providers and connections it uses as a bundle.");
               await click('[data-action="versions"]', "Versions");
-              // Capture the download instead of saving a file.
-              const createObjectURL = URL.createObjectURL,
-                anchorClick = HTMLAnchorElement.prototype.click;
-              let blob = null;
-              URL.createObjectURL = (b) => {
-                blob = b;
-                return "blob:unify-demo";
-              };
-              HTMLAnchorElement.prototype.click = function () {
-                if (!this.download) anchorClick.call(this);
-              };
-              try {
-                await click('[data-action="export-design"]', "Export current design");
-              } finally {
-                URL.createObjectURL = createObjectURL;
-                HTMLAnchorElement.prototype.click = anchorClick;
-              }
-              const text = await blob.text();
+              const { text } = await captureDownload(() =>
+                click('[data-action="export-design"]', "Export current design"),
+              );
               check("The bundle holds the pipeline and its providers", () => {
                 const bundle = JSON.parse(text);
                 return bundle.resources.some((r) => r.kind === "Pipeline") && bundle.resources.some((r) => r.kind === "Provider");
@@ -15582,6 +15761,70 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               check("The pipeline is imported under its new name", () =>
                 saved().definitions.some((d) => d.kind === "Pipeline" && / \(copy\)$/.test(d.name)),
               );
+            },
+          },
+          {
+            id: "namespaces",
+            title: "Namespaces keep resources apart",
+            run: async () => {
+              await say("Resources belong to a namespace. Create a new, empty one.");
+              await click('[data-action="manage-structure"][data-kind="organisations"]', "Organisation structure");
+              await click('[data-action="manage-structure"][data-kind="namespaces"]', "Namespaces");
+              await click('[data-action="structure-new"]', "New namespace");
+              await type("#structure-name", "Sandbox", "Name");
+              await click('[data-action="structure-save"]', "Save namespace");
+              const namespace = (name) =>
+                [...$("#scope-namespace").options].find((o) => o.textContent === name)?.value;
+              check("The namespace is created", () => !!namespace("Sandbox"));
+              await say("Switch to it: its catalogue and connections are empty.");
+              await choose("#scope-namespace", namespace("Sandbox"), "Namespace");
+              await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
+              check("Its catalogue is empty", () =>
+                /No catalogue entries in this namespace/.test($("#provider-directory").textContent),
+              );
+              await click('[data-action="navigate"][data-view="sources"]', "Connections");
+              check("It has no connections", () => /^0 /.test($(".section-toolbar .secondary").textContent));
+              await say("Switch back to default: its resources are untouched.");
+              await choose("#scope-namespace", namespace("default"), "Namespace");
+              await click('[data-action="navigate"][data-view="providers"]', "Catalogue");
+              check("The default namespace keeps its catalogue", () =>
+                /Files\.Holdings/.test($("#provider-directory").textContent),
+              );
+            },
+          },
+          {
+            id: "workspaces",
+            title: "Two design workspaces, one conflict",
+            run: async () => {
+              await say("Design workspaces are separate editing sessions over the same namespace. Create a second one.");
+              await click('[data-action="manage-structure"][data-kind="organisations"]', "Organisation structure");
+              await click('.management-nav [data-action="manage-structure"][data-kind="workspaces"]', "Design workspaces");
+              await click('[data-action="structure-new"]', "New design workspace");
+              await type("#structure-name", "Review", "Name");
+              await click('[data-action="structure-save"]', "Save design workspace");
+              const workspace = (name) =>
+                [...$("#scope-workspace").options].find((o) => o.textContent === name)?.value;
+              const first = $("#scope-workspace").value;
+              check("The second design workspace exists", () => !!workspace("Review"));
+              await say("Open the pipeline in Review and edit it, without saving.");
+              await choose("#scope-workspace", workspace("Review"), "Design workspace");
+              await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
+              await type("#panel-stage-name", "Calculate exposure (review)", "Stage name");
+              await say("Meanwhile, the first workspace saves a new version.");
+              await choose("#scope-workspace", first, "Design workspace");
+              await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
+              await type("#panel-stage-name", "Calculate exposure (first)", "Stage name");
+              await click('[data-action="save-version"]', "Save version");
+              await click('[data-action="confirm-save"]', "Save the new version");
+              await say("Back in Review, saving the stale draft is refused instead of overwriting the new version.");
+              await choose("#scope-workspace", workspace("Review"), "Design workspace");
+              await click('[data-action="navigate"][data-view="workspace"]', "Workbench");
+              await click('[data-action="save-version"]', "Save version");
+              await click('[data-action="confirm-save"]', "Save the new version");
+              check("The stale save is refused with a conflict", () =>
+                /newer revision/.test($("#modal-error").textContent),
+              );
+              await click('[data-action="close-modal"]', "Cancel");
             },
           },
           {
@@ -15618,7 +15861,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               )
               .join("") +
             (demo.results.length && !demo.running
-              ? `<div class='sum ${passed === total && !demo.results.some((r) => r.error) ? "pass" : "fail"}'>${passed} of ${total} checks passed. Your saved data was not touched.</div>`
+              ? `<div class='sum ${passed === total && !demo.results.some((r) => r.error) ? "pass" : "fail"}'>${passed} of ${total} checks passed. The app has reopened from your saved work.</div>`
               : "");
         }
         function openPanel() {
@@ -15631,7 +15874,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
 <div class='demo-body'><div class='demo-pick'><span>${SCENARIOS.length} scenarios</span><button type='button' data-demo='all'>All</button><button type='button' data-demo='none'>None</button></div>
 <div class='demo-list'>${SCENARIOS.map((s) => `<label><input type='checkbox' value='${s.id}' checked> ${esc(s.title)}</label>`).join("")}</div>
 <div class='demo-controls'><select id='demo-speed' aria-label='Speed'><option value='1.6'>Slow</option><option value='1' selected>Normal</option><option value='0.4'>Fast</option><option value='0.03'>Instant (test run)</option></select><button type='button' class='primary' data-demo='run'>Run</button><button type='button' data-demo='pause' disabled>Pause</button><button type='button' data-demo='stop' disabled>Stop</button></div>
-<div class='demo-caption' id='demo-caption'>Choose scenarios and press Run. Each scenario uses fresh sample data in memory; your saved data is never touched, and the app reopens from it afterwards.</div>
+<div class='demo-caption' id='demo-caption'>Choose scenarios and press Run. Each scenario uses fresh sample data in memory. Your current work is saved first, and the app reopens from it afterwards.</div>
 <div class='demo-results' id='demo-results'></div></div>`;
             document.body.appendChild(panel);
             pointer = document.createElement("div");
@@ -15675,6 +15918,12 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           }
           if (options.speed) $("#demo-speed", panel).value = String(options.speed);
           const page = window.UnifyApp.page;
+          // Stopping the page's app would interrupt a running execution and
+          // leave it Abandoned, so the demo waits for it instead.
+          if (page?.hasActiveJobs?.()) {
+            caption("Wait for your execution to finish, then run the demo. Starting now would interrupt it.");
+            return [];
+          }
           // The page's own app saves and steps aside; it reopens from saved data.
           if (page) {
             page.save();
@@ -15695,7 +15944,10 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               try {
                 demo.instance?.stop();
                 demo.store = memoryStorage();
-                demo.instance = window.UnifyApp.start({ storage: demo.store });
+                demo.instance = window.UnifyApp.start({
+                  storage: demo.store,
+                  jobTiming: jobTimingFor(demo.speed),
+                });
                 caption(scenario.title);
                 await wait(400);
                 await scenario.run();
@@ -15712,7 +15964,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             shield.remove();
             pointer.remove();
             pointer.style.left = "-100px";
-            if (page) window.UnifyApp.page = window.UnifyApp.start();
+            if (page) window.UnifyApp.page = window.UnifyApp.start(page.options);
           }
           $("[data-demo='run']", panel).disabled = false;
           $$("[data-demo='pause'], [data-demo='stop']", panel).forEach((b) => {

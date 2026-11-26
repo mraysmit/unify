@@ -9,20 +9,35 @@ The folder contains exactly three files: **index.html**, **data.js**, and **test
 
 ## Automated demo
 
-**Run demo** at the bottom of the sidebar opens a demo panel. Tick scenarios, choose a speed (Slow, Normal, Fast, or Instant for a test run) and press **Run**. A visible pointer moves to each control and clicks or types, a caption narrates each step, and each scenario's checks appear with ✓ or ✗ as they run. Pause and Stop work at any time. Every scenario is ticked by default; All and None change the selection, and the panel can be minimised, or closed when no demo is running. When the run ends, the panel shows how many checks passed.
+**Run demo** at the bottom of the sidebar opens a demo panel. Tick scenarios, choose a speed (Slow, Normal, Fast, or Instant for a test run) and press **Run**.
+- A visible pointer moves to each control and clicks, types or chooses.
+- Its bubble names each action, for example "Click: New connection", and the panel caption narrates the scenario.
+- Each scenario's checks appear with ✓ or ✗ as they run.
+- Pause and Stop work at any time, and timeouts don't count paused time.
+- Every scenario is ticked by default; All and None change the selection. The panel can be minimised, or closed when no demo is running.
+- When the run ends, the panel shows how many checks passed.
 
 | Scenario | Shows |
 | --- | --- |
 | Preview a pipeline on sample data | Changing a query parameter and previewing every stage without writing to a destination |
+| Configure a reader from a sample | A new JSON reader configured from a sample, previewed and saved without a connection |
+| Bind a reader and preview its data | An explicit binding with its dataset name, SQL alias and chosen connection, then a preview of its records |
+| Join datasets and edit the query | Join configuration with a suggested name for a colliding field and match counts; inserting a field into SQL and checking the query; renaming a result and seeing the rewritten query |
+| Prepare output and download a preview sample | JSON output, its serialized preview, and the `preview-` download, with no execution started |
+| Save or discard before starting a new pipeline | The save-or-discard prompt, and discarding unsaved changes |
 | Let Unify choose the engine | Automatic engine selection, its use case, and how a run records it |
-| Execute as a background job | Submitting an execution as a background job, its record in Run history, and repeating it. The job passes through Queued and Running in under a second, so Run history usually shows it already completed |
+| Execute as a background job | An execution shown Queued, then Running, then Completed in Run history, and repeated. The demo's own app slows the simulated job so each state can be seen |
 | Validate a connection, then test it | Settings validation kept separate from an explicit, simulated live test |
 | Find a provider in the catalogue | The compact list view and catalogue search |
-| What each role can do | Viewer, Operator, Editor and Administrator permissions |
+| What each role can do | Viewer, Operator, Editor, Publisher and Administrator permissions, including the editing controls an Operator cannot use |
 | Export a bundle and import it under new names | Bundle export, name conflicts, and import with new names |
+| Namespaces keep resources apart | A new namespace with an empty catalogue and no connections, while default keeps its resources |
+| Two design workspaces, one conflict | Separate drafts in two workspaces, and a stale save refused after the other workspace saved a newer version |
 | Sign out and sign in | The simulated identity-provider sign-in |
 
-Each scenario starts from fresh sample data in an in-memory store. While it runs, a transparent layer blocks clicks and keys outside the panel. The app saves its current state before the demo starts and reopens from saved data afterwards, as after a reload. An execution that was still queued or running is then marked Abandoned, and anything not yet saved, such as an uploaded sample, is cleared. Downloads during the demo are captured, not saved. The demo publishes its results as JSON on the results element (`data-results`), and the test suite runs every scenario at Instant speed and requires every check to pass.
+Each scenario starts from fresh sample data in an in-memory store. While it runs, a transparent layer blocks clicks and keys outside the panel.
+- **Before the demo:** if one of your executions is still queued or running, the demo doesn't start, and asks you to wait for it to finish. Otherwise the app saves your current work.
+- **After the demo:** the app reopens from that saved state, on the page you had open, as after a reload. Anything not yet saved, such as an uploaded sample, is cleared. Downloads during the demo are captured, not saved. The demo publishes its results as JSON on the results element (`data-results`), and the test suite runs every scenario at Instant speed and requires every check to pass.
 
 ## Ownership and design sessions
 
