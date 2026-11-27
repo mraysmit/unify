@@ -581,6 +581,93 @@ Version 1.4.0
         align-self: stretch;
         min-width: 0;
         overflow: hidden;
+        position: relative;
+      }
+      .workbench.browser-sized {
+        grid-template-columns: var(--browser-width) minmax(0, 1fr);
+      }
+      .inline-config.config-main {
+        padding: 14px 16px;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        max-height: 560px;
+        overflow: auto;
+        flex: 1 1 auto;
+      }
+      .workbench.editor-expanded .inline-config.config-main {
+        max-height: none;
+      }
+      .inline-apply {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-top: 1px solid var(--line);
+        background: #f8fafc;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .inline-apply .state {
+        margin-right: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .inline-apply .state.pending {
+        color: #9a5b00;
+        font-weight: 600;
+      }
+      .workbench.editor-expanded {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+      .workbench.editor-expanded > .explorer,
+      .workbench.editor-expanded .inspector {
+        display: none;
+      }
+      .workbench.editor-expanded .editor-layout {
+        grid-template-columns: minmax(0, 1fr) !important;
+      }
+      .explorer-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+      .browser-resizer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 8px;
+        cursor: col-resize;
+        touch-action: none;
+        z-index: 2;
+      }
+      .browser-resizer::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: 2px;
+        width: 3px;
+        height: 36px;
+        margin-top: -18px;
+        border-radius: 2px;
+        background: var(--panel-line);
+        opacity: 0.55;
+      }
+      .browser-resizer:hover::after,
+      .browser-resizer:focus-visible::after,
+      .workbench.resizing .browser-resizer::after {
+        opacity: 1;
+        background: var(--blue, #2563eb);
+      }
+      .browser-resizer:focus-visible {
+        outline: 2px solid var(--blue, #2563eb);
+        outline-offset: -2px;
+      }
+      .workbench.resizing {
+        cursor: col-resize;
+        user-select: none;
       }
       .explorer-head {
         padding: 14px 14px 11px;
@@ -1082,6 +1169,61 @@ Version 1.4.0
       .key-value strong {
         font-weight: 500;
         color: var(--ink);
+      }
+      .inspector-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .inspector-section {
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+      }
+      .inspector-section + .inspector-section {
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+      }
+      .inspector-section h3 {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .inspector-section .input-hint code {
+        font-size: 11px;
+        color: var(--ink);
+      }
+      .inspector-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 550;
+        color: #5c6d83;
+      }
+      .inspector-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .inspector-buttons .btn {
+        flex: 1 1 auto;
+        justify-content: center;
+      }
+      .inspector-section > .btn {
+        justify-content: center;
+      }
+      .inspector-section.pipeline-preview {
+        background: #f6f8fb;
+        margin: 0 -14px -13px;
+        padding: 12px 14px 13px;
       }
       .inspector-note {
         border-top: 1px solid var(--line);
@@ -2175,7 +2317,8 @@ Version 1.4.0
           width: 100%;
           justify-content: flex-start;
         }
-        .workbench {
+        .workbench,
+        .workbench.browser-sized {
           grid-template-columns: minmax(0, 1fr);
         }
         .explorer {
@@ -3394,6 +3537,39 @@ Version 1.4.0
         flex-wrap: wrap;
         min-width: 230px;
       }
+      .pipeline-list {
+        overflow: hidden;
+      }
+      .pipeline-list .config-scroll {
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+      }
+      .pipeline-list td {
+        vertical-align: top;
+      }
+      .pipeline-list td .badge {
+        margin-left: 6px;
+      }
+      .pipeline-list td small {
+        display: block;
+        margin-top: 3px;
+        font-size: 11px;
+        color: var(--muted);
+        white-space: normal;
+        max-width: 380px;
+      }
+      .pipeline-open {
+        display: block;
+        margin-top: 4px;
+      }
+      .pipeline-open .badge {
+        margin-left: 0;
+      }
+      .pipeline-flow-cell {
+        white-space: normal;
+        min-width: 200px;
+      }
       .structure-tree,
       .structure-tree ul {
         list-style: none;
@@ -4056,6 +4232,13 @@ Version 1.4.0
       .breadcrumb .icon {
         color: #7088a8;
       }
+      .global-header .help-tip {
+        color: var(--nav-muted);
+      }
+      .global-header .help-tip:hover {
+        color: #fff;
+        background: #1f3555;
+      }
       .global-header .btn.subtle {
         color: var(--nav-muted);
       }
@@ -4079,6 +4262,100 @@ Version 1.4.0
       }
       .prototype-badge:before {
         background: #5b6f8e;
+      }
+      /* Info icons and their help popover. */
+      .help-tip {
+        display: inline-grid;
+        place-items: center;
+        width: 22px;
+        height: 22px;
+        flex-shrink: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #7f8fa6;
+        cursor: help;
+        vertical-align: middle;
+      }
+      .help-tip .icon {
+        width: 16px;
+        height: 16px;
+      }
+      .help-tip:hover,
+      .help-tip[aria-expanded="true"] {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+      .help-tip:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 1px;
+      }
+      .btn + .help-tip {
+        margin-left: -5px;
+      }
+      .help-popover {
+        position: fixed;
+        z-index: 2147481000;
+        width: min(380px, calc(100vw - 16px));
+        max-height: min(70vh, 520px);
+        overflow: auto;
+        padding: 12px 14px 14px;
+        background: #fff;
+        color: var(--ink);
+        border: 2px solid var(--panel-line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        font-size: 13px;
+        line-height: 1.5;
+        text-align: left;
+        white-space: normal;
+        font-weight: 400;
+      }
+      .help-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .help-head strong {
+        font-size: 14px;
+      }
+      .help-popover ol {
+        margin: 8px 0 0;
+        padding-left: 20px;
+      }
+      .help-popover li + li {
+        margin-top: 4px;
+      }
+      .help-note {
+        display: flex;
+        gap: 7px;
+        margin-top: 10px;
+        padding: 8px 10px;
+        background: var(--blue-soft);
+        border-radius: 6px;
+        color: #33507f;
+      }
+      .help-note .icon {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+      .tree-intro {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 10px;
+        font-size: 13px;
+      }
+      .explorer-head h2,
+      .context-menu h2 {
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
     </style>
   </head>
@@ -7064,6 +7341,290 @@ Version 1.4.0
           prefix + Date.now().toString(36) + "-" + (++idCounter).toString(36);
         // start() boots one instance of the app; stop() removes it so the
         // in-browser tests (index.html?tests) can restart it with a clean store.
+        // Help for screens and major actions, shown in a popover from an
+        // info icon. A button whose action has an entry here gets its icon
+        // automatically; "screen-…" and the other non-action keys are
+        // placed by hand.
+        const HELP = {
+          "screen-workspace": {
+            title: "Workbench",
+            text: "Build, preview and save the one pipeline open in this design workspace. The data browser is on the left, the pipeline's stages run across the top, the selected stage's editor and settings are in the middle, and the preview results are below.",
+            steps: [
+              "Bind inputs: find a reader in the data browser's Catalogue tab, inspect its contract and add it to the pipeline.",
+              "Add stages (SQL query, Transform, Join or Validation). Select a stage to configure it on the tabs in its editor; Apply, or simply preview, to use the changes.",
+              "Preview pipeline to run every stage on sample rows and check the results.",
+              "Save version to keep the design in the namespace.",
+              "Execute to submit it as a (simulated) background job.",
+            ],
+            note: "Previews read sample data only and never write to the destination.",
+          },
+          "screen-providers": {
+            title: "Catalogue",
+            text: "The readers, writers and published views owned by the current namespace. Entries are grouped into categories by the prefix of their Category.Name (for example Files.Holdings is in Files). Each category shows up to 50 entries per page and can be collapsed.",
+            steps: [
+              "Filter by capability (All, Read, Write, Views) or connector, or search by name.",
+              "Inspect contract to see an entry's parameters, columns, dependencies and versions.",
+              "Configure an entry to change it; saving creates a new version.",
+            ],
+            note: "Entries marked Not configured can be inspected but not added to a pipeline.",
+          },
+          "screen-catalog": {
+            title: "Definition library",
+            text: "Reusable definitions owned by the namespace: schemas, field mappings, transformation rules, validation rules, joins, SQL queries and saved pipelines. Each card shows its version and how many saved definitions reference it.",
+            steps: [
+              "Filter by type or search.",
+              "Inspect a definition to see its identifier and content.",
+              "Create revision to change it: a revision is a new version, so anything pinned to the old version keeps using it.",
+            ],
+          },
+          "screen-pipelines": {
+            title: "Pipelines",
+            text: "The pipelines saved in this namespace. The workbench holds one pipeline at a time for each design workspace; the list marks the one that is open and whether it has unsaved changes.",
+            steps: [
+              "Open loads a pipeline into the workbench. If the open pipeline has unsaved changes you are asked to save or discard them first.",
+              "Configure opens the pipeline's full-page configuration: inputs, stages, final result, output and engine.",
+              "Last run shows the latest preview or execution; click it for the run's details.",
+              "Import bundle and Export bundle move a pipeline, with its providers and connections, between namespaces.",
+            ],
+          },
+          "screen-runs": {
+            title: "Run history",
+            text: "Every preview and execution in this namespace, newest first. Only the latest 40 runs are kept.",
+            steps: [
+              "Click a run for its input and result counts, destination outcome, engine selection and stage progress.",
+              "Repeat run (in the run's details) resubmits the pipeline as a new run.",
+            ],
+            note: "A job still queued or running when the app stopped is marked Abandoned and is never restarted. Its destination is Unknown if it was publishing, otherwise Not started.",
+          },
+          "screen-sources": {
+            title: "Connections",
+            text: "Endpoint settings and credential references, kept separate from readers and writers. A reader names no connection: each pipeline input binding chooses the connection to read through.",
+            steps: [
+              "New connection: choose JDBC (SQLite or H2) or HTTP, enter the endpoint and a credential reference.",
+              "Inspect a connection to see its settings.",
+              "Switch between Cards and List with the view buttons.",
+            ],
+            note: "No live systems are connected in this prototype. Credentials are never stored: a credential reference names a secret held elsewhere.",
+          },
+          "screen-hierarchy": {
+            title: "Organisation structure",
+            text: "Organisations contain namespaces and design workspaces. A namespace owns resources: catalogue entries, connections, definitions, pipelines, execution settings and run history. A design workspace is an editing session owned by the organisation; it selects a namespace and holds unsaved drafts for it.",
+            steps: [
+              "Organisations shows the structure as a tree; Namespaces and Design workspaces list each kind.",
+              "Open switches to a structure, Edit renames or describes it, Delete removes an empty one.",
+            ],
+            note: "Managing the structure needs the Administrator role.",
+          },
+          "screen-configuration": {
+            title: "Configuration",
+            text: "A full-page editor for one reader, writer, definition or pipeline. Pipeline stages are configured in the workbench's stage editor. The sections down the left are the steps; work through them in order.",
+            steps: [
+              "Fill in each section; required fields are checked when you save.",
+              "Preview or validate to check the configuration against sample data.",
+              "Save to keep it. Back returns without saving.",
+            ],
+          },
+          "screen-csv": {
+            title: "CSV mapping",
+            text: "Configure a CSV reader from a sample file, in steps: source, format, columns, preview and save.",
+            steps: [
+              "Read CSV: choose a sample file.",
+              "Set the delimiter (comma, semicolon, tab or pipe), quote, encoding and whether blank records are skipped.",
+              "Map columns by header name or position, with allow-null, trim and empty-to-null for each.",
+              "Preview mapping, then Save provider.",
+            ],
+            note: "Save provider is enabled only after a successful preview, and always creates a new provider.",
+          },
+          context: {
+            title: "Organisation, namespace and design workspace",
+            text: "The context decides what every page shows. The organisation contains everything. The namespace owns the resources you see and save. The design workspace is your editing session: it keeps its own unsaved drafts for each namespace, so switching never loses work.",
+            note: "Switching is unavailable while a preview runs or a structure form is open.",
+          },
+          role: {
+            title: "Role (simulated)",
+            text: "Your role decides which actions are available. Viewer: discover and inspect. Editor: also edit, preview, export and test connections. Publisher: also register providers, publish views and import bundles. Operator: discover, inspect, execute and repeat runs, but not preview. Administrator: everything, including organisations, namespaces and workspaces.",
+            note: "In the product your identity-provider groups grant the role; here you can switch it to try each one.",
+          },
+          engine: {
+            title: "Execution engine",
+            text: "Where the pipeline's SQL runs: SQLite, DuckDB, or Automatic. Automatic picks by the pipeline's shape and size: scans and sorts up to 50,000 records use SQLite, joins and aggregates up to 10,000 records use SQLite, and anything larger uses DuckDB.",
+            note: "The choice is saved with the pipeline. With sample-sized data, Automatic chooses SQLite.",
+          },
+          "stage-settings": {
+            title: "Stage settings",
+            text: "Settings for the stage selected in the pipeline flow. Select another stage card to change which stage this panel edits.",
+            steps: [
+              "Stage name: shown in the pipeline flow, progress and run history. It must be unique in the pipeline.",
+              "Result alias: the name later stages use to read this stage's result, for example FROM enriched. Renaming it updates later queries that use it.",
+              "Parameters: values bound into this SQL stage's query. Declare parameters on the stage editor's Parameters tab.",
+              "Move earlier or later changes the stage's position. Source always stays first and Output last.",
+              "Preview this stage runs only this stage on the sample data, calculating the earlier stages it reads from.",
+            ],
+            note: "Changes are unsaved until you use Save version.",
+          },
+          "preview-settings": {
+            title: "Pipeline preview settings",
+            text: "These settings belong to the whole pipeline, not to the selected stage. They apply to every stage and to Preview pipeline.",
+            steps: [
+              "Source limit: the number of records each input reads during a preview.",
+              "Invalid records: fail the operation on the first invalid record, or skip up to a set number of invalid records.",
+              "Change them with Change execution settings.",
+            ],
+          },
+          "data-browser": {
+            title: "Data browser",
+            text: "Find data to use in the pipeline.",
+            steps: [
+              "Catalogue tab: catalogue entries grouped by category. Click a category heading to collapse or expand it; a search opens every category with matches.",
+              "Pipeline data tab: the pipeline's bound inputs, with their pinned version and SQL alias, and the results of earlier stages.",
+              "Click a field to insert alias.field into the SQL editor.",
+              "Widen the browser with the button beside Open catalogue, or drag its right edge (or focus the edge and use the arrow keys). Double-click the edge to return to the standard width. The width is remembered.",
+            ],
+          },
+          "catalogue-view": {
+            title: "Cards or List",
+            text: "Cards show each entry's description, capability, version and schema summary. List shows the same entries as a compact table, which fits more on screen.",
+            note: "Your choice is remembered.",
+          },
+          "connection-view": {
+            title: "Cards or List",
+            text: "Cards show each connection's description, endpoint and credential reference. List shows them as a compact table with an Inspect action on each row.",
+            note: "Your choice is remembered.",
+          },
+          "pipeline-actions": {
+            title: "Pipeline actions",
+            text: "Open loads the pipeline into the workbench, replacing the pipeline open there; unsaved changes are saved or discarded first. Configure opens the full-page configuration; on the open pipeline it edits the workbench's current design. Export bundle (on the open pipeline) downloads it with its providers and connections.",
+          },
+          "structure-tree": {
+            title: "Structure tree",
+            text: "Each organisation has two branches: its namespaces and its design workspaces. A workspace is not inside a namespace; it shows the namespace it has selected, and each namespace shows how many workspaces reference it. Click an arrow to collapse or expand a branch.",
+            steps: [
+              "Open switches to that organisation, namespace or workspace.",
+              "Edit changes its name or description.",
+              "Discard drafts throws away a workspace's unsaved changes.",
+              "Delete is available only when the structure is empty; otherwise the reason is shown.",
+            ],
+          },
+          versions: {
+            title: "Versions",
+            text: "Lists the pipeline's current version, the versions saved in this session and earlier versions. Each saved version is kept; runs record the version they used.",
+            note: "Older versions can be viewed but not opened in this prototype. Export current design downloads a bundle.",
+          },
+          "save-version": {
+            title: "Save version",
+            text: "Saves the open pipeline to the namespace as a new version, with a name and an optional note.",
+            note: "If another design workspace saved a newer version first, your save is refused rather than overwriting it. Earlier runs keep the version they used.",
+          },
+          "run-pipeline": {
+            title: "Preview pipeline",
+            text: "Runs every stage on sample rows, up to each stage's preview limit, and shows the final result with its schema, issues and lineage. A progress strip shows the stage being run, with Cancel.",
+            note: "A preview never writes to the destination. A successful preview enables Execute.",
+          },
+          "execute-pipeline": {
+            title: "Execute (simulated)",
+            text: "Submits the pipeline as a background job. It passes through Queued, Running and Publishing to Completed, and is recorded in Run history.",
+            steps: [
+              "Preview the pipeline first: Execute is enabled only after the last preview succeeded.",
+              "Execute; the job takes its record counts from that preview.",
+              "Follow its status in Run history.",
+            ],
+            note: "Executions cannot be cancelled. Needs the Operator or Administrator role.",
+          },
+          "add-stage": {
+            title: "Add stage",
+            text: "Adds a SQL query, Transform, Join or Validation stage after the selected stage. The new stage takes the previous stage's result as its input.",
+            note: "A stage is never added after Output. Source stays first and Output last.",
+          },
+          "validate-query": {
+            title: "Check query",
+            text: "Checks the SQL without running it: that it parses, that the datasets and fields it names exist, and that joins use equality key pairs.",
+          },
+          "new-pipeline": {
+            title: "New pipeline",
+            text: "Starts a new pipeline in this design workspace, from a copy of the current pipeline or from just its source and output.",
+            note: "Needs an input binding first. If the open pipeline has unsaved changes you are asked to save or discard them.",
+          },
+          "import-bundle": {
+            title: "Import bundle",
+            text: "Imports a configuration bundle (a JSON file made by Export) into this namespace: a pipeline with its providers and connections.",
+            note: "Names that already exist must be given new names before anything is imported. Needs the Publisher or Administrator role.",
+          },
+          "export-design": {
+            title: "Export bundle",
+            text: "Downloads unify-bundle.json: the open pipeline with the providers and connections its inputs use, ready to import into another namespace.",
+          },
+          "register-provider": {
+            title: "New CSV provider",
+            text: "Configures a CSV reader from a sample file in the CSV mapping workspace.",
+          },
+          "config-new-provider": {
+            title: "New source provider",
+            text: "Configures a JSON, XML, JDBC or HTTP JSON reader. Read a sample, map its fields to typed columns, preview, then save it to the catalogue.",
+            note: "The name must be a unique Category.Name. A reader names no connection: bindings choose one. Needs the Publisher or Administrator role.",
+          },
+          "new-definition": {
+            title: "New definition",
+            text: "Creates a reusable Schema, Field mapping, Transformation rules, Validation rules, Join or SQL query.",
+            note: "Names are unique within each type, ignoring case.",
+          },
+          "new-source": {
+            title: "New connection",
+            text: "Creates a JDBC or HTTP connection: the endpoint and a credential reference.",
+            steps: [
+              "JDBC: choose SQLite or H2; the URL must start with jdbc:sqlite: or jdbc:h2:.",
+              "HTTP: enter the base URL and the connect and read timeouts.",
+              "Give a credential reference; credentials inside the URL are rejected.",
+            ],
+            note: "Connection names are unique, ignoring case.",
+          },
+          "config-validate-connection": {
+            title: "Validate settings",
+            text: "Checks the connection's settings (product, URL form, timeouts and credential reference) without contacting the endpoint.",
+          },
+          "confirm-source": {
+            title: "Save connection",
+            text: "Saves the connection to the namespace. When you came from a reader or output editor, you return to it with the connection selected.",
+          },
+          "config-analyze": {
+            title: "Read sample and map fields",
+            text: "Reads the sample and proposes a typed column for each field it finds. Integers outside the 32-bit range are read as text.",
+          },
+          "config-preview": {
+            title: "Preview or validate",
+            text: "Runs the configuration against sample data and shows the resulting records, counts and any errors, without saving.",
+          },
+          "csv-read": {
+            title: "Read CSV",
+            text: "Reads the chosen sample file with the current format settings and shows its first records.",
+          },
+          "csv-map": {
+            title: "Map columns",
+            text: "Matches source columns to output columns by header name or position and sets each column's type and null handling.",
+          },
+          "csv-preview": {
+            title: "Preview mapping",
+            text: "Applies the mapping to the sample and shows the mapped records and any errors. A successful preview enables Save provider.",
+          },
+          "csv-save": {
+            title: "Save provider",
+            text: "Saves the CSV reader to the catalogue as a new provider.",
+            note: "Always creates a new provider; an existing one opens as a copy.",
+          },
+          "structure-new": {
+            title: "New structure",
+            text: "Creates an organisation, a namespace in the current organisation, or a design workspace in the current organisation.",
+            note: "Names are unique, ignoring case. Needs the Administrator role.",
+          },
+          "repeat-run": {
+            title: "Repeat run",
+            text: "Submits a new run that names this one as its original. It resubmits the pipeline currently in the workbench, with its current version, engine and last preview's counts, not the original run's settings.",
+          },
+          "sign-in": {
+            title: "Sign in (simulated)",
+            text: "In the product you sign in through your organisation's identity provider, and its groups grant your role. Here you choose a display name and a role.",
+            note: "No password is entered and no token is saved.",
+          },
+        };
         function start(options = {}) {
         const storage =
           options.storage ||
@@ -7102,10 +7663,10 @@ Version 1.4.0
           cancel: "cancelling runs",
         };
         const READ_ACTIONS = new Set([
-          "backdrop-close", "catalog-mobile", "catalogue-mode", "catalogue-page", "close-modal", "connection-mode", "context-menu",
+          "backdrop-close", "browser-width", "catalog-mobile", "catalogue-mode", "catalogue-page", "close-modal", "connection-mode", "context-menu", "show-help", "close-help",
           "command", "config-back", "config-section", "connection-detail", "definition",
           "editor-mode", "explorer-tab", "guide", "inspect-stage-result", "library-filter",
-          "manage-structure", "navigate", "open-provider-directory", "open-workspace",
+          "manage-structure", "navigate", "open-pipeline", "open-provider-directory", "open-workspace",
           "provider-detail", "provider-filter", "provider-section", "result-tab", "row-detail",
           "run-detail", "select-stage", "show-issues", "sort-result", "source-detail",
           "source-toggle", "structure-cancel", "structure-open", "structure-tree-toggle", "versions", "sign-in", "sign-out",
@@ -7188,6 +7749,9 @@ Version 1.4.0
           down: "m6 9 6 6 6-6",
           plus: "M12 5v14 M5 12h14",
           close: "m6 6 12 12 M18 6 6 18",
+          arrowUp: "M12 19V5 m-6 6 6-6 6 6",
+          arrowDown: "M12 5v14 m-6-6 6 6 6-6",
+          trash: "M4 7h16 M9 7V4h6v3 M6 7l1 13h10l1-13 M10 11v6 M14 11v6",
           file: "M6 3h8l4 4v14H6z M14 3v5h5 M9 12h6 M9 16h6",
           braces: "M9 3H7v7l-3 2 3 2v7h2 M15 3h2v7l3 2-3 2v7h-2",
           globe:
@@ -7210,6 +7774,8 @@ Version 1.4.0
           history: "M3 4v6h6 M4 9a8 8 0 1 1 0 6 M12 7v5l4 2",
           help: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M9 8a3 3 0 0 1 6 1c0 2-3 2-3 5 M12 17v1",
           expand: "M8 3H3v5 M16 3h5v5 M21 16v5h-5 M3 16v5h5",
+          widen: "M3 4h18v16H3z M9 4v16 M13 12h5 m-2-2 2 2-2 2",
+          narrow: "M3 4h18v16H3z M9 4v16 M18 12h-5 m2-2-2 2 2 2",
           sort: "M8 4v16 m-4-4 4 4 4-4 M16 20V4 m-4 4 4-4 4 4",
           stop: "M5 5h14v14H5z",
           refresh:
@@ -7222,8 +7788,12 @@ Version 1.4.0
         };
         const icon = (name, cls = "") =>
           `<svg class='icon ${cls}' viewBox='0 0 24 24' aria-hidden='true'><path d='${paths[name] || paths.file}'/></svg>`;
+        const helpTip = (key) =>
+          HELP[key]
+            ? `<button type='button' class='help-tip' data-action='show-help' data-help='${key}' aria-label='About ${E(HELP[key].title)}' aria-haspopup='dialog' title='About ${E(HELP[key].title)}'><svg class='icon' viewBox='0 0 24 24' aria-hidden='true'><path d='${paths.info}'/></svg></button>`
+            : "";
         const button = (action, label, glyph, cls = "", attrs = "") =>
-          `<button class='btn ${cls}' data-action='${action}' ${attrs}>${glyph ? icon(glyph) : ""}<span>${label}</span></button>`;
+          `<button class='btn ${cls}' data-action='${action}' ${attrs}>${glyph ? icon(glyph) : ""}<span>${label}</span></button>${helpTip(action)}`;
         const tiny = (action, label, glyph, attrs = "") =>
           `<button class='icon-btn' data-action='${action}' aria-label='${E(label)}' title='${E(label)}' ${attrs}>${icon(glyph)}</button>`;
         const badge = (text, color = "") =>
@@ -7239,6 +7809,18 @@ Version 1.4.0
         ];
         // The engine request is an execution setting saved with the pipeline
         // (FR012), not a session preference.
+        // The data browser's width is a session preference. null keeps the
+        // layout's standard width for the screen size.
+        const BROWSER_MIN = 200,
+          BROWSER_MAX = 640,
+          BROWSER_STANDARD = 226,
+          BROWSER_WIDE = 420;
+        function clampBrowserWidth(value) {
+          const width = Math.round(Number(value));
+          return Number.isFinite(width) && width > 0
+            ? Math.min(BROWSER_MAX, Math.max(BROWSER_MIN, width))
+            : null;
+        }
         const sessionStateKeys = [
           "minimumUnits",
           "selectedStage",
@@ -7256,6 +7838,7 @@ Version 1.4.0
           "catalogueCollapsed",
           "cataloguePages",
           "browserCollapsed",
+          "browserWidth",
           "connectionMode",
         ];
         let structureCounter = 0;
@@ -7676,6 +8259,7 @@ Version 1.4.0
             catalogueCollapsed: {},
             cataloguePages: {},
             browserCollapsed: {},
+            browserWidth: null,
             connectionMode: "cards",
             ...context.preferences,
           };
@@ -7836,6 +8420,7 @@ Version 1.4.0
           browserCollapsed: saved?._preferences?.browserCollapsed || {},
           browserSearchCollapsed: {},
           connectionMode: saved?._preferences?.connectionMode || "cards",
+          browserWidth: clampBrowserWidth(saved?._preferences?.browserWidth),
           configEditor: null,
           providerSamples: {},
           operationSettings:
@@ -8019,7 +8604,7 @@ Version 1.4.0
             runs: "Run history",
           }[state.view];
           const context = `${activeOrganisation().name} / ${activeNamespace().name} / ${activeDesignWorkspace().name}`;
-          return `<header class='global-header'><div class='breadcrumb'><button type='button' class='context-switch' data-action='context-menu' aria-haspopup='dialog' aria-expanded='false' aria-controls='context-menu' aria-label='Context: ${E(context)}. Change organisation, namespace or design workspace' title='Change organisation, namespace or design workspace' ${state.running || state.hierarchyEditor ? "disabled" : ""}>${icon("menu")}<span>${E(context)}</span></button>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div>${contextControls()}<div class='global-actions'><span class='session-user' data-session-user>Signed in as <strong>${E(state.session.name)}</strong><label class='role-switch'><span>Role</span><select id='role-select' aria-label='Role (simulated sign-in)'>${ROLES.map((role) => `<option ${state.session.role === role ? "selected" : ""}>${role}</option>`).join("")}</select></label>${button("sign-out", "Sign out", null, "small subtle")}</span><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>${roleNotice()}`;
+          return `<header class='global-header'><div class='breadcrumb'><button type='button' class='context-switch' data-action='context-menu' aria-expanded='false' aria-controls='context-menu' aria-label='Context: ${E(context)}. Change organisation, namespace or design workspace' title='Change organisation, namespace or design workspace' ${state.running || state.hierarchyEditor ? "disabled" : ""}>${icon("menu")}<span>${E(context)}</span></button>${icon("chevron")}<strong>${title}</strong><span class='crumb-extra'>${icon("chevron")} Design review</span></div>${contextControls()}<div class='global-actions'><span class='session-user' data-session-user>Signed in as <strong>${E(state.session.name)}</strong>${helpTip("role")}<label class='role-switch'><span>Role</span><select id='role-select' aria-label='Role (simulated sign-in)'>${ROLES.map((role) => `<option ${state.session.role === role ? "selected" : ""}>${role}</option>`).join("")}</select></label>${button("sign-out", "Sign out", null, "small subtle")}</span><button class='command-button' data-action='command' aria-label='Search the workspace'><span>Find anything</span>${icon("search")}<kbd class='keycap'>Ctrl K</kbd></button><span class='prototype-badge'><span class='full-label'>Interactive </span>prototype · sample data</span></div></header>${roleNotice()}`;
         }
         function roleNotice() {
           const missing = ["edit", "preview", "execute", "publish", "administer"].filter(
@@ -8034,6 +8619,7 @@ Version 1.4.0
         }
         function render() {
           if (stopped) return;
+          closeHelp();
           if (!state.session) {
             app.innerHTML = signInPage();
             return;
@@ -8043,23 +8629,25 @@ Version 1.4.0
           applyPermissions(app);
         }
         function heading(title, description, actions) {
-          return `<div class='page-heading'><div><div class='title-line'><h1>${E(title)}</h1>${state.view === "workspace" ? badge(state.dirty ? "Unsaved changes" : `v${state.version}`, state.dirty ? "amber" : "outline") : ""}</div><p>${description}</p></div><div class='heading-actions'>${actions || ""}</div></div>`;
+          return `<div class='page-heading'><div><div class='title-line'><h1>${E(title)}</h1>${helpTip("screen-" + state.view)}${state.view === "workspace" ? badge(state.dirty ? "Unsaved changes" : `v${state.version}`, state.dirty ? "amber" : "outline") : ""}</div><p>${description}</p></div><div class='heading-actions'>${actions || ""}</div></div>`;
         }
         function workspace() {
           if (!state.stages.length) return emptyWorkbench();
-          return `${heading(state.name, `Build, combine, and validate data in one portable pipeline.`, `${button("catalog-mobile", "Catalogue", "database", "mobile-catalog")}${button("versions", "Versions", "history")}${button("save-version", "Save version", "save")}<span class='separator'></span><label class='select-label'><span>Execution engine</span><select id='engine-select' aria-label='Execution engine' ${state.running ? "disabled" : ""}>${["Automatic", "SQLite", "DuckDB"].map((e) => `<option ${state.engine === e ? "selected" : ""}>${e}</option>`).join("")}</select></label>${button(state.running ? "cancel-run" : "run-pipeline", state.running ? "Cancel" : "Preview pipeline", state.running ? "stop" : "play", state.running ? "" : "primary")}${button("execute-pipeline", "Execute (simulated)", "upload", "", state.running || !state.result?.ok ? "disabled" : "")}`)}<div class='workbench'>${explorer()}<div class='workspace-main'>${pipelineFlow()}<div class='editor-layout'>${editor()}${inspector()}</div>${results()}<div class='workspace-footer'><span>Local sample processing · Calcite and database engines are not connected</span><span>${state.lastSaved ? "Saved locally " + date(state.lastSaved) : "Editing saved revision v" + state.version} · ${state.stages.length} stages</span></div></div></div>`;
+          return `${heading(state.name, `Build, combine, and validate data in one portable pipeline.`, `${button("catalog-mobile", "Catalogue", "database", "mobile-catalog")}${button("versions", "Versions", "history")}${button("save-version", "Save version", "save")}<span class='separator'></span><label class='select-label'><span>Execution engine</span><select id='engine-select' aria-label='Execution engine' ${state.running ? "disabled" : ""}>${["Automatic", "SQLite", "DuckDB"].map((e) => `<option ${state.engine === e ? "selected" : ""}>${e}</option>`).join("")}</select></label>${helpTip("engine")}${button(state.running ? "cancel-run" : "run-pipeline", state.running ? "Cancel" : "Preview pipeline", state.running ? "stop" : "play", state.running ? "" : "primary")}${button("execute-pipeline", "Execute (simulated)", "upload", "", state.running || !state.result?.ok ? "disabled" : "")}`)}<div class='workbench${state.browserWidth ? " browser-sized" : ""}${state.editorExpanded ? " editor-expanded" : ""}' ${state.browserWidth ? `style='--browser-width:${state.browserWidth}px'` : ""}>${explorer()}<div class='workspace-main'>${pipelineFlow()}<div class='editor-layout'>${editor()}${inspector()}</div>${results()}<div class='workspace-footer'><span>Local sample processing · Calcite and database engines are not connected</span><span>${state.lastSaved ? "Saved locally " + date(state.lastSaved) : "Editing saved revision v" + state.version} · ${state.stages.length} stages</span></div></div></div>`;
         }
         function pipelineFlow() {
           return `<section class='card pipeline-panel' aria-label='Pipeline stages'><div class='pipeline-panel-header'><h2>Pipeline stages <span>${state.stages.length} stages · select a stage to inspect</span></h2>${button("config-pipeline", "Configure pipeline", "sliders", "small")}${button("add-stage", "Add stage", "plus", "small")}</div><div class='pipeline-flow'>${state.stages.map((s, index) => `${index ? "<div class='stage-link' aria-hidden='true'></div>" : ""}<button class='stage-card ${s.id === state.selectedStage ? "active" : ""} ${state.running?.current === s.id ? "stage-running" : ""} ${state.running?.completed?.includes(s.id) ? "stage-complete" : ""}' data-action='select-stage' data-id='${E(s.id)}' aria-pressed='${s.id === state.selectedStage}'><span class='stage-card-top'>${icon(s.icon)}${E(s.kind)}</span><strong>${E(s.name)}</strong></button>`).join("")}</div></section>`;
         }
         function editor() {
           const s = selected(),
+            inline = inlineEditor(s),
+            sqlMode = ["inputs", "parameters"].includes(state.editorMode) ? state.editorMode : "sql",
             isSQL = s.kind === "SQL query",
             sql =
               s.id === "query"
                 ? state.sql
                 : s.sql || "SELECT * FROM " + s.input;
-          return `<section class='card editor-card' aria-label='Stage editor'><div class='editor-toolbar'><div class='editor-tabs'>${isSQL ? ["sql", "visual"].map((mode) => `<button class='tab ${state.editorMode === mode ? "active" : ""}' data-action='editor-mode' data-mode='${mode}'>${mode === "sql" ? "SQL editor" : "Visual designer"}</button>`).join("") : `<span class='tab active'>${E(s.kind)} configuration</span>`}</div><div class='editor-tools'>${button("config-stage", "Configure stage", "sliders", "small", `data-id='${E(s.id)}'`)}${isSQL ? `${tiny("format-query", "Format SQL", "sliders")}${tiny("reset-query", "Restore sample SQL", "refresh")}` : ""}${tiny("expand-editor", "Expand stage editor", "expand")}</div></div>${isSQL ? (state.editorMode === "sql" ? `<div class='code-wrap'><div class='line-numbers' id='line-numbers' aria-hidden='true'></div><div class='editor-surface'><pre class='code-highlight' id='code-highlight' aria-hidden='true'></pre><textarea id='sql-editor' spellcheck='false' autocapitalize='off' autocomplete='off' wrap='off' aria-label='SQL query editor' ${state.running ? "readonly" : ""}>${E(sql)}</textarea></div></div>` : visualDesigner()) : stageConfiguration(s)}<div class='editor-status'><span id='query-status' class='${state.checked ? "valid" : ""}'>${icon(state.checked ? "circleCheck" : "code")}${state.checked ? "Prototype checks passed" : "Portable SQL profile v1 · sample execution"}</span><span>${isSQL ? "Ctrl + Enter to preview" : E(s.output)} · ${isSQL ? sql.split("\n").length + " lines" : "v" + s.version}</span></div></section>`;
+          return `<section class='card editor-card' aria-label='Stage editor'><div class='editor-toolbar'><div class='editor-tabs'>${isSQL ? [["sql", "SQL"], ["inputs", "Inputs and result"], ["parameters", "Parameters"]].map(([mode, label]) => `<button class='tab ${sqlMode === mode ? "active" : ""}' data-action='editor-mode' data-mode='${mode}' aria-pressed='${sqlMode === mode}'>${label}</button>`).join("") : inline ? inlineTabs(s, inline) : ""}</div><div class='editor-tools'>${isSQL && sqlMode === "sql" ? `${tiny("format-query", "Format SQL", "sliders")}${tiny("reset-query", "Restore sample SQL", "refresh")}` : ""}${s.kind === "Output" ? button("review-output", "Review output", "eye", "small subtle") : ""}${tiny("expand-editor", state.editorExpanded ? "Restore layout" : "Expand editor", "expand", `aria-pressed='${!!state.editorExpanded}'`)}</div></div>${isSQL ? (sqlMode === "sql" ? `<div class='code-wrap'><div class='line-numbers' id='line-numbers' aria-hidden='true'></div><div class='editor-surface'><pre class='code-highlight' id='code-highlight' aria-hidden='true'></pre><textarea id='sql-editor' spellcheck='false' autocapitalize='off' autocomplete='off' wrap='off' aria-label='SQL query editor' ${state.running ? "readonly" : ""}>${E(sql)}</textarea></div></div>` : inline ? inlineBody(inline, sqlMode === "inputs" ? configurationSettings() : configParameterGrid(inline.parameters) + configSchemaSelect("Expected result schema", "resultSchemaId", inline.settings.resultSchemaId)) : "") : inline ? inlineBody(inline, inline.section === "input" ? sourceInputTab(s, inline) : inline.section === "fields" ? configurationFields() : configurationSettings()) : stageConfiguration(s)}<div class='editor-status'><span id='query-status' class='${state.checked ? "valid" : ""}'>${icon(state.checked ? "circleCheck" : "code")}${state.checked ? "Prototype checks passed" : "Portable SQL profile v1 · sample execution"}</span><span>${isSQL ? "Ctrl + Enter to preview" : E(s.output)} · ${isSQL ? sql.split("\n").length + " lines" : "v" + s.version}</span></div></section>`;
         }
         function highlight() {
           const textarea = document.getElementById("sql-editor"),
@@ -8096,6 +8684,143 @@ Version 1.4.0
           pre.scrollLeft = textarea.scrollLeft;
           numbers.scrollTop = textarea.scrollTop;
         }
+        const INLINE_KIND = {
+          Transform: "transform",
+          Validation: "validation",
+          Join: "join",
+          "SQL query": "query",
+          Output: "output",
+          // A Source stage edits the input binding it reads.
+          Source: "binding",
+        };
+        // The inline editor follows the selected stage. Without unapplied
+        // edits it is rebuilt from the stage, so it always shows the stage's
+        // current configuration.
+        function inlineEditor(s) {
+          const kind = INLINE_KIND[s.kind],
+            current = state.configEditor,
+            same =
+              current?.inline &&
+              current.kind === kind &&
+              current.inlineStage === s.id &&
+              (kind !== "binding" || current.bindingId === s.bindingId);
+          if (same && current.dirty) return current;
+          const section = same
+              ? current.section
+              : kind === "binding"
+                ? "input"
+                : "settings",
+            error = same ? current.error : "";
+          try {
+            if (kind === "output") openConfiguration("output", { inline: true });
+            else if (kind === "binding") {
+              if (!state.sources.some((b) => b.id === s.bindingId))
+                throw Error("Select an input binding.");
+              openConfiguration("binding", { bindingId: s.bindingId, inline: true });
+            } else openConfiguration("stage", { stageId: s.id, inline: true });
+          } catch (failure) {
+            return null;
+          }
+          const e = state.configEditor;
+          e.inlineStage = s.id;
+          e.section = section;
+          e.error = error;
+          e.base = {
+            name: s.name,
+            output: s.output,
+            sql: e.settings?.sql,
+            inputs: C.clone(e.settings?.inputs || []),
+          };
+          if (section === "fields") {
+            try {
+              ensureConfigurationFields();
+            } catch (_) {}
+          }
+          return e;
+        }
+        // Applies the inline editor to the stage. Name and alias edited in
+        // Stage settings, and SQL edited in the SQL editor, are kept.
+        function applyInlineEditor() {
+          const e = state.configEditor;
+          if (!e?.inline) return true;
+          const stage = state.stages.find((s) => s.id === e.stageId);
+          if (stage) {
+            if (e.name === e.base?.name) e.name = stage.name;
+            if (e.output === e.base?.output) e.output = stage.output;
+            // SQL is edited on the SQL tab. A reusable query loaded on the
+            // Inputs and result tab replaces it, so keep that one.
+            const sql = stageSQL(stage);
+            if (e.kind === "query" && e.settings.sql === e.base?.sql && sql !== e.settings.sql) {
+              e.settings.sql = sql;
+              if (JSON.stringify(e.settings.inputs) === JSON.stringify(e.base?.inputs))
+                e.settings.inputs = queryInputNames(sql);
+            }
+          }
+          e.dirty = false;
+          const scroll = window.scrollY,
+            section = e.section;
+          try {
+            saveConfiguration();
+            // Saving checks the configuration with a preview first; a failed
+            // check leaves the stage unchanged, so keep the edits.
+            if (state.configEditor === e && e.preview && !e.preview.ok) {
+              const message =
+                e.preview.issues?.[0]?.message ||
+                e.preview.error ||
+                "The configuration check failed.";
+              e.dirty = true;
+              e.section = section;
+              e.error = message;
+              render();
+              toast("Fix the stage configuration first: " + message, "warning");
+              return false;
+            }
+            window.scrollTo({ top: scroll, behavior: "auto" });
+            return true;
+          } catch (error) {
+            e.dirty = true;
+            e.error = error.message;
+            render();
+            toast("Fix the stage configuration first: " + error.message, "warning");
+            return false;
+          }
+        }
+        function inlineTabs(s, e) {
+          const labels = {
+            transform: ["Input and settings", "Rules"],
+            validation: ["Input and settings", "Rules"],
+            join: ["Inputs and settings", "Match keys and fields"],
+            output: ["Destination and format", "Field mapping"],
+            binding: ["Input", "Binding settings", "Fields"],
+          }[e.kind];
+          const sections =
+            e.kind === "binding" ? ["input", "settings", "fields"] : ["settings", "fields"];
+          return labels
+            .map((label, i) => {
+              const section = sections[i];
+              return `<button class='tab ${e.section === section ? "active" : ""}' data-action='config-section' data-section='${section}' aria-pressed='${e.section === section}'>${label}</button>`;
+            })
+            .join("");
+        }
+        // The Source stage's first tab: which binding it reads.
+        function sourceInputTab(s, e) {
+          return `<label class='form-label'>Binding this stage reads<select id='source-binding-select' ${e?.dirty ? "disabled title='Apply or revert the binding changes first.'" : ""}>${state.sources.map((b) => `<option value='${E(b.id)}' ${b.id === s.bindingId ? "selected" : ""}>${E(b.name)} · ${E(b.providerSnapshot.name)}</option>`).join("")}</select><span class='input-hint'>Input bindings belong to the pipeline. Binding settings and Fields edit the selected binding; Apply updates it for every stage that reads it.</span></label>${configDataSummary(s)}`;
+        }
+        function inlineApplyBar(e) {
+          return `<div class='inline-apply'><span class='state ${e.dirty ? "pending" : ""}'>${icon(e.dirty ? "warning" : "circleCheck")}${e.dirty ? "Unapplied changes · applied when you preview, save or leave this stage" : "Changes are applied to the stage"}</span>${button("config-revert", "Revert", "refresh", "small subtle", e.dirty ? "" : "disabled")}${button("config-save", "Apply", "check", "small primary", e.dirty ? "" : "disabled")}</div>`;
+        }
+        // Typing does not re-render (focus would be lost), so the Apply bar
+        // is refreshed in place.
+        function refreshInlineApply() {
+          const bar = document.querySelector(".inline-apply"),
+            e = state.configEditor;
+          if (!bar || !e?.inline) return;
+          bar.outerHTML = inlineApplyBar(e);
+          applyPermissions(document.querySelector(".editor-card") || document);
+        }
+        function inlineBody(e, content) {
+          return `<div class='inline-config config-main'>${e.error ? `<div class='config-error' role='alert'>${E(e.error)}</div>` : ""}${content}</div>${inlineApplyBar(e)}`;
+        }
         function stageConfiguration(s) {
           const action = button(
             "config-stage",
@@ -8118,11 +8843,57 @@ Version 1.4.0
 
         function inspector(prefix = "panel") {
           const s = selected();
-          return `<aside class='card inspector' aria-label='Stage settings'><div class='inspector-header'><h2>Stage settings</h2>${badge("v" + s.version, "outline")}</div><div class='inspector-body'>${inspectorFields(prefix)}</div></aside>`;
+          return `<aside class='card inspector' aria-label='Stage settings'><div class='inspector-header'><h2>Stage settings ${helpTip("stage-settings")}</h2><span title='Stage version'>${badge("v" + s.version, "outline")}</span></div><div class='inspector-body'>${inspectorFields(prefix)}</div></aside>`;
         }
         function inspectorFields(prefix) {
-          const s = selected();
-          return `<label class='form-label'>Stage name<input id='${prefix}-stage-name' name='stage-name' value='${E(s.name)}' ${state.running ? "disabled" : ""}></label><label class='form-label'>Result alias<input name='stage-output' id='${prefix}-stage-output' value='${E(s.output)}' ${s.kind === "Output" || state.running ? "disabled" : ""}></label>${minimumParameter(s) ? `<label class='form-label'>Minimum units<input type='number' name='minimum-units' id='${prefix}-minimum-units' value='${E(minimumParameter(s)?.value ?? "")}'><span class='input-hint'>Bound to this stage’s declared parameter.</span></label>` : ""}<div class='key-value'><span>Preview source limit</span><strong>${state.operationSettings.previewLimit} records</strong></div><div class='key-value'><span>Invalid records</span><strong>${state.operationSettings.policy === "skip" ? "Skip up to " + state.operationSettings.maxRejected : "Fail operation"}</strong></div>${button("config-runtime", "Execution settings", "sliders", "small")}<div class='right-split'>${button("preview-stage", "Preview stage", "play", "small primary")}${tiny("move-stage-up", "Move stage earlier", "history")}${tiny("remove-stage", "Remove selected stage", "close")}</div>`;
+          const s = selected(),
+            i = state.stages.indexOf(s),
+            boundary = s.kind === "Source" || s.kind === "Output",
+            busy = state.running ? "disabled" : "",
+            why = (reason) => (reason ? `disabled title='${E(reason)}'` : busy),
+            upReason = boundary
+              ? `${s.kind} stays ${s.kind === "Source" ? "first" : "last"}.`
+              : i < 2
+                ? "This stage is already first after Source."
+                : "",
+            downReason = boundary
+              ? `${s.kind} stays ${s.kind === "Source" ? "first" : "last"}.`
+              : state.stages[i + 1]?.kind === "Output"
+                ? "This stage is already last before Output."
+                : "",
+            parameter = minimumParameter(s),
+            declared = s.kind === "SQL query" ? stageParameters(s) : [],
+            settings = state.operationSettings,
+            aliasHint =
+              s.kind === "Output"
+                ? "Output writes the final result, so no later stage reads it by alias."
+                : `Later stages read this result as <code>${E(s.output)}</code>. Renaming it updates their queries.`;
+          const parameters =
+            s.kind !== "SQL query"
+              ? ""
+              : parameter
+                ? `<label class='form-label'>Minimum units<input type='number' name='minimum-units' id='${prefix}-minimum-units' value='${E(parameter.value ?? "")}' ${busy}><span class='input-hint'>Query parameter <code>minimumUnits</code> (whole number). Preview again to see its effect.</span></label>`
+                : `<div class='inspector-group'>Parameters<span class='input-hint'>${
+                    declared.length
+                      ? `Declared: ${declared.map((p) => `<code>${E(p.name)}</code>`).join(", ")}. Edit them on the editor's Parameters tab.`
+                      : "None declared. Add them on the editor's Parameters tab."
+                  }</span></div>`;
+          return `<div class='inspector-meta'>${badge(s.kind, "outline")}<span>Stage ${i + 1} of ${state.stages.length}</span></div>
+<section class='inspector-section' aria-label='This stage'><h3>This stage</h3>
+<label class='form-label'>Stage name<input id='${prefix}-stage-name' name='stage-name' value='${E(s.name)}' ${busy}></label>
+<label class='form-label'>Result alias<input name='stage-output' id='${prefix}-stage-output' value='${E(s.output)}' ${s.kind === "Output" || state.running ? "disabled" : ""}><span class='input-hint'>${aliasHint}</span></label>
+${parameters}
+<div class='inspector-group'>Position in pipeline<div class='inspector-buttons'>${button("move-stage-up", "Move earlier", "arrowUp", "small", why(upReason))}${button("move-stage-down", "Move later", "arrowDown", "small", why(downReason))}</div></div>
+${button("preview-stage", "Preview this stage", "play", "small primary", busy)}
+<span class='input-hint'>Runs this stage on the sample data. Preview pipeline, at the top of the page, runs every stage.</span>
+${button("remove-stage", "Remove stage", "trash", "small subtle", why(boundary ? `The ${s.kind} stage can't be removed.` : ""))}
+</section>
+<section class='inspector-section pipeline-preview' aria-label='Pipeline preview settings'><h3>Pipeline preview settings ${helpTip("preview-settings")}</h3>
+<span class='input-hint'>Apply to every stage, not just this one.</span>
+<div class='key-value'><span>Source limit</span><strong>${settings.previewLimit} records per input</strong></div>
+<div class='key-value'><span>Invalid records</span><strong>${settings.policy === "skip" ? "Skip up to " + settings.maxRejected : "Fail operation"}</strong></div>
+${button("config-runtime", "Change execution settings", "sliders", "small")}
+</section>`;
         }
 
         function resultRows() {
@@ -8352,13 +9123,17 @@ Version 1.4.0
               .join("");
             footer = button("close-modal", "Done", null, "primary");
           } else if (m.type === "unsaved-pipeline") {
+            // m.next: "new" (default), "open" or "configure" a saved pipeline.
+            const next = m.next || "new",
+              target = state.definitions.find((d) => d.id === m.id),
+              then = `data-continue='${next}' data-continue-id='${E(m.id || "")}'`;
             title = "Save or discard your changes?";
-            description = `“${state.name}” has unsaved changes. A new pipeline replaces this editing session's draft.`;
+            description = `“${state.name}” has unsaved changes. ${next === "new" ? "A new pipeline" : `Opening “${target?.name || "the pipeline"}”`} replaces this editing session's draft.`;
             body = `<div class='notice'>${icon("info")}Save them as a new version, or discard them and return to version ${state.version}. Nothing is saved unless you choose to.</div>`;
             footer =
               button("close-modal", "Cancel", null) +
-              button("discard-pipeline-draft", "Discard changes", "close", "danger") +
-              button("save-version", "Save version first", "save", "primary", "data-continue-new='true'");
+              button("discard-pipeline-draft", "Discard changes", "close", "danger", then) +
+              button("save-version", "Save version first", "save", "primary", `data-continue-new='${next === "new"}' ${then}`);
           } else if (m.type === "add-stage") {
             title = "Add a transformation stage";
             description =
@@ -8956,6 +9731,9 @@ Version 1.4.0
           const run = {
             id: uniqueId("DEMO-").toUpperCase(),
             name: state.name,
+            // Older runs have no pipelineId; the Pipelines page then
+            // matches them by name.
+            pipelineId: state.pipelineId,
             status,
             engine: selection.engine,
             selection,
@@ -9098,7 +9876,22 @@ Version 1.4.0
           seedStageConfigurations();
         }
 
+        const INLINE_APPLY_BEFORE = [
+          "preview-stage", "run-pipeline", "execute-pipeline", "save-version",
+          "select-stage", "add-stage", "move-stage-up", "move-stage-down",
+          "remove-stage", "navigate", "config-runtime", "config-pipeline",
+          "config-binding", "review-output", "export-design",
+        ];
         function dispatch(action, node) {
+          if (
+            state.view === "workspace" &&
+            state.configEditor?.inline &&
+            state.configEditor.dirty &&
+            INLINE_APPLY_BEFORE.includes(action) &&
+            !(action === "select-stage" && node.dataset.id === state.selectedStage) &&
+            !applyInlineEditor()
+          )
+            return;
           if (
             structureAction(action, node) ||
             catalogueViewAction(action, node)
@@ -9161,7 +9954,7 @@ Version 1.4.0
           }
           if (action === "select-stage") {
             state.selectedStage = node.dataset.id;
-            state.editorMode = selected().kind === "Join" ? "visual" : "sql";
+            state.editorMode = "sql";
             render();
             return;
           }
@@ -9236,6 +10029,8 @@ Version 1.4.0
             if (state.stages.length)
               openModal("save-version", {
                 continueNew: node?.dataset.continueNew === "true",
+                continueTo: node?.dataset.continue,
+                continueId: node?.dataset.continueId,
               });
             else toast("Create or open a pipeline first.", "warning");
             return;
@@ -9258,6 +10053,9 @@ Version 1.4.0
             return;
           }
           if (action === "expand-editor") {
+            state.editorExpanded = !state.editorExpanded;
+            render();
+            return;
             if (selected().kind !== "SQL query") {
               openConfiguration("stage", { stageId: selected().id });
               return;
@@ -9481,6 +10279,31 @@ Version 1.4.0
             );
             return;
           }
+          if (action === "move-stage-down") {
+            const i = state.stages.findIndex(
+              (s) => s.id === state.selectedStage,
+            );
+            if (
+              ["Source", "Output"].includes(selected().kind) ||
+              !state.stages[i + 1] ||
+              state.stages[i + 1].kind === "Output"
+            ) {
+              toast("Keep the source first and publication last.", "info");
+              return;
+            }
+            [state.stages[i], state.stages[i + 1]] = [
+              state.stages[i + 1],
+              state.stages[i],
+            ];
+            relink();
+            markDirty();
+            closeModal();
+            render();
+            toast(
+              "Stage moved later. Earlier stages can no longer read its result; check their inputs.",
+            );
+            return;
+          }
           if (action === "remove-stage") {
             if (["Source", "Output"].includes(selected().kind)) {
               toast(
@@ -9541,7 +10364,9 @@ Version 1.4.0
             }
             savedRevision.note = note;
             const stored = persist();
-            const continueNew = !!state.modal?.continueNew;
+            const continueNew = !!state.modal?.continueNew,
+              continueTo = state.modal?.continueTo,
+              continueId = state.modal?.continueId;
             closeModal();
             render();
             toast(
@@ -9552,6 +10377,7 @@ Version 1.4.0
                 : "Version created for this session; export it to keep a copy.",
             );
             if (continueNew) openConfiguration("pipeline", { isNew: true });
+            else if (continueTo) continuePipeline(continueTo, continueId);
             return;
           }
           if (action === "confirm-definition") {
@@ -9777,18 +10603,69 @@ Version 1.4.0
           toggle.setAttribute("aria-expanded", String(open));
           if (open) menu.querySelector("select:not(:disabled)")?.focus();
         }
+        // Help popover: one at a time, anchored to its info icon. It closes
+        // on its close button, Escape, an outside click or a re-render.
+        let helpAnchor = null;
+        function closeHelp(returnFocus) {
+          const popover = document.getElementById("help-popover");
+          if (!popover) return;
+          popover.remove();
+          if (helpAnchor?.isConnected) {
+            helpAnchor.setAttribute("aria-expanded", "false");
+            if (returnFocus) helpAnchor.focus();
+          }
+          helpAnchor = null;
+        }
+        function showHelp(tip) {
+          const reopen = helpAnchor === tip;
+          closeHelp();
+          const entry = HELP[tip.dataset.help];
+          if (!entry || reopen) return;
+          const popover = document.createElement("div");
+          popover.id = "help-popover";
+          popover.className = "help-popover";
+          popover.setAttribute("role", "dialog");
+          popover.setAttribute("aria-labelledby", "help-title");
+          popover.innerHTML = `<div class='help-head'><strong id='help-title'>${E(entry.title)}</strong><button type='button' class='icon-btn' data-action='close-help' aria-label='Close help'>${icon("close")}</button></div><p>${E(entry.text)}</p>${entry.steps ? `<ol>${entry.steps.map((step) => `<li>${E(step)}</li>`).join("")}</ol>` : ""}${entry.note ? `<p class='help-note'>${icon("info")}<span>${E(entry.note)}</span></p>` : ""}`;
+          document.body.appendChild(popover);
+          helpAnchor = tip;
+          tip.setAttribute("aria-expanded", "true");
+          const anchor = tip.getBoundingClientRect(),
+            width = popover.offsetWidth,
+            height = popover.offsetHeight;
+          let top = anchor.bottom + 8;
+          if (top + height > window.innerHeight - 8 && anchor.top - height - 8 > 8)
+            top = anchor.top - height - 8;
+          popover.style.left =
+            Math.max(8, Math.min(anchor.left - 12, window.innerWidth - width - 8)) + "px";
+          popover.style.top = Math.max(8, top) + "px";
+          popover.querySelector("[data-action='close-help']").focus();
+        }
         listen(document, "click", (event) => {
+          if (
+            document.getElementById("help-popover") &&
+            !event.target.closest("#help-popover, .help-tip")
+          )
+            closeHelp();
           const menu = document.getElementById("context-menu");
           if (
             menu &&
             !menu.hidden &&
-            !event.target.closest("#context-menu, .context-switch")
+            !event.target.closest("#context-menu, .context-switch, #help-popover")
           )
             setContextMenu(false);
         });
         listen(document, "click", (event) => {
           const node = event.target.closest("[data-action]");
           if (!node || node.disabled) return;
+          if (node.dataset.action === "show-help") {
+            showHelp(node);
+            return;
+          }
+          if (node.dataset.action === "close-help") {
+            closeHelp(true);
+            return;
+          }
           if (node.dataset.action === "context-menu") {
             setContextMenu(document.getElementById("context-menu")?.hidden);
             return;
@@ -9981,7 +10858,7 @@ Version 1.4.0
             const parameter = minimumParameter(selected());
             try {
               if (!parameter)
-                throw Error("Declare this stage parameter in Configure stage.");
+                throw Error("Declare this stage parameter on the editor's Parameters tab.");
               const number = CF.convert(el.value, {
                 type: "INT32",
                 nullable: false,
@@ -10060,6 +10937,11 @@ Version 1.4.0
           }
         });
         listen(document, "keydown", (event) => {
+          if (event.key === "Escape" && document.getElementById("help-popover")) {
+            event.preventDefault();
+            closeHelp(true);
+            return;
+          }
           if (
             event.key === "Escape" &&
             document.getElementById("context-menu")?.hidden === false
@@ -10097,7 +10979,14 @@ Version 1.4.0
               closeModal();
               render();
             }
-            if (state.view === "workspace") beginRun(false);
+            if (state.view !== "workspace") return;
+            if (
+              state.configEditor?.inline &&
+              state.configEditor.dirty &&
+              !applyInlineEditor()
+            )
+              return;
+            beginRun(false);
             return;
           }
           if (
@@ -10109,8 +10998,18 @@ Version 1.4.0
               toast(denial("edit"), "warning");
               return;
             }
-            if (state.stages.length) openModal("save-version");
-            else toast("Create or open a pipeline first.", "warning");
+            if (!state.stages.length) {
+              toast("Create or open a pipeline first.", "warning");
+              return;
+            }
+            if (
+              state.view === "workspace" &&
+              state.configEditor?.inline &&
+              state.configEditor.dirty &&
+              !applyInlineEditor()
+            )
+              return;
+            openModal("save-version");
             return;
           }
           if (
@@ -10287,7 +11186,7 @@ ${state.expanded[s.id] ? `<div class='tree-columns'>${s.schema.map((f) => `<butt
 <p class='scope-hint'>Only declared bindings and earlier results are available to this stage. Catalogue entries become query data through an explicit binding.</p>`;
         }
         function explorer(prefix = "") {
-          return `<aside class='card explorer' aria-label='Workspace data browser'><div class='explorer-head'><h2>Data browser</h2>${tiny("open-provider-directory", "Open catalogue", "expand")}</div>
+          return `<aside class='card explorer' aria-label='Workspace data browser'><div class='explorer-head'><h2>Data browser ${helpTip("data-browser")}</h2><div class='explorer-head-actions'>${prefix ? "" : tiny("browser-width", state.browserWidth >= BROWSER_WIDE ? "Narrow data browser" : "Widen data browser", state.browserWidth >= BROWSER_WIDE ? "narrow" : "widen", `aria-pressed='${state.browserWidth >= BROWSER_WIDE}'`)}${tiny("open-provider-directory", "Open catalogue", "expand")}</div></div>${prefix ? "" : `<div class='browser-resizer' role='separator' tabindex='0' aria-orientation='vertical' aria-label='Resize data browser' aria-valuemin='${BROWSER_MIN}' aria-valuemax='${BROWSER_MAX}' aria-valuenow='${state.browserWidth || BROWSER_STANDARD}' title='Drag to resize · double-click to reset'></div>`}
 <div class='explorer-tabs' role='tablist' aria-label='Data browser scope'>${[
             ["providers", "Catalogue"],
             ["pipeline", "Pipeline data"],
@@ -10312,7 +11211,7 @@ ${state.expanded[s.id] ? `<div class='tree-columns'>${s.schema.map((f) => `<butt
 
         function sourcesPage() {
           return `${heading("Connections", "Manage endpoint settings and credential references independently of provider contracts.", button("new-source", "New connection", "plus", "primary"))}
-<div class='section-toolbar'><span class='secondary'>${state.connections.length} example connections · no live systems connected</span><div class='connection-tools'><div class='catalogue-view-switch' aria-label='Connections view'>${["cards", "list"].map((mode) => button("connection-mode", mode === "cards" ? "Cards" : "List", mode === "cards" ? "grid" : "table", "small " + (state.connectionMode === mode ? "primary" : ""), `data-mode='${mode}' aria-pressed='${state.connectionMode === mode}'`)).join("")}</div><div class='search-field'>${icon("search")}<input id='sources-filter' value='${E(state.sourceFilter)}' placeholder='Search connections…' aria-label='Search connections'></div></div></div><div class='${state.connectionMode === "list" ? "source-list" : "source-grid"}' id='source-grid'>${sourceCards()}</div>
+<div class='section-toolbar'><span class='secondary'>${state.connections.length} example connections · no live systems connected</span><div class='connection-tools'><div class='catalogue-view-switch' aria-label='Connections view'>${["cards", "list"].map((mode) => button("connection-mode", mode === "cards" ? "Cards" : "List", mode === "cards" ? "grid" : "table", "small " + (state.connectionMode === mode ? "primary" : ""), `data-mode='${mode}' aria-pressed='${state.connectionMode === mode}'`)).join("")}${helpTip("connection-view")}</div><div class='search-field'>${icon("search")}<input id='sources-filter' value='${E(state.sourceFilter)}' placeholder='Search connections…' aria-label='Search connections'></div></div></div><div class='${state.connectionMode === "list" ? "source-list" : "source-grid"}' id='source-grid'>${sourceCards()}</div>
 <p class='content-note'>${icon("info")}Connection definitions contain endpoint metadata and credential references. Data records and processing rules belong to their own scopes.</p>`;
         }
         function sourceCards() {
@@ -12694,7 +13593,7 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
               Output: "output",
               Source: "source-stage",
             }[stage.kind];
-            openConfiguration(type, { stageId: stage.id });
+            openConfiguration(type, { stageId: stage.id, inline: options.inline });
             return;
           }
           if (options.stageId) {
@@ -12850,8 +13749,16 @@ ${e.preview?.issues.length ? `<section class='card csv-diagnostics' aria-label='
             }));
             editor.fields = C.clone(existing?.mapping || []);
           }
-          if (state.view === "configuration" && options.returnTo)
+          if (
+            options.returnTo &&
+            (state.view === "configuration" || options.returnTo.inline)
+          )
             editor.returnTo = options.returnTo;
+          if (options.inline) {
+            // Option A: the stage editor holds this configuration.
+            state.configEditor = editor;
+            return;
+          }
           closeModal();
           state.configEditor = editor;
           state.view = "configuration";
@@ -13103,7 +14010,7 @@ ${
                   true,
                 )
               : ""
-          }${configInput(e.stageId ? "Stage name" : "Definition name", "name", e.name, { top: true, id: "definition-name" })}${e.stageId ? configInput("Result name", "output", e.output, { top: true }) : configInput("Description", "description", e.description, { top: true })}${e.kind !== "query" ? configDataSelect("Input data", "input", e.input) : ""}</div>`;
+          }${e.inline ? "" : configInput(e.stageId ? "Stage name" : "Definition name", "name", e.name, { top: true, id: "definition-name" }) + (e.stageId ? configInput("Result name", "output", e.output, { top: true }) : configInput("Description", "description", e.description, { top: true }))}${e.kind !== "query" ? configDataSelect("Input data", "input", e.input) : ""}</div>`;
           if (
             e.stageId &&
             ["transform", "validation", "join", "query"].includes(e.kind)
@@ -13776,6 +14683,8 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
               parent.connectionId = connection.id;
               parent.settings.connectionId = connection.id;
               state.configEditor = parent;
+              // A stage tab on the workbench opened this connection.
+              if (parent.inline) state.view = "workspace";
               render();
             } else navigate("sources");
             toast("Connection settings saved. No live connection was tested.");
@@ -13927,7 +14836,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             state.selectedStage = stage?.id || state.selectedStage;
             markDirty();
             navigate("workspace");
-            toast("Output mapping and serialization settings configured.");
+            toast(e.inline ? "Changes applied to the output." : "Output mapping and serialization settings configured.");
             return;
           }
           if (e.kind === "pipeline") {
@@ -14056,7 +14965,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             );
             markDirty();
             navigate("workspace");
-            toast("Stage configuration saved.");
+            toast(e.inline ? "Changes applied to the stage." : "Stage configuration saved.");
             if (changes.length)
               openModal("renamed-sql", {
                 changes,
@@ -14283,8 +15192,24 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
             state.dirty = false;
             seedStageConfigurations();
             persist();
-            openConfiguration("pipeline", { isNew: true });
+            closeModal();
+            continuePipeline(node?.dataset.continue || "new", node?.dataset.continueId);
             toast("Unsaved changes discarded.", "info");
+            return true;
+          }
+          if (action === "open-pipeline" || action === "configure-pipeline") {
+            const id = node.dataset.id,
+              isOpen = id === state.pipelineId && state.stages.length;
+            // Configure on the open pipeline edits the workbench's design,
+            // unsaved changes included.
+            if (action === "configure-pipeline" && isOpen) {
+              openConfiguration("pipeline");
+              return true;
+            }
+            const next = action === "open-pipeline" ? "open" : "configure";
+            if (!isOpen && state.stages.length && state.dirty)
+              openModal("unsaved-pipeline", { next, id });
+            else continuePipeline(next, id);
             return true;
           }
           if (action === "config-binding") {
@@ -14333,10 +15258,22 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
           if (!e) return true;
           e.error = "";
           e.inputError = "";
+          if (e.inline && action === "config-revert") {
+            e.dirty = false;
+            render();
+            toast("Unapplied changes discarded.");
+            return true;
+          }
+          if (e.inline && action === "config-save") {
+            applyInlineEditor();
+            return true;
+          }
+          if (e.inline && action !== "config-section") e.dirty = true;
           try {
             if (action === "config-back") {
               if (e.returnTo) {
                 state.configEditor = e.returnTo;
+                if (e.returnTo.inline) state.view = "workspace";
                 render();
               } else navigate("workspace");
               return true;
@@ -14542,7 +15479,11 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
           return true;
         }
         function configurationChanged(el, eventType) {
-          if (state.view !== "configuration" || !state.configEditor)
+          if (
+            !state.configEditor ||
+            !(state.view === "configuration" ||
+              (state.view === "workspace" && state.configEditor.inline))
+          )
             return false;
           const e = state.configEditor;
           const top = el.dataset.configField,
@@ -14767,6 +15708,7 @@ ${!single && e.section !== "preview" ? `<div class='config-footer'>${button("con
           e.message = "Settings changed; run the configured preview again.";
           e.dirty = true;
           if (eventType === "change" && rerender) render();
+          else if (e.inline) refreshInlineApply();
           return true;
         }
         function loadConfigurationSample(input) {
@@ -15148,7 +16090,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           const disabled =
             state.running || state.hierarchyEditor ? "disabled" : "";
           // Kept in the page while closed, so the selectors always exist.
-          return `<div class='context-menu' id='context-menu' role='dialog' aria-label='Organisation and editing context' hidden><h2>Change context</h2><label>Organisation<select id='scope-organisation' ${disabled}>${scopeModel.organisations.map((item) => `<option value='${E(item.id)}' ${item.id === scopeModel.activeOrganisationId ? "selected" : ""}>${E(item.name)}</option>`).join("")}</select></label><label>Namespace · owns resources<select id='scope-namespace' ${disabled}>${scopeModel.namespaces
+          return `<div class='context-menu' id='context-menu' role='group' aria-label='Organisation and editing context' hidden><h2>Change context ${helpTip("context")}</h2><label>Organisation<select id='scope-organisation' ${disabled}>${scopeModel.organisations.map((item) => `<option value='${E(item.id)}' ${item.id === scopeModel.activeOrganisationId ? "selected" : ""}>${E(item.name)}</option>`).join("")}</select></label><label>Namespace · owns resources<select id='scope-namespace' ${disabled}>${scopeModel.namespaces
             .filter(
               (item) => item.organisationId === scopeModel.activeOrganisationId,
             )
@@ -15174,7 +16116,87 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           const pipelines = state.definitions.filter(
             (item) => item.kind === "Pipeline",
           );
-          return `${heading("Pipelines", "Saved in namespace " + E(activeNamespace().name) + ". Drafts are held in " + E(activeDesignWorkspace().name) + ".", button("import-bundle", "Import bundle", "upload") + button("new-pipeline", "New pipeline", "plus", "primary", state.sources.length ? "" : "disabled"))}<input type='file' id='bundle-file' accept='.json,application/json' hidden><div class='stat-grid'><div class='stat-box'><p>Saved pipelines</p><strong>${pipelines.length}</strong></div><div class='stat-box'><p>Stages in current session</p><strong>${state.stages.length}</strong></div><div class='stat-box'><p>Bound inputs</p><strong>${state.sources.length}</strong></div></div>${state.stages.length ? `<section class='card structure-main'><h2>Current editing session</h2><p>${E(state.name)} · ${state.dirty ? "Unpublished changes" : "Saved configuration"}</p>${button("open-workspace", "Open workbench", "code")}</section>` : ""}<section class='card structure-main'>${pipelines.length ? `<table class='list-table' aria-label='Saved pipelines'><thead><tr><th>Name</th><th>Saved revision</th><th>Actions</th></tr></thead><tbody>${pipelines.map((item) => `<tr><td><strong>${E(item.name)}</strong><small>${E(item.description || "")}</small></td><td>${badge("v" + item.version, "outline")}</td><td>${button("revise-definition", "Open configuration", "code", "small", `data-id='${E(item.id)}'`)}</td></tr>`).join("")}</tbody></table>` : `<div class='empty-state'><h2>No saved pipelines in this namespace</h2><p>Configure a reader and bind its input in the catalogue, then create a pipeline.</p>${button("navigate", "Browse catalogue", "database", "", "data-view='providers'")}</div>`}</section>`;
+          const workspace = activeDesignWorkspace().name,
+            open = pipelines.find((item) => item.id === state.pipelineId),
+            status = !state.stages.length
+              ? `No pipeline is open in ${E(workspace)}.`
+              : `${E(workspace)} has “${E(state.name)}” open in the workbench${state.dirty ? ", with unsaved changes" : ""}${open ? "" : " (not saved yet)"}.`;
+          return `${heading("Pipelines", "Saved in namespace " + E(activeNamespace().name) + ". " + status, button("import-bundle", "Import bundle", "upload") + button("new-pipeline", "New pipeline", "plus", "primary", state.sources.length ? "" : "disabled"))}<input type='file' id='bundle-file' accept='.json,application/json' hidden>${state.sources.length ? "" : `<p class='content-note' data-new-pipeline-note>${icon("info")}New pipeline needs an input: bind a reader from the catalogue first.</p>`}<section class='card pipeline-list'>${pipelines.length ? `<div class='config-scroll'><table aria-label='Saved pipelines'><thead><tr><th>Name</th><th>Version</th><th>Flow</th><th>Engine</th><th>Last run</th><th>Actions ${helpTip("pipeline-actions")}</th></tr></thead><tbody>${pipelines.map(pipelineRow).join("")}</tbody></table></div>` : `<div class='empty-state'><h2>No saved pipelines in this namespace</h2><p>Configure a reader and bind its input in the catalogue, then create a pipeline.</p>${button("navigate", "Browse catalogue", "database", "", "data-view='providers'")}</div>`}</section>`;
+        }
+        // Origin notes recorded on save are shown as a badge, not as text.
+        const PIPELINE_ORIGINS = {
+          "Imported from a configuration bundle.": "Imported",
+          "Migrated saved pipeline.": "Migrated",
+          "Snapshot of the earlier local pipeline.": "Snapshot",
+          "Local sample pipeline.": "",
+          "Configured local pipeline.": "",
+        };
+        function pipelineRow(item) {
+          const isOpen = item.id === state.pipelineId && state.stages.length,
+            origin = PIPELINE_ORIGINS[item.description],
+            description = origin === undefined ? item.description || "" : "";
+          let snapshot = null;
+          try {
+            snapshot = isOpen ? designSnapshot() : pipelineSnapshot(item);
+          } catch (_) {
+            /* Shown as an unreadable configuration below. */
+          }
+          const inputs = (snapshot?.bindings || []).map((b) => b.name || b.alias),
+            stages = snapshot?.stages?.length || 0,
+            flow = snapshot
+              ? `${E(inputs.join(" + ") || "No inputs")} → ${stages} stages → ${E(snapshot.output?.format || "CSV")}`
+              : "Configuration unavailable",
+            run = state.runs.find((r) =>
+              r.pipelineId ? r.pipelineId === item.id : r.name === item.name,
+            );
+          return `<tr data-pipeline-id='${E(item.id)}'><td><strong>${E(item.name)}</strong>${origin ? badge(origin, "outline") : ""}${isOpen ? `<span class='pipeline-open'>${badge(state.dirty ? "Open in workbench · unsaved" : "Open in workbench", state.dirty ? "amber" : "blue")}</span>` : ""}${description ? `<small>${E(description)}</small>` : ""}</td><td>${badge("v" + item.version, "outline")}</td><td class='pipeline-flow-cell'>${flow}</td><td>${E(isOpen ? state.engine : snapshot?.engine || "Automatic")}</td><td>${run ? `<button class='catalogue-name' data-action='run-detail' data-id='${E(run.id)}'>${E(run.kind)} · ${E(run.status)}</button><small>${date(run.date)}</small>` : "<span class='secondary'>Never run</span>"}</td><td><div class='structure-actions'>${button("open-pipeline", "Open", "code", "small primary", `data-id='${E(item.id)}'`)}${button("configure-pipeline", "Configure", "sliders", "small", `data-id='${E(item.id)}'`)}${isOpen ? button("export-design", "Export bundle", "download", "small subtle") : ""}</div></td></tr>`;
+        }
+        // Opening a saved pipeline replaces the workbench's pipeline in this
+        // design workspace, so unsaved changes are saved or discarded first
+        // (FR037).
+        function openSavedPipeline(id) {
+          const definition = state.definitions.find(
+            (d) => d.id === id && d.kind === "Pipeline",
+          );
+          if (!definition) throw Error("The saved pipeline is unavailable.");
+          if (id !== state.pipelineId || !state.stages.length) {
+            const snapshot = pipelineSnapshot(definition);
+            state.name = definition.name;
+            state.version = definition.version;
+            state.pipelineId = definition.id;
+            state.sql = snapshot.sql ?? "";
+            state.stages = C.clone(snapshot.stages || []);
+            state.output = C.clone(snapshot.output || emptyDesign().output);
+            state.finalResult = snapshot.finalResult ?? null;
+            if (ENGINES.includes(snapshot.engine)) state.engine = snapshot.engine;
+            state.sources = C.clone(snapshot.bindings || []).map(hydrateBinding);
+            seedStageConfigurations();
+            state.selectedStage =
+              state.stages.find((s) => s.kind === "SQL query")?.id ||
+              state.stages[0]?.id;
+            state.result = null;
+            state.dirty = false;
+            state.lastSaved = null;
+            savedRevision = C.clone({
+              ...snapshot,
+              pipelineId: definition.id,
+              name: definition.name,
+              version: definition.version,
+            });
+            persist();
+          }
+          navigate("workspace");
+        }
+        function continuePipeline(next, id) {
+          try {
+            if (next === "open") openSavedPipeline(id);
+            else if (next === "configure") {
+              const definition = state.definitions.find((d) => d.id === id);
+              if (definition) loadDefinitionConfiguration(definition);
+            } else openConfiguration("pipeline", { isNew: true });
+          } catch (error) {
+            toast(error.message, "warning");
+          }
         }
         function managementNav() {
           return `<div class='management-nav' aria-label='Structure management'>${[
@@ -15239,7 +16261,8 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             }[kind];
           let body = "";
           if (state.hierarchyEditor) body = structureForm();
-          else if (kind === "organisations") body = structureTree();
+          else if (kind === "organisations")
+            body = `<p class='tree-intro'>Expand an organisation to see its namespaces and design workspaces. ${helpTip("structure-tree")}</p>${structureTree()}`;
           else if (kind === "namespaces")
             body = `<p>Owned by <strong>${E(activeOrganisation().name)}</strong>. Catalogue entries, connections, definitions, pipelines, execution settings, and run history belong to their namespace.</p><table class='list-table' aria-label='Namespaces'><thead><tr><th>Name</th><th>Resources</th><th>Editing sessions</th><th>Actions</th></tr></thead><tbody>${scopeModel.namespaces
               .filter(
@@ -15744,11 +16767,18 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           );
         }
         function providersPage() {
-          return `${heading("Catalogue", "Providers and views owned by namespace " + E(activeNamespace().name) + ".", button("register-provider", "New CSV provider", "plus") + button("config-new-provider", "New source provider", "plus", "primary"))}<div class='catalogue-explanation'>${icon("info")}Organisation: ${E(activeOrganisation().name)} · Namespace: ${E(activeNamespace().name)}. Files and Outputs are categories inside this catalogue.</div><div class='section-toolbar'><div class='filter-tabs' aria-label='Provider capabilities'>${["All", "Read", "Write", "Views"].map((filter) => `<button class='filter-chip ${state.providerFilter === filter ? "active" : ""}' data-action='provider-filter' data-filter='${filter}'>${filter}</button>`).join("")}</div><div class='catalogue-view-switch' aria-label='Catalogue view'>${["cards", "list"].map((mode) => button("catalogue-mode", mode === "cards" ? "Cards" : "List", mode === "cards" ? "grid" : "table", "small " + (state.catalogueMode === mode ? "primary" : ""), `data-mode='${mode}' aria-pressed='${state.catalogueMode === mode}'`)).join("")}</div><label class='form-label catalogue-filter'>Connector<select id='catalogue-connector'>${["All", "CSV", "JSON", "XML", "JDBC", "HTTP JSON"].map((format) => `<option ${format === state.catalogueConnector ? "selected" : ""}>${format}</option>`).join("")}</select></label><div class='search-field'>${icon("search")}<input id='provider-search' value='${E(state.providerSearch)}' placeholder='Find providers or views…' aria-label='Search providers'></div></div><div id='provider-directory' class='provider-directory'>${providerList(state.providerSearch)}</div>`;
+          return `${heading("Catalogue", "Providers and views owned by namespace " + E(activeNamespace().name) + ".", button("register-provider", "New CSV provider", "plus") + button("config-new-provider", "New source provider", "plus", "primary"))}<div class='catalogue-explanation'>${icon("info")}Organisation: ${E(activeOrganisation().name)} · Namespace: ${E(activeNamespace().name)}. Files and Outputs are categories inside this catalogue.</div><div class='section-toolbar'><div class='filter-tabs' aria-label='Provider capabilities'>${["All", "Read", "Write", "Views"].map((filter) => `<button class='filter-chip ${state.providerFilter === filter ? "active" : ""}' data-action='provider-filter' data-filter='${filter}'>${filter}</button>`).join("")}</div><div class='catalogue-view-switch' aria-label='Catalogue view'>${["cards", "list"].map((mode) => button("catalogue-mode", mode === "cards" ? "Cards" : "List", mode === "cards" ? "grid" : "table", "small " + (state.catalogueMode === mode ? "primary" : ""), `data-mode='${mode}' aria-pressed='${state.catalogueMode === mode}'`)).join("")}${helpTip("catalogue-view")}</div><label class='form-label catalogue-filter'>Connector<select id='catalogue-connector'>${["All", "CSV", "JSON", "XML", "JDBC", "HTTP JSON"].map((format) => `<option ${format === state.catalogueConnector ? "selected" : ""}>${format}</option>`).join("")}</select></label><div class='search-field'>${icon("search")}<input id='provider-search' value='${E(state.providerSearch)}' placeholder='Find providers or views…' aria-label='Search providers'></div></div><div id='provider-directory' class='provider-directory'>${providerList(state.providerSearch)}</div>`;
         }
         function catalogueViewAction(action, node) {
           if (action === "catalogue-mode") {
             state.catalogueMode = node.dataset.mode;
+            persist();
+            render();
+            return true;
+          }
+          if (action === "browser-width") {
+            state.browserWidth =
+              state.browserWidth >= BROWSER_WIDE ? null : BROWSER_WIDE;
             persist();
             render();
             return true;
@@ -15796,6 +16826,74 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           },
           true,
         );
+        // Dragging the data browser's edge resizes it without re-rendering;
+        // the width is saved when the drag ends.
+        function setBrowserWidth(handle, value, save) {
+          const workbench = handle.closest(".workbench"),
+            width = clampBrowserWidth(value);
+          if (!workbench || !width) return;
+          workbench.classList.add("browser-sized");
+          workbench.style.setProperty("--browser-width", width + "px");
+          handle.setAttribute("aria-valuenow", width);
+          if (!save) return;
+          state.browserWidth = width;
+          persist();
+          const toggle = workbench.querySelector('[data-action="browser-width"]');
+          if (toggle) {
+            const wide = width >= BROWSER_WIDE,
+              label = wide ? "Narrow data browser" : "Widen data browser";
+            toggle.setAttribute("aria-label", label);
+            toggle.title = label;
+            toggle.setAttribute("aria-pressed", wide);
+            toggle.innerHTML = icon(wide ? "narrow" : "widen");
+          }
+        }
+        listen(document, "pointerdown", (event) => {
+          const handle = event.target.closest?.(".browser-resizer");
+          if (!handle || event.button !== 0) return;
+          event.preventDefault();
+          const aside = handle.closest(".explorer"),
+            workbench = handle.closest(".workbench"),
+            left = aside.getBoundingClientRect().left;
+          let width = aside.getBoundingClientRect().width;
+          workbench.classList.add("resizing");
+          handle.setPointerCapture?.(event.pointerId);
+          const move = (e) => {
+            width = e.clientX - left;
+            setBrowserWidth(handle, width, false);
+          };
+          const end = () => {
+            handle.removeEventListener("pointermove", move);
+            handle.removeEventListener("pointerup", end);
+            handle.removeEventListener("pointercancel", end);
+            workbench.classList.remove("resizing");
+            setBrowserWidth(handle, width, true);
+          };
+          handle.addEventListener("pointermove", move);
+          handle.addEventListener("pointerup", end);
+          handle.addEventListener("pointercancel", end);
+        });
+        listen(document, "keydown", (event) => {
+          const handle = event.target.closest?.(".browser-resizer");
+          if (!handle) return;
+          const current = handle.closest(".explorer").getBoundingClientRect().width,
+            step = event.shiftKey ? 80 : 20,
+            next = {
+              ArrowLeft: current - step,
+              ArrowRight: current + step,
+              Home: BROWSER_MIN,
+              End: BROWSER_MAX,
+            }[event.key];
+          if (next === undefined) return;
+          event.preventDefault();
+          setBrowserWidth(handle, next, true);
+        });
+        listen(document, "dblclick", (event) => {
+          if (!event.target.closest?.(".browser-resizer")) return;
+          state.browserWidth = null;
+          persist();
+          render();
+        });
         listen(document,
           "toggle",
           (event) => {
@@ -15855,7 +16953,7 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
           },
         };
         }
-        window.UnifyApp = { start };
+        window.UnifyApp = { start, help: HELP };
         if (/[?&]tests(?:[=&]|$)/.test(location.search)) {
           const script = document.createElement("script");
           script.src = "tests.js";
@@ -16108,18 +17206,19 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             id: "join-sql",
             title: "Join datasets and edit the query",
             run: async () => {
-              await say("Configure the join stage: key pairs, join type and output fields.");
+              await say("Select the join stage: its key pairs, join type and output fields are tabs in the stage editor.");
               await click('[data-action="select-stage"][data-id="join"]', "Join instruments");
-              await click('[data-action="config-stage"]', "Configure stage");
-              await click('[data-action="config-section"][data-section="fields"]', "Fields and mapping");
+              check("The join is configured on the workbench", () => !!$(".workbench .inline-config"));
+              await click('[data-action="config-section"][data-section="fields"]', "Match keys and fields");
               check("A colliding right-side field gets an editable suggested name", () =>
                 $$('[data-config-list="projection"][data-key="name"]').some((input) => input.value === "right_isin"),
               );
-              await click('[data-action="config-section"][data-section="preview"]', "Preview and errors");
-              check("Match counts are shown, including the two unmatched holdings", () =>
-                /unmatchedLeft\s*2/.test($(".config-counts").textContent),
+              await say("Preview the stage to see its matches.");
+              await click('[data-action="preview-stage"]', "Preview this stage");
+              await previewDone();
+              check("The two unmatched holdings are reported", () =>
+                /2 input records did not match/.test($(".results-card").textContent),
               );
-              await click('[data-action="config-save"]', "Save configuration");
               await say("In the SQL stage, insert a field from the data browser, then check the query.");
               await click('[data-action="select-stage"][data-id="query"]', "Calculate exposure");
               await click('[data-action="explorer-tab"][data-tab="pipeline"]', "Pipeline data");
@@ -16143,11 +17242,10 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
             id: "output",
             title: "Prepare output and download a preview sample",
             run: async () => {
-              await say("Configure the output: choose a format and preview exactly what would be written.");
+              await say("Configure the output on its tabs: choose a format, then review exactly what would be written.");
               await click('[data-action="select-stage"][data-id="output"]', "Publish output");
-              await click('[data-action="config-output"]', "Configure output");
               await choose('[data-config-setting="format"]', "JSON", "Output format");
-              await click('[data-action="config-section"][data-section="preview"]', "Preview and errors");
+              await click('[data-action="review-output"]', "Review output");
               check("The serialized JSON is shown", () => /^\s*\[/.test($(".config-serialized").textContent));
               const runsBefore = saved().runs.length;
               await say("Download the prepared sample. It is named as a preview and changes no destination.");
@@ -16276,9 +17374,11 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
               check("An Operator can execute but not preview", () =>
                 !$('[data-action="execute-pipeline"]').disabled && $('[data-action="run-pipeline"]').disabled,
               );
-              check("An Operator cannot edit: Save version, Add stage and Configure stage are unavailable", () =>
-                ['save-version', 'add-stage', 'config-stage'].every((a) => $(`[data-action="${a}"]`).disabled),
-              );
+              check("An Operator cannot edit: Save version and Add stage are unavailable and the stage editor is read-only", () => {
+                const fields = $$(".editor-card input, .editor-card select, .editor-card textarea");
+                return ['save-version', 'add-stage'].every((a) => $(`[data-action="${a}"]`).disabled) &&
+                  fields.length > 0 && fields.every((el) => el.disabled || el.readOnly);
+              });
               await say("An Editor builds and previews, but does not execute.");
               await choose("#role-select", "Editor", "Role");
               check("An Editor can preview but not execute", () =>
@@ -16398,6 +17498,97 @@ ${["JDBC", "HTTP JSON"].includes(provider.format) ? `<div class='notice'>${icon(
                 /newer revision/.test($("#modal-error").textContent),
               );
               await click('[data-action="close-modal"]', "Cancel");
+            },
+          },
+          {
+            id: "browser-groups",
+            title: "Collapse data browser categories",
+            run: async () => {
+              const files = () => $('#explorer-items details[data-browser-group="Files"]');
+              await say("In production a category can hold hundreds of entries. Collapse Files: its count stays, its entries go.");
+              await click(() => files()?.querySelector("summary"), "Files category");
+              await until(() => !files().querySelector(".provider-tree-item"), "Files to collapse");
+              check("A collapsed category shows its count but no entries", () =>
+                !files().open && /Files\s*\d+/.test(files().querySelector("summary").textContent),
+              );
+              await say("A search opens every category with matches.");
+              await type("#source-search", "Holdings", "Search data browser");
+              check("Searching opens the collapsed category", () => files().open && /Holdings/.test(files().textContent));
+              await say("Clearing the search restores what you collapsed.");
+              await type("#source-search", "", "Search data browser");
+              check("The category is collapsed again", () => !files().open);
+              await click(() => files()?.querySelector("summary"), "Files category");
+              await until(() => files().querySelector(".provider-tree-item"), "Files to expand");
+            },
+          },
+          {
+            id: "connections-list",
+            title: "See connections as a list",
+            run: async () => {
+              await click('[data-action="navigate"][data-view="sources"]', "Connections");
+              await say("Switch to the list view: one row per connection, with its endpoint and credential reference.");
+              await click('[data-action="connection-mode"][data-mode="list"]', "List view");
+              check("The connections show as a table", () => !!$('table[aria-label="Connections"]'));
+              await type("#sources-filter", "rates", "Search connections");
+              check("The search filters the rows", () => $('table[aria-label="Connections"] tbody tr').length === 1);
+              await click('table[aria-label="Connections"] [data-action="connection-detail"]', "Inspect");
+              check("Inspect opens the connection", () => /Rates service/.test($('[role="dialog"]').textContent));
+              await click('[data-action="close-modal"]', "Close");
+              await type("#sources-filter", "", "Search connections");
+              await click('[data-action="connection-mode"][data-mode="cards"]', "Cards view");
+              check("Cards are back", () => !!$(".connection-card"));
+            },
+          },
+          {
+            id: "structure-tree",
+            title: "Browse the organisation structure as a tree",
+            run: async () => {
+              await say("Organisation structure shows each organisation with its namespaces and design workspaces.");
+              await click('[data-action="manage-structure"][data-kind="organisations"]', "Organisation structure");
+              check("The organisations show as a tree", () => !!$('ul.structure-tree[role="tree"]'));
+              check("Each workspace shows the namespace it has selected", () =>
+                /Selected namespace: default/.test($(".structure-tree").textContent),
+              );
+              await say("Collapse the Namespaces branch, then expand it again.");
+              const branch = () => $('[data-action="structure-tree-toggle"][data-key^="ns:"]');
+              await click(branch, "Collapse Namespaces");
+              check("The branch hides its namespaces", () =>
+                branch().getAttribute("aria-expanded") === "false" &&
+                !$('[data-action="structure-open"][data-kind="namespaces"]'),
+              );
+              await click(branch, "Expand Namespaces");
+              check("The namespaces are back", () => !!$('[data-action="structure-open"][data-kind="namespaces"]'));
+            },
+          },
+          {
+            id: "pipelines-page",
+            title: "Find and open a saved pipeline",
+            run: async () => {
+              await say("Pipelines lists every saved pipeline, marks the one open in the workbench, and shows its flow, engine and last run.");
+              await click('[data-action="navigate"][data-view="pipelines"]', "Pipelines");
+              const open = () =>
+                $('table[aria-label="Saved pipelines"] tbody tr').find((r) => /Open in workbench/.test(r.textContent));
+              check("The open pipeline is marked", () => !!open());
+              check("Each row shows its flow", () => /stages →/.test(open().textContent));
+              await click(() => open().querySelector('[data-action="open-pipeline"]'), "Open");
+              check("Open goes to the workbench", () => /Design workspace/.test($(".global-header").textContent));
+            },
+          },
+          {
+            id: "help",
+            title: "Get help on a screen or an action",
+            run: async () => {
+              await say("Every screen and major action has an info icon. Click one for what it does and how to use it.");
+              await click('.page-heading [data-help="screen-workspace"]', "Workbench help");
+              check("The screen help opens", () => /Workbench/.test($("#help-popover").textContent));
+              await click('#help-popover [data-action="close-help"]', "Close help");
+              await click('[data-action="show-help"][data-help="execute-pipeline"]', "Execute help");
+              check("The action help explains Execute", () =>
+                /Queued, Running and Publishing/.test($("#help-popover").textContent),
+              );
+              check("Opening help does not run the action", () => !$(".progress-strip"));
+              await click('#help-popover [data-action="close-help"]', "Close help");
+              check("The help closes", () => !$("#help-popover"));
             },
           },
           {

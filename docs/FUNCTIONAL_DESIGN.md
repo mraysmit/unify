@@ -686,24 +686,35 @@ If an instance stops while running a job, the job is not restarted automatically
 The Unify UI provides the following behavior on top of the interface in FR038 and FR043. The HTML mockup and its document are the design reference.
 
 **Configuration workspaces**
-- Readers, connections, input bindings, definitions, stages, outputs, pipelines, and execution settings are configured in full-page workspaces.
+- The stages of the pipeline open in the workbench, including the input binding a source stage reads and the output stage, are configured in the workbench's stage editor (see Workbench).
+- Readers, connections, definitions, new input bindings, writer outputs, pipelines, and execution settings are configured in full-page workspaces.
 - A workspace's steps are settings, fields or rules, and preview with errors, and edits are kept while the user moves between them. Contract inspection and small confirmations use dialogs.
-- Any change invalidates the last configuration preview. Saving a reader, definition, stage, or output first runs its preview on the available sample, and the save is refused while that preview reports errors.
+- Any change invalidates the last configuration preview. Saving a reader, definition, or output, and applying a stage's changes, first runs its preview on the available sample, and the save or apply is refused while that preview reports errors.
 - Changing a reader's source format starts its settings, sample, and fields afresh.
 - A connection can be created from a binding or output workspace. Saving it returns to that workspace with the new connection selected.
 
 **Workbench**
 - The workbench shows the selected pipeline's stages in order.
-- A user can add a SQL query, transformation, join, or validation stage after the selected stage, reorder stages within the source and output boundaries, and remove a stage after confirmation.
+- A user can add a SQL query, transformation, join, or validation stage after the selected stage, move a stage earlier or later within the source and output boundaries, and remove a stage after confirmation. The source and output stages cannot be moved or removed, and unavailable moves say why.
+- Selecting a stage shows its configuration in the stage editor, as tabs for that kind of stage:
+  - source: the input binding the stage reads, that binding's settings, and its fields;
+  - SQL query: the SQL, the declared inputs, and the typed parameters with the expected result schema;
+  - transformation and validation: the input and the ordered rules;
+  - join: the inputs, join type and expected relationship, and the key pairs and output fields;
+  - output: the destination and format, and the field mapping.
+- Stage edits are held until applied. The user can apply or revert them; unapplied edits are also applied before a preview, an execution, saving a version, selecting another stage, changing the stages, or leaving the workbench. An apply that fails its checks changes nothing, keeps the edits, and shows the error. Applied edits change the session draft until a version is saved.
+- The stage editor can be enlarged in place, hiding the data browser and stage settings.
 - Renaming a stage result updates the declared inputs of later stages and the dataset references in their SQL. The references are changed through the parsed query, never by text replacement, and the changed queries are shown to the user. Saved query definitions in the library are not revised by a rename.
-- Each stage has a name, a result alias, and the values of its declared parameters. The stage view shows the applicable preview limit and invalid-record policy.
+- Each stage has a name, a result alias, and the values of its declared parameters, edited in the stage settings beside the editor, not in its tabs. The stage settings also show the stage's kind and position, and, separately and marked as applying to every stage, the pipeline's preview limit and invalid-record policy.
 
 **Data browser**
 - A data browser shows the catalogue and the pipeline data in scope: bound inputs with their pinned provider version and SQL alias, and earlier stage results.
 - From it, a user can insert a field reference, or a query over a binding or earlier result, into the selected SQL stage.
+- Catalogue categories can be collapsed; a collapsed category shows its entry count but none of its entries. A search opens every category with matches, and clearing it restores the collapsed categories.
+- The data browser's width can be changed, and the chosen width is kept.
 
 **SQL editing**
-- SQL is edited with syntax highlighting and line numbers, in place or in an expanded editor.
+- SQL is edited in the SQL stage's editor with syntax highlighting and line numbers.
 - A local check validates the query and its inputs without previewing data.
 
 **Preview results**
@@ -717,18 +728,23 @@ The Unify UI provides the following behavior on top of the interface in FR038 an
 
 **Search, shortcuts and permissions**
 - A workspace search finds pages, providers, bindings, definitions, and connections.
-- Keyboard shortcuts open search, preview the selected stage, and open Save version. Escape closes a dialog. Shortcuts follow the same permissions as the actions they invoke.
+- Keyboard shortcuts open search, preview the selected stage, and open Save version. Escape closes a help popup, the context menu, or a dialog. Shortcuts follow the same permissions as the actions they invoke.
 - Actions the signed-in user's roles do not permit are shown as unavailable and name the roles that grant them. A notice lists what the user cannot do.
+- Every screen and major action has an information icon that opens help: what it does, how to use it, and its conditions. Help is available to every role and never runs the action.
 
 **Empty namespaces, pipelines and history**
 - A namespace without a pipeline guides the user to create a connection, a reader, an input binding, and then a pipeline. Creating a pipeline is unavailable until an input binding exists.
 - A new pipeline starts from a copy of the current pipeline or from source and output stages only.
 - Saving a pipeline version takes a name and an optional note. The version list shows the saved versions of the pipeline.
+- The pipelines page lists the namespace's saved pipelines with their version, flow (inputs, stage count, output format), engine, and last run, and marks the pipeline open in the workbench. A pipeline can be opened in the workbench or configured; replacing a workbench pipeline that has unsaved changes asks the user to save or discard them first.
+- Connections can be shown as cards or as a list.
 - Run history shows counts by status, and per run its kind, status, engine with its selection mode, result rows, start time, submitting principal, and destination outcome.
 
 **Context and preferences**
+- The header shows the current organisation, namespace, and design workspace; they are changed from a menu opened there.
+- Structure management shows organisations as a tree, each with its namespaces and design workspaces, and every level can be collapsed.
 - Switching organisation, namespace, or design workspace keeps the current page. If the target session has an unsaved full-page configuration, that configuration reopens instead.
-- The selected stage, tabs, searches, filters, and catalogue layout are kept per design workspace and namespace.
+- The selected stage, tabs, searches, filters, catalogue and connection layouts, collapsed categories, and data browser width are kept per design workspace and namespace.
 
 ## Quality requirements
 

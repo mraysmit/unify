@@ -22,7 +22,7 @@ The folder contains exactly three files: **index.html**, **data.js**, and **test
 | Preview a pipeline on sample data | Changing a query parameter and previewing every stage without writing to a destination |
 | Configure a reader from a sample | A new JSON reader configured from a sample, previewed and saved without a connection |
 | Bind a reader and preview its data | An explicit binding with its dataset name, SQL alias and chosen connection, then a preview of its records |
-| Join datasets and edit the query | Join configuration with a suggested name for a colliding field and match counts; inserting a field into SQL and checking the query; renaming a result and seeing the rewritten query |
+| Join datasets and edit the query | Join configuration on the Join stage's tabs, with a suggested name for a colliding field, then Apply and a stage preview with match counts; inserting a field into SQL and checking the query; renaming a result and seeing the rewritten query |
 | Prepare output and download a preview sample | JSON output, its serialized preview, and the `preview-` download, with no execution started |
 | Save or discard before starting a new pipeline | The save-or-discard prompt, and discarding unsaved changes |
 | Let Unify choose the engine | Automatic engine selection, its use case, and how a run records it |
@@ -33,6 +33,11 @@ The folder contains exactly three files: **index.html**, **data.js**, and **test
 | Export a bundle and import it under new names | Bundle export, name conflicts, and import with new names |
 | Namespaces keep resources apart | A new namespace with an empty catalogue and no connections, while default keeps its resources |
 | Two design workspaces, one conflict | Separate drafts in two workspaces, and a stale save refused after the other workspace saved a newer version |
+| Collapse data browser categories | Collapsing a category, a search opening it, and the collapse returning when the search is cleared |
+| See connections as a list | The Connections list view, its search, and Inspect from a row |
+| Browse the organisation structure as a tree | Organisations with their Namespaces and Design workspaces branches, collapsing and expanding a branch |
+| Find and open a saved pipeline | The Pipelines table, the pipeline open in the workbench, its flow, and Open |
+| Get help on a screen or an action | The info popups for a screen and for an action, and that opening one does not run the action |
 | Sign out and sign in | The simulated identity-provider sign-in |
 
 Each scenario starts from fresh sample data in an in-memory store. While it runs, a transparent layer blocks clicks and keys outside the panel.
@@ -53,7 +58,9 @@ Organisation
     └── Editing sessions referencing the organisation's namespace resources
 ```
 
-The context bar selects Organisation and Namespace separately from Design workspace. **Manage structure** opens full-page management for organisations, namespaces, and design workspaces, including create, rename, descriptions, selection, and guarded deletion. Names must be unique within their parent organisation; organisation names are unique in this local prototype.
+The header shows the current context as `Organisation / Namespace / Design workspace`. Clicking it opens a menu with the Organisation, Namespace and Design workspace selectors and **Manage structure**; Escape or a click outside closes it. The menu is disabled while a preview runs or structure editing is open. On narrow screens the header shows only the menu icon.
+
+**Manage structure** opens full-page management for organisations, namespaces, and design workspaces, including create, rename, descriptions, selection, and guarded deletion. The Organisations panel is a tree: each organisation has a **Namespaces** branch and a **Design workspaces** branch, each with a count, and every organisation and branch can be collapsed. A namespace row shows its resource counts and how many workspaces reference it; a workspace row shows its selected namespace; the current organisation, namespace and workspace are marked Current. Selecting an item in another organisation switches to that organisation first. Names must be unique within their parent organisation; organisation names are unique in this local prototype.
 
 Each organisation starts with a protected **default** namespace and an empty design workspace. Existing mockup configuration migrates into the initial organisation's default namespace and Demo workspace session. Additional organisations and namespaces start empty. Catalogue, connections, definitions, saved pipelines, execution settings, and run history follow the selected namespace. Design workspaces in the same organisation can reference the same namespace resources and keep separate drafts, including a separate context for each namespace they edit. Switching namespace does not transfer ownership or copy resources.
 
@@ -79,7 +86,14 @@ Each expanded category displays up to 50 entries per page, with stable name orde
 
 ## Configuration review
 
-Substantial configuration opens in a full-page workspace. The steps retain edits while users move between settings, fields/rules, and preview diagnostics. Contract inspection and small confirmations remain dialogs.
+**Pipeline stages are configured on the workbench.** Selecting a stage shows its configuration as tabs in the stage editor; there is no separate Configure stage screen. Edits are held until they are applied:
+- A bar under the editor shows **Unapplied changes** with **Apply** and **Revert**.
+- Unapplied changes are also applied automatically before Preview this stage, Preview pipeline, Execute, Save version (including Ctrl+Enter and Ctrl+S), selecting another stage, adding, moving or removing a stage, Review output, export, and leaving the workbench.
+- Creating a connection from a stage tab (a binding's or the output's connection) opens the full-page connection editor; saving or leaving it returns to the stage tab with the unapplied edits kept and the new connection selected.
+- Applying runs the same checks as saving a configuration. If they fail, nothing changes, the edits are kept and the error is shown in the editor.
+- Applied changes are part of the pipeline draft until **Save version**.
+
+**Everything else opens in a full-page workspace:** readers, connections, definitions, new input bindings, writer output configuration, the pipeline (inputs and final result) and execution settings. Its steps retain edits while users move between settings, fields/rules, and preview diagnostics. Contract inspection and small confirmations remain dialogs.
 
 | Workflow           | Where to start                                                            | Working behavior                                                                                                                                                                                                                                                                                 |
 | ------------------ | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -90,18 +104,18 @@ Substantial configuration opens in a full-page workspace. The steps retain edits
 | HTTP JSON reader   | New source provider → HTTP JSON                                           | GET endpoint, query parameters, permitted headers, credential reference, timeouts, recorded response status/content type/body and member selection. Preview shows the prepared request and maps the supplied response. |
 | All non-CSV readers | Same as above                                                             | Every JSON, XML, JDBC and HTTP JSON reader has a first/last record range and "Use saved output schema". Saving requires a unique `Category.Name` and a compatible connection. JSON and XML also need a source filename. |
 | Connections        | Connections → New connection / connection card                            | File directories, H2/SQLite JDBC URLs or HTTP endpoints, credential references and connector settings. **Validate settings** checks syntax without contacting anything; **Test connection** is a separate, explicit check (FR040), simulated here: files report a readable directory, JDBC an opened connection, HTTP a TLS handshake by default or a GET whose body is not read when chosen explicitly, and `.invalid` hosts are unreachable. Test results are shown, never stored. A provider, binding or JDBC output editor can create a connection and return to its retained settings. JDBC product is SQLite or H2, and the URL must start with `jdbc:sqlite:` or `jdbc:h2:`. HTTP connections have connect and read timeouts. Credentials embedded in a URL are rejected. Names are unique, ignoring case. An HTTP reader takes the saved connection's base URL as its endpoint. |
-| Input bindings     | Provider contract → Add to pipeline; Pipeline data → input → Edit binding | Unique dataset/alias, compatible connection, typed parameter values, saved schema and optional field mapping. Save validates the contract; preview checks the available records.                                                                                                                 |
+| Input bindings     | Source stage → Input, Binding settings and Fields tabs; Provider contract → Add to pipeline (new binding); Pipeline data → input → Inspect binding → Edit binding | Unique dataset/alias, compatible connection, typed parameter values, saved schema and optional field mapping. Save or Apply validates the contract; preview checks the available records. On the Source stage, the Input tab chooses which binding the stage reads; it is locked while the binding has unapplied changes. Applying updates the binding for every stage that reads it. |
 | Schemas            | Definition library → New definition → Schema                              | Structured names, logical types, nullability, missing-value defaults, numeric/text bounds and permitted values. Duplicate/invalid fields block save. Author independently, or select data to infer fields and validate sample records. |
 | Field mappings     | New definition → Field mapping                                            | Select a real input; include, rename, reorder, convert and constrain its fields. Save and reopen the mapping; apply it to output through Load saved output mapping. In schemas and mappings each field has trim, empty-to-null, a default used only when the field is missing, min/max, minimum and maximum length, and permitted values as a JSON array. |
 | Other definitions  | Definition library → New definition                                       | Six types: Schema, Field mapping, Transformation rules, Validation rules, Join and SQL query. Names are unique within a type, ignoring case. |
-| Transformations    | Select a Transform stage → Configure stage                                | Actual selected input and named result, ordered trim/case/conversion/empty-to-null rules, add/remove/reorder and record errors. Save reusable rules in the Definition library and load them into a stage. Operations: trim ordinary spaces, uppercase ASCII, lowercase ASCII, convert logical type (with nullability), empty text to null. |
-| Validation         | Select a Validation stage → Configure stage                               | Required fields, numeric bounds, text length and permitted values on actual input records. Fail or skip according to the operation's rejection budget. Operations: required/non-null, minimum and maximum value, minimum and maximum text length, permitted values (JSON array). |
-| Joins              | Select a Join stage → Configure stage                                     | Arbitrary declared inputs and earlier results, composite key pairs, INNER/LEFT/RIGHT/FULL, relationship assertions, selected output fields/aliases and matched/unmatched/generated counts. No fixed ISIN-only join. Expected relationship: many-to-many, many-to-one, one-to-many or one-to-one. Output fields can be included or renamed. Joins and SQL stages can also load a saved definition ("Load reusable configuration"). |
-| SQL and views      | Select a SQL stage → Configure stage; query definition → Publish as view  | Declared inputs, SQL, typed parameters, optional expected schema, actual sample results and errors. Save queries and expose read-only catalogue views. Existing bindings retain their captured contracts. "Expose as a read-only catalogue view" publishes on save. The view name must be a `Category.Name` that no reader or writer uses. |
+| Transformations    | Transform stage → Input and settings, Rules tabs                          | Actual selected input and named result, ordered trim/case/conversion/empty-to-null rules, add/remove/reorder and record errors. Save reusable rules in the Definition library and load them into a stage. Operations: trim ordinary spaces, uppercase ASCII, lowercase ASCII, convert logical type (with nullability), empty text to null. |
+| Validation         | Validation stage → Input and settings, Rules tabs                         | Required fields, numeric bounds, text length and permitted values on actual input records. Fail or skip according to the operation's rejection budget. Operations: required/non-null, minimum and maximum value, minimum and maximum text length, permitted values (JSON array). |
+| Joins              | Join stage → Inputs and settings, Match keys and fields tabs              | Arbitrary declared inputs and earlier results, composite key pairs, INNER/LEFT/RIGHT/FULL, relationship assertions, selected output fields/aliases and matched/unmatched/generated counts. No fixed ISIN-only join. Expected relationship: many-to-many, many-to-one, one-to-many or one-to-one. Output fields can be included or renamed. Joins and SQL stages can also load a saved definition ("Load reusable configuration"). |
+| SQL and views      | SQL stage → SQL, Inputs and result, Parameters tabs; query definition → Publish as view | Declared inputs, SQL, typed parameters, optional expected schema, actual sample results and errors. On a stage, the SQL is edited on the SQL tab, declared inputs and a reusable query on Inputs and result, and parameters and the expected result schema on Parameters. Save queries and expose read-only catalogue views. Existing bindings retain their captured contracts. "Expose as a read-only catalogue view" publishes on save. The view name must be a `Category.Name` that no reader or writer uses. |
 | Pipelines          | Pipelines → New pipeline; workbench → Configure pipeline                  | Full-page creation from the current configuration or source/output boundaries only; source bindings, stage inputs, named results and final result. Add any number of stages in the workbench and configure each individually. Earlier-result scope is enforced; invalid wiring fails explicitly. New pipeline is disabled until the session has an input binding. It starts from a copy of the current pipeline or from source and output only. Creating it also saves the previous design to the Definition library. |
-| Output             | Output stage → Configure output; writer → Configure output                | Choose a prepared dataset, apply ordered field mapping and prepare real CSV/JSON/XML. CSV has separator/quote/header/null/line-ending settings; XML has element and namespace settings. JSON has a pretty-print option. File outputs create new (fail if it exists) or replace the complete file. Encoding is UTF-8 only, and the record separator is LF or CRLF. "Load saved output mapping" applies a Field mapping definition. Download the prepared file from this workspace's preview. Its name starts with `preview-` because it holds only the preview sample (FR013). The workbench's Export preview and Review output download the current result as `unify-preview.csv` (CSV with `\N` for null, whatever the output format). The CSV reader downloads its mapped preview as `mapped-preview.csv`. |
-| JDBC output        | Configure output → JDBC                                                   | APPEND only, compatible JDBC connection, existing table/schema, supplied destination column metadata, generated/default flags and required/type/null checks. Preview prepares a parameterized transactional append plan.                                                                         |
-| Execution settings | Workbench stage settings → Execution settings                             | Source preview count, source/generated-record budgets, UTF-8 working-payload budget, cooperative deadline and operation-wide invalid-record rejection budget. Limits affect preview processing.                                                                                                  |
+| Output             | Output stage → Destination and format, Field mapping tabs; writer → Configure output | Choose a prepared dataset, apply ordered field mapping and prepare real CSV/JSON/XML. CSV has separator/quote/header/null/line-ending settings; XML has element and namespace settings. JSON has a pretty-print option. File outputs create new (fail if it exists) or replace the complete file. Encoding is UTF-8 only, and the record separator is LF or CRLF. "Load saved output mapping" applies a Field mapping definition. Download the prepared file from this workspace's preview. Its name starts with `preview-` because it holds only the preview sample (FR013). The workbench's Export preview and Review output download the current result as `unify-preview.csv` (CSV with `\N` for null, whatever the output format). The CSV reader downloads its mapped preview as `mapped-preview.csv`. |
+| JDBC output        | Output format → JDBC                                                      | APPEND only, compatible JDBC connection, existing table/schema, supplied destination column metadata, generated/default flags and required/type/null checks. Preview prepares a parameterized transactional append plan.                                                                         |
+| Execution settings | Stage settings → Pipeline preview settings → Change execution settings    | Source preview count, source/generated-record budgets, UTF-8 working-payload budget, cooperative deadline and operation-wide invalid-record rejection budget. Limits affect preview processing.                                                                                                  |
 | Engine selection   | Workbench → engine selector                                               | **Automatic**, SQLite or DuckDB (FR031, ADR-003). Automatic applies an illustrative selection profile (the product's profile is derived from detailed use-case testing): the pipeline's shape class and its bound record count select a use case, shown in the results summary and recorded with each run. An explicit choice is recorded as explicit. The illustrative profile has four use cases: SCAN/SORT up to 50,000 records → SQLite, above that → DuckDB; JOIN/AGGREGATE/JOIN_AGGREGATE/MULTI_JOIN up to 10,000 → SQLite, above that → DuckDB. The shape comes from stage kinds and SQL keywords. The record count is the sum of the bound inputs' sample rows, so with sample-sized data automatic selection chooses SQLite. |
 | Executions and runs | Workbench → **Execute (simulated)**; Run history                          | Executions run as simulated background jobs (FR046): queued, then running, then completed, with the destination committed only in simulation. Run history shows kind (preview or execution), status, engine with its selection, and who submitted it. A finished, failed, cancelled or abandoned execution can be repeated. The repeat is a new run that names the original, but it resubmits the pipeline currently in the workbench, with its current version and engine selection and the counts of its last preview, rather than the original run's settings. Executions cannot be cancelled; Cancel stops only a preview. Reloading while a job is queued or running stands in for a stopped service instance: the job is marked **Abandoned** and never restarted. |
 | Sign-in and roles  | Header → Role; Sign out                                                   | Simulated sign-in (FR044) and roles (FR045). The header shows the signed-in user and a role switcher: Viewer, Editor, Publisher, Operator or Administrator (the default). Actions the role cannot use are disabled with a tooltip naming the roles that can; every role except Administrator sees a notice listing what it cannot do, and read-only roles see non-editable fields; a denied attempt, including Ctrl+Enter or Ctrl+S, changes nothing and explains why. Sign out shows a simulated identity-provider sign-in where a name and role are chosen; runs record the signed-in principal. In the product, roles come from identity-provider groups, not a switcher. |
@@ -115,31 +129,48 @@ Provider, connection and definition configurations are saved in this browser und
 
 After a page reload, open **Pipeline data → input → Reload sample**, load the matching file or paste its records, preview, and choose **Use sample**. The full-page workflow uses that binding's captured reader settings and parameter values, including an older reader contract. It keeps samples separate for different connections and parameters. Failed validation or leaving without Use sample retains the last accepted records. Reload sample does not create a provider or alter saved configuration. The reader contract inspector also offers Reload sample. Required invocation values can be entered there before validation; incomplete values display form errors. An existing sample is prefilled only when its connection and parameter values match.
 
-**Save version** refreshes the reusable pipeline definition with its current stages, bindings, queries, and output settings. Full-pipeline previews retain the prepared output mapping. Opening a saved pipeline restores that pipeline’s identity and configuration, so saving it preserves other pipeline definitions. Expanded SQL, formatting, reset, and parameter-value controls apply to the selected SQL stage. Editor, pipeline, and reloaded previews use the same stage-local parameter values.
+**Save version** refreshes the reusable pipeline definition with its current stages, bindings, queries, and output settings. Full-pipeline previews retain the prepared output mapping. Opening a saved pipeline restores that pipeline’s identity and configuration, so saving it preserves other pipeline definitions. SQL editing, formatting, reset, and parameter-value controls apply to the selected SQL stage. Editor, pipeline, and reloaded previews use the same stage-local parameter values.
 
 ## Screens in detail
 
 ### Workbench
 
-- **Header.** Versions, Save version, Execution engine, Preview pipeline (Cancel while running) and Execute (simulated). Execute is enabled only after the last preview succeeded, and the execution takes its counts from that preview.
+- **Page header.** Versions, Save version, Execution engine, Preview pipeline (Cancel while running) and Execute (simulated). Execute is enabled only after the last preview succeeded, and the execution takes its counts from that preview.
 - **Empty namespace.** A namespace without a pipeline shows New connection, New reader and Browse catalogue, plus its bound inputs. New pipeline is disabled until an input binding exists.
 - **Pipeline stages.**
+  - Configure pipeline (full page) and Add stage. Selecting a stage card shows it in the stage editor and Stage settings.
   - Add stage offers SQL query, Transform, Join or Validation. The new stage is inserted after the selected one, never after Output, and takes the previous stage's result as its input.
-  - Stages can be moved earlier only. Source stays first and Output last.
-  - Remove stage asks for confirmation and is not offered for Source or Output.
+  - Stages move earlier or later within the boundaries: Source stays first and Output last.
+  - Remove stage asks for confirmation. Source and Output cannot be removed.
   - Renaming a stage's result updates later stages that use it. Renaming it in Stage settings also replaces the old name in the sample query text.
   - While a preview runs, design changes are blocked until it finishes or is cancelled, and the organisation, namespace and workspace cannot be switched.
-- **Stage editor.**
-  - SQL stages have a highlighted editor with line numbers, Format SQL (which removes trailing spaces) and Restore sample SQL.
-  - Expand stage editor opens a dialog for SQL and the full-page configuration for other stages.
-  - The Visual designer tab links to the join and query configuration.
-  - Other stage kinds show a summary and Configure.
-- **Stage settings.** Name, result alias, and Minimum units when the stage declares that parameter. The preview limit and invalid-record policy are shown read-only, with links to Execution settings, Preview stage, Move earlier and Remove.
+- **Stage editor.** The selected stage's configuration, as tabs:
+
+  | Stage | Tabs |
+  | --- | --- |
+  | Source | **Input** (the binding the stage reads, with a summary) · **Binding settings** (dataset name, SQL alias, connection, parameters, schema) · **Fields** (the binding's field selection and mapping) |
+  | SQL query | **SQL** (highlighted editor with line numbers, Format SQL, which removes trailing spaces, and Restore sample SQL) · **Inputs and result** (declared inputs, Load reusable configuration) · **Parameters** (typed parameters and the expected result schema) |
+  | Transform, Validation | **Input and settings** (input data, Load reusable configuration) · **Rules** (ordered rules: add, remove, reorder) |
+  | Join | **Inputs and settings** (left and right inputs, join type, expected relationship) · **Match keys and fields** (key pairs and output fields) |
+  | Output | **Destination and format** · **Field mapping**. Review output opens the full-page output preview. |
+
+  - Stage name and result alias are not on the tabs; they are edited in Stage settings.
+  - The Apply bar under the tabs is described under Configuration review. Its state updates as you type.
+  - **Expand editor** enlarges the editor in place by hiding the data browser and Stage settings; **Restore layout** brings them back.
+- **Stage settings.**
+  - The stage's kind, its position ("Stage 4 of 6") and version.
+  - **This stage:** Stage name; Result alias, with a hint naming how later stages read it (not editable on Output); and on SQL stages, Minimum units when the stage declares that INT32 parameter, otherwise the declared parameter names or "None declared".
+  - **Position in pipeline:** Move earlier and Move later. A move that would break the Source-first, Output-last order is disabled, and its tooltip says why.
+  - **Preview this stage** runs only the selected stage, calculating the earlier stages it reads from; Preview pipeline in the header runs every stage.
+  - **Remove stage**, disabled with a reason for Source and Output.
+  - **Pipeline preview settings**, shaded and marked as applying to every stage: the source limit (records per input) and invalid-record policy, read-only, with **Change execution settings**.
+  - Below 1200 pixels wide the Stage settings column is hidden.
 - **Data browser.**
-  - Catalogue tab: a compact list grouped by category.
+  - Catalogue tab: a compact list grouped by category. Each category is collapsible and shows its entry count; a collapsed category renders none of its entries. Collapsed categories are remembered per design workspace and namespace. A search opens every category with matches, and clearing it restores the remembered collapse.
   - Pipeline data tab: bound inputs with their pinned provider version and SQL alias. Clicking a field inserts `alias.field` into the query.
   - Inspect binding. Query binding replaces the SQL stage's query with `SELECT alias.*` and clears its parameters.
   - Earlier stage results in scope, with Inspect and Insert query.
+  - **Width.** The button beside Open catalogue switches between the layout's standard width for the screen size (226 pixels on most screens) and a wide one (420 pixels). Dragging the right edge sets any width from 200 to 640 pixels; with the edge focused, the arrow keys change it by 20 pixels (80 with Shift), and Home and End go to the limits. Double-clicking the edge restores the standard width. The width is remembered. The data browser opened as a dialog from Catalogue is not resizable.
 - **Results.**
   - A summary showing status, result name, engine and "Destination unchanged". Messages appear for unmatched join records and sample limits.
   - Tabs:
@@ -165,10 +196,18 @@ After a page reload, open **Pipeline data → input → Reload sample**, load th
 
 ### Pipelines page
 
-- Counts of saved pipelines, stages and bound inputs.
-- The current editing session, with Open workbench.
-- Saved pipelines with their version and Open configuration.
-- Import bundle and New pipeline.
+- The subtitle names the namespace and says what the design workspace has open, for example "Demo workspace has “Daily holdings enrichment” open in the workbench, with unsaved changes."
+- **Saved pipelines** is one table: Name, Version, Flow (inputs → stages → output format), Engine, Last run and Actions.
+  - The open pipeline is marked "Open in workbench", or "Open in workbench · unsaved".
+  - Imported, migrated and snapshot pipelines carry a badge instead of their origin note.
+  - Last run links to the latest run of that pipeline, or shows "Never run". Runs record the pipeline's identifier; older runs are matched by name.
+- **Open** loads the pipeline into the workbench. **Configure** opens its full-page configuration; on the open pipeline it edits the current design, unsaved changes included. If the workbench has unsaved changes for a different pipeline, both ask to save or discard first, and either choice continues to the requested pipeline.
+- **Export bundle** is offered on the open pipeline's row.
+- Import bundle and New pipeline. When New pipeline is unavailable, a note says it needs an input binding.
+
+### Connections
+
+- **Cards** or **List**, remembered per design workspace and namespace. The list has one row per connection: name and description, connector, endpoint, credential reference and Inspect. Search filters either view.
 
 ### Run history
 
@@ -193,18 +232,25 @@ After a page reload, open **Pipeline data → input → Reload sample**, load th
 
 The sign-in page defaults to "Demo User" with the Editor role. The recorded principal is derived from the display name.
 
+### Info popups
+
+- Every screen title, the context menu, the role switcher, the execution engine, the data browser, the Cards/List switches, Stage settings and its pipeline preview settings, the Pipelines Actions column, the organisation tree and about 30 major actions have an ⓘ icon.
+- Clicking it opens a popup with a title, an explanation, numbered steps where useful, and a note on conditions or roles. Escape, ✕ or a click outside closes it, and it closes when the page changes.
+- Popups work for every role, including on actions the role cannot use, and opening one never runs the action.
+- All the text is in one `HELP` table in the app script; `window.UnifyApp.help` exposes it.
+
 ### Other
 
 - The Prototype guide dialog and the sidebar's Organisation structure entry.
-- Escape closes any dialog.
+- Escape closes an open info popup first, then the context menu, then any dialog.
 - Structure names are 1–100 characters.
 
 ## Processing rules
 
-### Full-page configuration
+### Configuration
 
-- Any change clears the last preview ("Settings changed; run the configured preview again").
-- Saving a reader, definition, stage or output runs the preview first and is blocked while it reports errors.
+- Any change clears the last configuration preview ("Settings changed; run the configured preview again").
+- Saving a reader, definition or output, and applying a stage's changes, runs the preview first and is blocked while it reports errors. A blocked Apply keeps the edits and shows the error in the stage editor.
 - Changing a reader's source format resets its settings, sample and fields. Changing a definition's type opens a fresh editor of that type.
 - File readers (CSV, JSON, XML) accept any file connection (CSV, JSON or XML connector).
 
@@ -322,7 +368,7 @@ The sign-in page defaults to "Demo User" with the Editor role. The recorded prin
 - File output downloads contain actual mapped and serialized preview values. The unquoted configured CSV null token (default \N) represents null; literal values are quoted. Null tokens containing a separator, quote character, or line break are rejected. JDBC preparation checks supplied destination metadata, but real metadata discovery, transactions, precision and database constraints require backend tests. Prepared output never commits to a destination.
 - Browser localStorage holds configuration and local history, not PostgreSQL-backed durability. Supplied history/log timestamps are illustrative; new elapsed times measure local preview work. Availability is example host metadata rather than implemented authorization. Do not enter real credentials; use reference names.
 
-Ctrl+K opens workspace search; Ctrl+Enter previews the selected stage; Ctrl+S opens Save version. Escape closes inspection dialogs. The mockup loads its local data.js file; documentation links open only when clicked.
+Ctrl+K opens workspace search; Ctrl+Enter previews the selected stage; Ctrl+S opens Save version. Escape closes an info popup, the context menu or an inspection dialog. The mockup loads its local data.js file; documentation links open only when clicked.
 
 ## FINBOURNE Luminesce references
 
@@ -359,6 +405,8 @@ To run the same tests from a terminal or CI without opening a browser window, us
 It opens `index.html?tests` in headless Microsoft Edge (or Google Chrome) with a throwaway profile under `%TEMP%\unify-mockup-tests`, reads the result line the page writes to the browser log, prints a summary per group with any failure messages, and exits with 0 when everything passes, 1 when a test fails and 2 when the run could not complete. Tests run on real time; a full run takes about half a minute.
 
 The suite exercises parsing, conversion, mapping, schema constraints, ordered rules, composite joins, SQL, serialization, budgets and full-page DOM workflows. It also checks direct file opening with only index.html and data.js, save/reopen, parameter binding, missing-source failures, recorded JDBC/HTTP samples, JDBC APPEND requirements and the 100-record preview regression. Regression coverage also checks sample reloads for all five reader formats, retained mappings, stage-specific SQL editing, reusable pipeline snapshots, grouped expressions, custom CSV null tokens, pipeline identity isolation, per-stage parameters, captured view schemas, required sample parameters, and cumulative join generation. Tests for the design 0.14 additions cover automatic and explicit engine selection and their run records, background executions from queued to completed (the running state is not asserted), repeating a run, abandonment after a restart, the seeded abandoned run, connection settings validation kept separate from simulated live tests, bundle export and conflict-checked import with renaming, and stage progress. Role tests check what each of the five roles can and cannot use, that denied actions and shortcuts change nothing, and that sign-out, sign-in, the recorded principal and the chosen role persist across a reload.
+
+Stage configuration tests cover the tabs of each stage kind on the workbench: the Source stage's binding tabs and its locked picker; Apply, Revert, and automatic apply when another stage is selected or Ctrl+Enter previews; a refused Apply that keeps its edits and shows the error (undeclared query input, JDBC destination columns, CSV null token); a connection created from the output tab returning to it; Review output; Expand in place; and read-only tabs for an Operator. Workbench and navigation tests cover collapsible data browser categories, the Connections list view, the organisation tree, the header context menu, the Pipelines table with its save-or-discard prompt, and the info popups for every role.
 
 Structure checks cover legacy migration, empty namespaces, resource isolation, organisation ownership validation, shared namespace resources with separate session drafts, draft recovery without persisted business records, deletion and discard behavior, stale revision conflicts, first-pipeline creation, scoped settings, and catalogue paging/search over 1,200 entries.
 

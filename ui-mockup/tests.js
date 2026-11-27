@@ -1681,10 +1681,10 @@ UnifyTests.group("ui");
     assert.equal(ui.d.querySelector(".results-message"), null);
   });
 
-  test("full-page join configuration uses selected fields and relationship settings", async (t) => {
+  test("join configuration on the Join stage's tabs uses selected fields and relationship settings", async (t) => {
     const ui = workspace(t);
     ui.click('[data-action="select-stage"][data-id="join"]');
-    ui.click('[data-action="config-stage"]');
+    assert.ok(ui.get(".workbench .inline-config"));
     assert.equal(ui.d.querySelector('[role="dialog"]'), null);
     ui.field('[data-config-setting="joinType"]', "INNER");
     ui.field('[data-config-setting="cardinality"]', "many-to-many");
@@ -1694,9 +1694,8 @@ UnifyTests.group("ui");
         .length,
       1,
     );
-    ui.click('[data-action="config-section"][data-section="preview"]');
-    assert.match(ui.get(".config-table-note").textContent, /10 sampled/);
     ui.click('[data-action="config-save"]');
+    assert.equal(ui.d.querySelector(".inline-config .config-error"), null);
     ui.click('[data-action="preview-stage"]');
     await finishPreview(ui);
     assert.equal(ui.rows(), 10);
@@ -1706,6 +1705,91 @@ UnifyTests.group("ui");
       ui.saved().stages.find((s) => s.id === "join").joinType,
       "INNER",
     );
+  });
+
+  test("the Source stage configures its input binding on tabs without leaving the workbench", (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="select-stage"][data-id="load"]');
+    assert.deepEqual(
+      [...ui.d.querySelectorAll(".editor-tabs .tab")].map((tab) => tab.textContent),
+      ["Input", "Binding settings", "Fields"],
+    );
+    assert.equal(ui.d.querySelector('.editor-card [data-action="config-binding"]'), null);
+    assert.ok(ui.get(".inline-config #source-binding-select"));
+    ui.click('[data-action="config-section"][data-section="settings"]');
+    ui.field('[data-config-setting="alias"]', "hx");
+    assert.match(ui.get(".inline-apply").textContent, /Unapplied changes/);
+    // Switching binding would discard the edit, so the picker is locked.
+    ui.click('[data-action="config-section"][data-section="input"]');
+    assert.ok(ui.get("#source-binding-select").disabled);
+    ui.click('[data-action="config-save"]');
+    assert.ok(ui.get(".workbench .inline-config"));
+    assert.match(ui.get(".inline-apply").textContent, /Changes are applied/);
+    assert.equal(ui.get("#source-binding-select").disabled, false);
+    assert.match(ui.get("#explorer-items").textContent, /SQL alias hx/);
+  });
+
+  test("stage tabs hold edits until applied, revert them, and apply them before another stage is selected", async (t) => {
+    const ui = workspace(t);
+    const operation =
+      '[data-config-list="rules"][data-index="0"][data-key="operation"]';
+    ui.click('[data-action="select-stage"][data-id="normalize"]');
+    assert.equal(ui.d.querySelector('[data-action="config-stage"]'), null);
+    // Name and alias are edited only in Stage settings.
+    assert.equal(ui.d.querySelector('.inline-config [data-config-field="name"]'), null);
+    ui.click('[data-action="config-section"][data-section="fields"]');
+    const original = ui.get(operation).value;
+    assert.notEqual(original, "upper");
+    assert.ok(ui.get('.inline-apply [data-action="config-save"]').disabled);
+    ui.field(operation, "upper");
+    assert.match(ui.get(".inline-apply").textContent, /Unapplied changes/);
+    ui.click('[data-action="config-revert"]');
+    assert.equal(ui.get(operation).value, original);
+    assert.ok(ui.get('.inline-apply [data-action="config-save"]').disabled);
+    ui.field(operation, "upper");
+    ui.click('[data-action="select-stage"][data-id="validate"]');
+    ui.click('[data-action="select-stage"][data-id="normalize"]');
+    ui.click('[data-action="config-section"][data-section="fields"]');
+    assert.equal(ui.get(operation).value, "upper");
+    ui.click('[data-action="preview-stage"]');
+    await finishPreview(ui);
+    assert.match(
+      ui.get('table[aria-label="Preview data"]').textContent,
+      new RegExp(D.holdings[0].portfolio.toUpperCase()),
+    );
+  });
+
+  test("Ctrl+Enter applies unapplied stage edits before previewing, and an Operator sees the tabs read-only", async (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="select-stage"][data-id="normalize"]');
+    ui.click('[data-action="config-section"][data-section="fields"]');
+    ui.field(
+      '[data-config-list="rules"][data-index="0"][data-key="operation"]',
+      "upper",
+    );
+    ui.w.document.dispatchEvent(
+      new ui.w.KeyboardEvent("keydown", {
+        key: "Enter",
+        ctrlKey: true,
+        bubbles: true,
+      }),
+    );
+    await finishPreview(ui);
+    assert.match(ui.get(".inline-apply").textContent, /Changes are applied/);
+    assert.match(
+      ui.get('table[aria-label="Preview data"]').textContent,
+      new RegExp(D.holdings[0].portfolio.toUpperCase()),
+    );
+    ui.field("#role-select", "Operator");
+    ui.click('[data-action="select-stage"][data-id="normalize"]');
+    const fields = [
+      ...ui.d.querySelectorAll(
+        ".inline-config input, .inline-config select, .inline-config textarea",
+      ),
+    ];
+    assert.ok(fields.length > 0);
+    assert.ok(fields.every((field) => field.disabled));
+    assert.ok(ui.get('.inline-apply [data-action="config-save"]').disabled);
   });
 
   test("unbounded stage editing supports add, rename, reorder, remove and cancellation", (t) => {
@@ -1870,10 +1954,10 @@ UnifyTests.group("ui");
   test("output configuration prepares actual JSON and retains the selected filename", (t) => {
     const ui = workspace(t);
     ui.click('[data-action="select-stage"][data-id="output"]');
-    ui.click('[data-action="config-output"]');
     ui.field('[data-config-setting="format"]', "JSON");
     ui.field('[data-config-setting="name"]', "reviewed-exposure.json");
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    // Review output applies the Output stage's tabs, then shows the prepared file.
+    ui.click('[data-action="review-output"]');
     const rows = JSON.parse(ui.get(".config-serialized").textContent);
     assert.equal(rows.length, 12);
     assert.equal(typeof rows[0].marketValue, "number");
@@ -2019,18 +2103,15 @@ UnifyTests.group("ui");
     );
   });
 
-  test("new bindings become selectable inputs for the full-page join workspace", async (t) => {
+  test("new bindings become selectable inputs on the Join stage's tabs", async (t) => {
     const ui = workspace(t);
     ui.click('[data-action="provider-detail"][data-id="instruments-reader"]');
     ui.click('[data-action="bind-provider"]');
     ui.field("#binding-name", "AlternateInstruments");
     ui.click('[data-action="confirm-binding"]');
     ui.click('[data-action="select-stage"][data-id="join"]');
-    ui.click('[data-action="config-stage"]');
     ui.field('[data-config-setting="rightInput"]', "AlternateInstruments");
     ui.click('[data-action="config-section"][data-section="fields"]');
-    ui.click('[data-action="config-section"][data-section="preview"]');
-    assert.match(ui.get(".config-table-note").textContent, /12 sampled/);
     ui.click('[data-action="config-save"]');
     ui.click('[data-action="preview-stage"]');
     await finishPreview(ui);
@@ -2534,11 +2615,10 @@ UnifyTests.group("ui");
     assert.ok(mapping.mapping);
     ui.click('[data-action="navigate"][data-view="workspace"]');
     ui.click('[data-action="select-stage"][data-id="output"]');
-    ui.click('[data-action="config-output"]');
     ui.field('[data-config-field="input"]', "Holdings");
     ui.field('[data-config-setting="format"]', "JSON");
     ui.field('[data-config-setting="mappingId"]', mapping.id);
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    ui.click('[data-action="review-output"]');
     const rows = JSON.parse(ui.get(".config-serialized").textContent);
     assert.equal(rows[0].account, D.holdings[0].portfolio);
     assert.equal(Object.hasOwn(rows[0], "portfolio"), false);
@@ -2558,7 +2638,6 @@ UnifyTests.group("ui");
       .definitions.find((d) => d.name === "Uppercase portfolios");
     ui.click('[data-action="navigate"][data-view="workspace"]');
     ui.click('[data-action="select-stage"][data-id="normalize"]');
-    ui.click('[data-action="config-stage"]');
     ui.field('[data-config-setting="reuseDefinitionId"]', definition.id);
     ui.click('[data-action="config-save"]');
     ui.click('[data-action="preview-stage"]');
@@ -2576,7 +2655,6 @@ UnifyTests.group("ui");
     ui.field('[data-config-setting="maxRejected"]', "20");
     ui.click('[data-action="config-save"]');
     ui.click('[data-action="select-stage"][data-id="validate"]');
-    ui.click('[data-action="config-stage"]');
     ui.click('[data-action="config-section"][data-section="fields"]');
     ui.click('[data-action="config-add-rule"]');
     ui.field(
@@ -2591,31 +2669,32 @@ UnifyTests.group("ui");
       '[data-config-list="rules"][data-index="4"][data-key="value"]',
       "1000",
     );
-    ui.click('[data-action="config-section"][data-section="preview"]');
-    assert.match(ui.get(".config-main").textContent, /rejected/);
-    assert.match(ui.get(".config-diagnostics").textContent, /below 1000/);
     ui.click('[data-action="config-save"]');
+    assert.equal(ui.d.querySelector(".inline-config .config-error"), null);
     ui.click('[data-action="preview-stage"]');
     await finishPreview(ui);
     assert.ok(ui.rows() < 12);
     assert.ok(ui.rows() > 0);
+    ui.click('[data-action="result-tab"][data-tab="issues"]');
+    assert.match(ui.get("#result-content").textContent, /below 1000/);
   });
   test("JDBC output offers APPEND only and checks actual destination columns", (t) => {
     const ui = workspace(t);
     ui.click('[data-action="select-stage"][data-id="output"]');
-    ui.click('[data-action="config-output"]');
     ui.field('[data-config-setting="format"]', "JDBC");
+    // The new connection returns to the Output stage's tab on the workbench.
     createJdbcConnection(ui);
+    assert.ok(ui.get(".workbench .inline-config"));
     const modes = [...ui.get('[data-config-setting="mode"]').options].map(
       (o) => o.value,
     );
     assert.deepEqual(modes, ["APPEND"]);
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    // Apply runs the output checks; a failure keeps the edits.
+    ui.click('[data-action="config-save"]');
     assert.match(
       ui.get(".config-error").textContent,
       /destination table columns/,
     );
-    ui.click('[data-action="config-section"][data-section="settings"]');
     ui.click('[data-action="config-destination-from-input"]');
     ui.click(
       '[data-action="config-add-field"][data-list="destinationColumns"]',
@@ -2628,17 +2707,16 @@ UnifyTests.group("ui");
       '[data-config-column="nullable"][data-destination="true"][data-index="7"]',
       false,
     );
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    ui.click('[data-action="config-save"]');
     assert.match(
       ui.get(".config-error").textContent,
       /Required destination column/,
     );
-    ui.click('[data-action="config-section"][data-section="settings"]');
     ui.check(
       '[data-config-column="hasDefault"][data-destination="true"][data-index="7"]',
       true,
     );
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    ui.click('[data-action="review-output"]');
     assert.match(
       ui.get(".config-serialized").textContent,
       /INSERT INTO.*positions/s,
@@ -2666,14 +2744,14 @@ UnifyTests.group("ui");
     assert.equal(ui.rows(), 10);
     assert.equal(ui.saved().name, "Instrument delivery");
   });
-  test("SQL configuration enforces declared inputs and typed parameters before stage save", async (t) => {
+  test("SQL configuration enforces declared inputs and typed parameters before the stage is applied", async (t) => {
     const ui = workspace(t);
-    ui.click('[data-action="config-stage"]');
-    ui.click('[data-action="config-section"][data-section="fields"]');
     ui.field(
-      "#definition-content",
+      "#sql-editor",
       "SELECT i.name FROM Instruments i WHERE i.isin = ?",
+      "input",
     );
+    ui.click('[data-action="editor-mode"][data-mode="parameters"]');
     ui.field(
       '[data-config-list="parameters"][data-key="name"]',
       "instrumentId",
@@ -2683,9 +2761,8 @@ UnifyTests.group("ui");
       '[data-config-list="parameters"][data-key="value"]',
       "US0001000001",
     );
-    ui.click('[data-action="config-section"][data-section="preview"]');
-    assert.match(ui.get(".config-table-note").textContent, /1 sampled/);
     ui.click('[data-action="config-save"]');
+    assert.equal(ui.d.querySelector(".inline-config .config-error"), null);
     ui.click('[data-action="preview-stage"]');
     await finishPreview(ui);
     assert.equal(ui.rows(), 1);
@@ -2700,13 +2777,15 @@ UnifyTests.group("ui");
       typedReload.get('table[aria-label="Preview data"]').textContent,
       /Aster Technologies/,
     );
-    ui.click('[data-action="config-stage"]');
+    ui.click('[data-action="editor-mode"][data-mode="inputs"]');
     ui.check('[data-config-query-input="Instruments"]', false);
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    ui.click('[data-action="config-save"]');
     assert.match(
       ui.get(".config-error").textContent,
       /Declare query input Instruments/,
     );
+    // The refused Apply keeps the edit.
+    assert.equal(ui.get('[data-config-query-input="Instruments"]').checked, false);
   });
   test("schemas can be authored independently of available source samples", (t) => {
     const ui = workspace(t);
@@ -2946,7 +3025,6 @@ UnifyTests.group("ui");
     ui.click('[data-action="config-pipeline"]');
     ui.click('[data-action="config-save"]');
     ui.click('[data-action="select-stage"][data-id="output"]');
-    ui.click('[data-action="config-output"]');
     ui.click('[data-action="config-section"][data-section="fields"]');
     ui.field('[data-config-column="name"][data-index="0"]', "account");
     ui.check('[data-config-column="include"][data-index="1"]', false);
@@ -2958,7 +3036,7 @@ UnifyTests.group("ui");
     ui.click('[data-action="run-pipeline"]');
     await finishPreview(ui);
     assert.equal(ui.get('table[aria-label="Preview data"]').textContent, stage);
-    ui.click('[data-action="config-output"]');
+    ui.click('[data-action="config-section"][data-section="settings"]');
     ui.field('[data-config-field="input"]', "Instruments");
     ui.click('[data-action="config-section"][data-section="fields"]');
     // Clear the previous input's fields and explicitly map the new dataset.
@@ -2980,16 +3058,19 @@ UnifyTests.group("ui");
 
   for (const keyboard of [false, true])
     test(
-      "expanded SQL applies only to its selected stage using " +
-        (keyboard ? "Ctrl+Enter" : "Apply query"),
+      "SQL edited in the expanded editor applies only to its selected stage using " +
+        (keyboard ? "Ctrl+Enter" : "Preview this stage"),
       async (t) => {
         const ui = workspace(t);
         ui.click('[data-action="add-stage"]');
         ui.click('[data-action="choose-stage-type"][data-kind="SQL query"]');
         const previous = ui.get("#sql-editor").value;
+        // Expand enlarges the stage editor in place; no dialog opens.
         ui.click('[data-action="expand-editor"]');
-        assert.equal(ui.get("#expanded-sql").value, previous);
-        ui.field("#expanded-sql", "SELECT name FROM Instruments");
+        assert.ok(ui.get(".workbench.editor-expanded"));
+        assert.equal(ui.d.querySelector('[role="dialog"]'), null);
+        assert.equal(ui.get("#sql-editor").value, previous);
+        ui.field("#sql-editor", "SELECT name FROM Instruments", "input");
         if (keyboard) {
           ui.w.document.dispatchEvent(
             new ui.w.KeyboardEvent("keydown", {
@@ -3000,10 +3081,11 @@ UnifyTests.group("ui");
           );
           await finishPreview(ui);
         } else {
-          ui.click('[data-action="apply-expanded-sql"]');
           ui.click('[data-action="preview-stage"]');
           await finishPreview(ui);
         }
+        ui.click('[data-action="expand-editor"]');
+        assert.equal(ui.d.querySelector(".workbench.editor-expanded"), null);
         assert.equal(
           ui.get("#sql-editor").value,
           "SELECT name FROM Instruments",
@@ -3038,7 +3120,6 @@ UnifyTests.group("ui");
     ui.field("#new-pipeline-name", "Reusable pipeline");
     ui.click('[data-action="config-save"]');
     ui.click('[data-action="select-stage"][data-id="normalize"]');
-    ui.click('[data-action="config-stage"]');
     ui.click('[data-action="config-section"][data-section="fields"]');
     ui.field(
       '[data-config-list="rules"][data-index="0"][data-key="operation"]',
@@ -3064,7 +3145,6 @@ UnifyTests.group("ui");
     );
     reload.click('[data-action="config-save"]');
     reload.click('[data-action="select-stage"][data-id="normalize"]');
-    reload.click('[data-action="config-stage"]');
     reload.click('[data-action="config-section"][data-section="fields"]');
     assert.equal(
       reload.get(
@@ -3077,14 +3157,17 @@ UnifyTests.group("ui");
   test("invalid CSV null tokens block prepared output and saving its configuration", (t) => {
     const ui = workspace(t);
     ui.click('[data-action="select-stage"][data-id="output"]');
-    ui.click('[data-action="config-output"]');
     ui.field('[data-config-setting="nullToken"]', "missing,value");
     ui.click('[data-action="config-save"]');
     assert.match(ui.get(".config-error").textContent, /CSV null token/);
     assert.equal(ui.d.querySelector(".config-serialized"), null);
     assert.equal(ui.d.querySelector('[data-action="config-download"]'), null);
+    // Review output cannot open while the tabs hold an invalid token.
+    ui.click('[data-action="review-output"]');
+    assert.ok(ui.get(".workbench .inline-config"));
+    assert.match(ui.get(".config-error").textContent, /CSV null token/);
     ui.field('[data-config-setting="nullToken"]', "NULL");
-    ui.click('[data-action="config-section"][data-section="preview"]');
+    ui.click('[data-action="review-output"]');
     assert.match(ui.get(".config-serialized").textContent, /NULL/);
     assert.equal(ui.d.querySelector(".config-error"), null);
   });
@@ -3307,13 +3390,15 @@ UnifyTests.group("ui");
     ui.click('[data-action="add-stage"]');
     ui.click('[data-action="choose-stage-type"][data-kind="SQL query"]');
     const stageId = ui.get(".stage-card.active").dataset.id;
-    ui.click('[data-action="config-stage"]');
-    const alias = ui.get('[data-config-field="output"]').value;
-    ui.click('[data-action="config-section"][data-section="fields"]');
+    // Name and alias are edited only in Stage settings, not on the tabs.
+    const alias = ui.get("#panel-stage-output").value;
     ui.field(
-      "#definition-content",
+      "#sql-editor",
       "SELECT * FROM PortfolioExposure WHERE units >= ?",
+      "input",
     );
+    ui.click('[data-action="editor-mode"][data-mode="parameters"]');
+    assert.equal(ui.d.querySelector('.inline-config [data-config-field="output"]'), null);
     ui.click('[data-action="config-add-param"]');
     ui.field(
       '[data-config-list="parameters"][data-key="name"]',
@@ -3321,15 +3406,12 @@ UnifyTests.group("ui");
     );
     ui.field('[data-config-list="parameters"][data-key="type"]', "INT32");
     ui.field('[data-config-list="parameters"][data-key="value"]', "1000");
-    ui.click('[data-action="config-section"][data-section="preview"]');
-    assert.match(ui.get(".config-table-note").textContent, /3 sampled/);
     ui.click('[data-action="config-save"]');
     assert.equal(ui.get('[name="minimum-units"]').value, "1000");
     ui.click('[data-action="preview-stage"]');
     await finishPreview(ui);
     assert.equal(ui.rows(), 3);
     ui.click('[data-action="select-stage"][data-id="validate"]');
-    ui.click('[data-action="config-stage"]');
     ui.field('[data-config-field="input"]', alias);
     ui.click('[data-action="config-save"]');
     ui.click('[data-action="config-pipeline"]');
@@ -3361,13 +3443,14 @@ UnifyTests.group("ui");
 
   test("a parameter named minimumUnits can use its declared STRING type without a numeric global override", async (t) => {
     const ui = workspace(t);
-    ui.click('[data-action="config-stage"]');
-    ui.check('[data-config-query-input="Holdings"]', true);
-    ui.click('[data-action="config-section"][data-section="fields"]');
     ui.field(
-      "#definition-content",
+      "#sql-editor",
       "SELECT currency FROM Holdings WHERE currency = ?",
+      "input",
     );
+    ui.click('[data-action="editor-mode"][data-mode="inputs"]');
+    ui.check('[data-config-query-input="Holdings"]', true);
+    ui.click('[data-action="editor-mode"][data-mode="parameters"]');
     ui.field('[data-config-list="parameters"][data-key="type"]', "STRING");
     ui.field('[data-config-list="parameters"][data-key="value"]', "USD");
     ui.click('[data-action="config-save"]');
@@ -3465,7 +3548,8 @@ UnifyTests.group("ui");
     assert.equal(reload.rows(), 12);
     reload.click('[data-action="result-tab"][data-tab="schema"]');
     assert.match(reload.get("#result-content").textContent, /unitTextSTRING/);
-    reload.click('[data-action="config-stage"]');
+    // Loading the saved query on the Inputs and result tab replaces the SQL.
+    reload.click('[data-action="editor-mode"][data-mode="inputs"]');
     reload.field('[data-config-setting="reuseDefinitionId"]', definition.id);
     reload.click('[data-action="config-save"]');
     reload.click('[data-action="preview-stage"]');
@@ -4316,7 +4400,7 @@ UnifyTests.group("ui");
     const second = addStructure(ui, "workspaces", "Pipeline editor", ns);
     openStructure(ui, "workspaces", second.id);
     ui.click('[data-action="navigate"][data-view="pipelines"]');
-    ui.click('[data-action="revise-definition"][data-id="' + pipelineId + '"]');
+    ui.click('[data-action="configure-pipeline"][data-id="' + pipelineId + '"]');
     ui.field("#new-pipeline-name", "Pending rename", "input");
     chooseWorkspace(ui, first);
     savePipeline(ui);
@@ -4437,7 +4521,6 @@ UnifyTests.group("ui");
   test("functional design 0.15: join defaults suggest editable prefixed names for collisions", (t) => {
     const ui = workspace(t);
     ui.click('[data-action="select-stage"][data-id="join"]');
-    ui.click('[data-action="config-stage"]');
     ui.click('[data-action="config-section"][data-section="fields"]');
     const names = [
       ...ui.d.querySelectorAll('[data-config-list="projection"][data-key="name"]'),
@@ -4760,6 +4843,244 @@ UnifyTests.group("ui");
       );
     },
   );
+
+  test("data browser categories collapse, survive a restart and open for matches while searching", (t) => {
+    const ui = workspace(t);
+    const group = (app, name) =>
+      app.d.querySelector('#explorer-items details[data-browser-group="' + name + '"]');
+    let files = group(ui, "Files");
+    assert.equal(files.open, true);
+    assert.match(files.querySelector("summary").textContent, /Files\s*\d+/);
+    assert.ok(files.querySelector(".provider-tree-item"));
+    files.open = false;
+    files.dispatchEvent(new ui.w.Event("toggle"));
+    files = group(ui, "Files");
+    assert.equal(files.querySelector(".provider-tree-item"), null, "a collapsed category renders no entries");
+    assert.match(files.querySelector("summary").textContent, /Files\s*\d+/, "the count stays visible");
+    assert.ok(group(ui, "Reference").querySelector(".provider-tree-item"), "other categories stay open");
+    // A search opens every category with matches; clearing it restores the collapsed state.
+    ui.field("#source-search", "Holdings", "input");
+    assert.equal(group(ui, "Files").open, true);
+    assert.match(group(ui, "Files").textContent, /Holdings/);
+    ui.field("#source-search", "", "input");
+    assert.equal(group(ui, "Files").open, false);
+    // Kept separately from the Catalogue page's categories.
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    assert.equal(ui.get('details[data-catalogue-group="Files"]').open, true);
+    const reload = workspace(t, ui.stored());
+    assert.equal(group(reload, "Files").open, false, "the collapsed state survives a restart");
+    files = group(reload, "Files");
+    files.open = true;
+    files.dispatchEvent(new reload.w.Event("toggle"));
+    assert.ok(group(reload, "Files").querySelector(".provider-tree-item"));
+  });
+
+  test("connections offer a list view that filters, persists and is available to a Viewer", (t) => {
+    const ui = workspace(t);
+    ui.click('[data-action="navigate"][data-view="sources"]');
+    assert.ok(ui.d.querySelector(".connection-card"), "cards are the default");
+    ui.click('[data-action="connection-mode"][data-mode="list"]');
+    assert.equal(ui.d.querySelector(".connection-card"), null);
+    const table = ui.get('table[aria-label="Connections"]');
+    assert.deepEqual(
+      [...table.querySelectorAll("th")].map((th) => th.textContent.trim()),
+      ["Name", "Connector", "Endpoint", "Credential reference", "Actions"],
+    );
+    assert.equal(table.querySelectorAll("tbody tr").length, ui.saved().connections.length);
+    ui.field("#sources-filter", "rates", "input");
+    assert.equal(ui.d.querySelectorAll('table[aria-label="Connections"] tbody tr').length, 1);
+    assert.match(ui.get('table[aria-label="Connections"]').textContent, /Rates service.*workspace\/rates-reader/s);
+    ui.click('table[aria-label="Connections"] [data-action="connection-detail"]');
+    assert.match(ui.get('[role="dialog"]').textContent, /Rates service/);
+    ui.click('[data-action="close-modal"]');
+    ui.field("#sources-filter", "no such connection", "input");
+    assert.match(ui.get("#source-grid").textContent, /No matching connections/);
+    const reload = workspace(t, ui.stored());
+    reload.click('[data-action="navigate"][data-view="sources"]');
+    assert.ok(reload.d.querySelector('table[aria-label="Connections"]'), "the list choice survives a restart");
+    asRole(reload, "Viewer");
+    reload.click('[data-action="navigate"][data-view="sources"]');
+    reload.click('[data-action="connection-mode"][data-mode="cards"]');
+    assert.ok(reload.d.querySelector(".connection-card"), "a Viewer can switch views");
+  });
+
+  test("the organisations tree shows namespace and workspace branches and opens across organisations", (t) => {
+    const ui = workspace(t);
+    const first = structure(ui),
+      firstOrg = first.activeOrganisationId,
+      firstWorkspace = first.activeWorkspaceId,
+      sandbox = addStructure(ui, "namespaces", "Sandbox"),
+      other = addStructure(ui, "organisations", "Second organisation"),
+      model = structure(ui),
+      otherNamespace = model.namespaces.find((ns) => ns.organisationId === other.id);
+    manage(ui, "organisations");
+    const tree = ui.get('ul.structure-tree[role="tree"]');
+    assert.equal(tree.children.length, model.organisations.length);
+    const firstNode = [...tree.children].find((li) =>
+      li.querySelector('[data-action="structure-open"][data-kind="organisations"][data-id="' + firstOrg + '"]'),
+    );
+    const namespaces = model.namespaces.filter((ns) => ns.organisationId === firstOrg),
+      workspaces = model.workspaces.filter((w) => w.organisationId === firstOrg),
+      defaultNamespace = namespaces.find((ns) => ns.name === "default"),
+      referencing = workspaces.filter((w) => model.sessions[w.id]?.namespaceId === defaultNamespace.id).length;
+    assert.match(firstNode.textContent, /Current/);
+    assert.match(firstNode.textContent, new RegExp("Namespaces\\s*" + namespaces.length));
+    assert.match(firstNode.textContent, new RegExp("Design workspaces\\s*" + workspaces.length));
+    assert.match(firstNode.textContent, /Selected namespace: default/);
+    assert.match(firstNode.textContent, new RegExp(referencing + " design workspaces referencing"));
+    // Collapsing a branch hides its children; expanding shows them again.
+    const sandboxOpen = '[data-action="structure-open"][data-kind="namespaces"][data-id="' + sandbox.id + '"]';
+    assert.ok(ui.d.querySelector(sandboxOpen));
+    ui.click('[data-action="structure-tree-toggle"][data-key="ns:' + firstOrg + '"]');
+    assert.equal(ui.d.querySelector(sandboxOpen), null);
+    assert.equal(
+      ui.get('[data-action="structure-tree-toggle"][data-key="ns:' + firstOrg + '"]').getAttribute("aria-expanded"),
+      "false",
+    );
+    ui.click('[data-action="structure-tree-toggle"][data-key="ns:' + firstOrg + '"]');
+    assert.ok(ui.d.querySelector(sandboxOpen));
+    // Delete stays disabled with its reason.
+    const deleteFirst = ui.get('[data-action="structure-delete"][data-kind="organisations"][data-id="' + firstOrg + '"]');
+    assert.equal(deleteFirst.disabled, true);
+    assert.match(deleteFirst.closest(".structure-actions").textContent, /Contains namespace resources/);
+    // Open in the current organisation keeps the current workspace.
+    ui.click(sandboxOpen);
+    assert.equal(structure(ui).activeNamespaceId, sandbox.id);
+    assert.equal(structure(ui).activeWorkspaceId, firstWorkspace);
+    // Open in another organisation switches to it.
+    manage(ui, "organisations");
+    ui.click('[data-action="structure-open"][data-kind="namespaces"][data-id="' + otherNamespace.id + '"]');
+    assert.equal(structure(ui).activeOrganisationId, other.id);
+    assert.equal(structure(ui).activeNamespaceId, otherNamespace.id);
+  });
+
+  test("the header shows the current context and switches it from a menu", (t) => {
+    const ui = workspace(t);
+    const model = structure(ui),
+      sandbox = addStructure(ui, "namespaces", "Sandbox"),
+      org = model.organisations.find((o) => o.id === model.activeOrganisationId),
+      ws = model.workspaces.find((w) => w.id === model.activeWorkspaceId),
+      menu = () => ui.get("#context-menu"),
+      toggle = () => ui.get(".context-switch");
+    assert.equal(ui.d.querySelector(".context-bar"), null, "the context bar row is gone");
+    assert.match(toggle().textContent, new RegExp(org.name + " / default / " + ws.name));
+    assert.equal(menu().hidden, true);
+    toggle().click();
+    assert.equal(menu().hidden, false);
+    assert.equal(toggle().getAttribute("aria-expanded"), "true");
+    ui.d.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    assert.equal(menu().hidden, true, "Escape closes it");
+    toggle().click();
+    ui.get(".page").click();
+    assert.equal(menu().hidden, true, "an outside click closes it");
+    toggle().click();
+    ui.field("#scope-namespace", sandbox.id);
+    assert.equal(menu().hidden, true, "a completed switch closes it");
+    assert.match(toggle().textContent, /\/ Sandbox \//);
+    ui.click('[data-action="navigate"][data-view="workspace"]');
+    ui.click('[data-action="navigate"][data-view="providers"]');
+    ui.field("#scope-namespace", model.activeNamespaceId);
+    ui.click('[data-action="navigate"][data-view="workspace"]');
+    ui.click('[data-action="run-pipeline"]');
+    assert.equal(toggle().disabled, true, "unavailable while a preview runs");
+    ui.click('[data-action="cancel-run"]');
+    assert.equal(toggle().disabled, false);
+  });
+
+  test("the pipelines page lists saved pipelines and opens them with the unsaved-changes prompt", async (t) => {
+    const ui = workspace(t);
+    const firstId = ui.saved().pipelineId;
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.equal(ui.d.querySelector(".stat-box"), null, "no count boxes");
+    const rowOf = (id) => ui.get('table[aria-label="Saved pipelines"] tr[data-pipeline-id="' + id + '"]');
+    assert.match(rowOf(firstId).textContent, /Open in workbench/);
+    assert.match(rowOf(firstId).textContent, /stages →/);
+    assert.match(ui.get(".page-heading").textContent, /open in the workbench/);
+    // A second pipeline, then edit it without saving.
+    ui.click('[data-action="new-pipeline"]');
+    ui.field("#new-pipeline-name", "Second pipeline");
+    ui.click('[data-action="config-save"]');
+    const secondId = ui.saved().pipelineId;
+    assert.notEqual(secondId, firstId);
+    ui.field("#panel-stage-name", "Edited but unsaved");
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.match(rowOf(secondId).textContent, /Open in workbench · unsaved/);
+    assert.doesNotMatch(rowOf(firstId).textContent, /Open in workbench/);
+    assert.match(ui.get(".page-heading").textContent, /with unsaved changes/);
+    assert.doesNotMatch(ui.get('table[aria-label="Saved pipelines"]').textContent, /Configured local pipeline/);
+    // Opening another pipeline asks first; discarding switches to it.
+    ui.click('[data-action="open-pipeline"][data-id="' + firstId + '"]');
+    assert.match(ui.get('[role="dialog"]').textContent, /Save or discard your changes/);
+    assert.match(ui.get('[role="dialog"]').textContent, /Opening “/);
+    ui.click('[data-action="discard-pipeline-draft"]');
+    assert.equal(ui.saved().pipelineId, firstId);
+    assert.match(ui.get(".global-header").textContent, /Design workspace/);
+    assert.equal(ui.d.querySelector('[role="dialog"]'), null);
+    // Without unsaved changes, Open switches directly.
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    ui.click('[data-action="open-pipeline"][data-id="' + secondId + '"]');
+    assert.equal(ui.d.querySelector('[role="dialog"]'), null);
+    assert.equal(ui.saved().pipelineId, secondId);
+    assert.notEqual(ui.get("#panel-stage-name").value, "Edited but unsaved", "the discarded edit is gone");
+    // Save version first, then continue to the pipeline.
+    ui.field("#panel-stage-name", "Saved before switching");
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    ui.click('[data-action="open-pipeline"][data-id="' + firstId + '"]');
+    ui.click('[role="dialog"] [data-action="save-version"]');
+    ui.click('[data-action="confirm-save"]');
+    assert.equal(ui.saved().pipelineId, firstId);
+    const second = ui.saved().definitions.find((d) => d.id === secondId);
+    assert.match(second.content, /Saved before switching/);
+    // Last run comes from this pipeline's runs.
+    ui.click('[data-action="run-pipeline"]');
+    await finishPreview(ui);
+    assert.equal(ui.saved().runs[0].pipelineId, firstId);
+    ui.click('[data-action="navigate"][data-view="pipelines"]');
+    assert.match(rowOf(firstId).textContent, /Preview · Completed/);
+    assert.match(rowOf(secondId).textContent, /Never run/);
+    // Configure on the open pipeline edits the workbench's design.
+    ui.click('[data-action="configure-pipeline"][data-id="' + firstId + '"]');
+    assert.ok(ui.get('table[aria-label="Pipeline inputs and outputs"]'));
+  });
+
+  test("info icons open help popovers for screens and actions, for every role", (t) => {
+    const ui = workspace(t);
+    const entries = Object.entries(window.UnifyApp.help || {});
+    assert.ok(entries.length > 30, "help entries are published");
+    for (const [key, entry] of entries) {
+      assert.ok(entry.title, key + " has a title");
+      assert.ok(entry.text, key + " has text");
+    }
+    const views = ["workspace", "providers", "catalog", "pipelines", "runs", "sources"];
+    for (const view of views) {
+      ui.click('[data-action="navigate"][data-view="' + view + '"]');
+      assert.ok(ui.d.querySelector('.page-heading [data-help="screen-' + view + '"]'), view + " has screen help");
+    }
+    ui.click('[data-action="navigate"][data-view="workspace"]');
+    for (const key of ["run-pipeline", "execute-pipeline", "save-version", "versions", "engine", "data-browser", "add-stage"])
+      assert.ok(ui.d.querySelector('[data-action="show-help"][data-help="' + key + '"]'), key + " has an info icon");
+    const runsBefore = ui.saved().runs.length;
+    ui.click('[data-action="show-help"][data-help="run-pipeline"]');
+    const popover = ui.get("#help-popover");
+    assert.match(popover.textContent, /Preview pipeline.*sample rows/s);
+    assert.equal(ui.d.querySelector(".progress-strip"), null, "opening help never runs the action");
+    assert.equal(ui.saved().runs.length, runsBefore);
+    ui.click('#help-popover [data-action="close-help"]');
+    assert.equal(ui.d.querySelector("#help-popover"), null, "the close button closes it");
+    ui.click('[data-action="show-help"][data-help="execute-pipeline"]');
+    assert.match(ui.get("#help-popover").textContent, /Queued, Running and Publishing/);
+    ui.d.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    assert.equal(ui.d.querySelector("#help-popover"), null, "Escape closes it");
+    ui.click('[data-action="show-help"][data-help="engine"]');
+    ui.get(".page-heading h1").click();
+    assert.equal(ui.d.querySelector("#help-popover"), null, "an outside click closes it");
+    // Help stays available for an action the role cannot use.
+    asRole(ui, "Viewer");
+    assert.equal(enabled(ui, '[data-action="execute-pipeline"]'), false);
+    ui.click('[data-action="show-help"][data-help="execute-pipeline"]');
+    assert.ok(ui.get("#help-popover"));
+    ui.click('#help-popover [data-action="close-help"]');
+  });
 
   test("progress shows the current stage out of the total", (t) => {
     const ui = workspace(t);
